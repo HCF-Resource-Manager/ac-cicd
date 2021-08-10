@@ -247,7 +247,7 @@ def updateGithubCommitStatus(message, state) {
     }
 }
 
-docker_object_name = "ansible-test-image:${env.BUILD_ID}"
+docker_object_name = "ansible4-test-image:${env.BUILD_ID}"
 
 node('master') {
     currentBuild.result = 'SUCCESS'
