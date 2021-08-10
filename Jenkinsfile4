@@ -1,0 +1,410 @@
+#!groovy
+
+import java.util.regex.*
+import groovy.io.FileType
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import org.apache.commons.io.FilenameUtils
+
+properties (
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '')
+        ),
+        disableConcurrentBuilds(),
+        parameters(
+            [
+                // ? change host from string to choices once consistent environments?
+                string(name: 'BRANCH', defaultValue: 'dev'),
+                string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
+                // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
+                credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
+                string(name: 'USERNAME', defaultValue: 'omvsadm'),
+                string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8', required: true),
+                text(
+                    name: 'ENVIRONMENT',
+                    defaultValue: """\
+                        _BPXK_AUTOCVT: "ON"
+                        _CEE_RUNOPTS: "'FILETAG(AUTOCVT,AUTOTAG) POSIX(ON)'"
+                        _TAG_REDIR_ERR: txt
+                        _TAG_REDIR_IN: txt
+                        _TAG_REDIR_OUT: txt
+                        LANG: C
+                        ZOAU_ROOT: "/zoau/v1.2.0"
+                        ZOAU_HOME: "/zoau/v1.2.0"
+                        LIBPATH: "/zoau/v1.2.0/lib:/python3/usr/lpp/IBM/cyp/v3r8/pyz/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "/zoau/v1.2.0"
+                        PYTHONPATH: "/zoau/v1.2.0/lib"
+                        PATH: "/zoau/v1.2.0/bin:/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
+                    required: true
+                    ),
+                string(name: 'REPO', defaultValue: 'ibm_zos_core'),
+            ]
+        )
+    ]
+)
+
+YAMLLINT_CONFIG_CONTENTS = '''extends: default
+rules:
+  braces: {max-spaces-inside: 1, level: error}
+  brackets: {max-spaces-inside: 1, level: error}
+  colons: {max-spaces-after: -1, level: error}
+  commas: {max-spaces-after: -1, level: error}
+  comments: disable
+  comments-indentation: disable
+  document-start: disable
+  empty-lines: {max: 3, level: error}
+  hyphens: {level: error}
+  indentation: disable
+  key-duplicates: enable
+  line-length: disable
+  new-line-at-end-of-file: disable
+  new-lines: {type: unix}
+  trailing-spaces: disable
+  truthy: disable
+'''
+
+ANSIBLE_CONFIG_CONTENTS = '''#######
+[defaults]
+forks = 25
+timeout = 30
+
+[ssh_connection]
+pipelining = True
+'''
+
+GITHUB_URL = 'api.github.com'
+
+/* -------------------------------------------------------------------------- */
+/*                                File builders                               */
+/* -------------------------------------------------------------------------- */
+
+// Buld and returns a string to be used as the contents of
+// a YAML-formatted configuration file. The configuration file
+// is consumed by functional testing pytest fixtures
+def generateYmlConfig = { hostName, username, pythonPath, environment ->
+    def indent = '    '
+    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
+    return """host: ${hostName}
+user: ${username}
+python_path: ${pythonPath}
+environment:
+${indentedEnv}
+"""
+}
+
+// Build and return a string to use as contents for an Ansible inventory file
+def generateInventory = { hostName, username, pythonPath ->
+    return "${hostName} ansible_user=${username} ansible_python_interpreter=${pythonPath}"
+}
+
+// Build and return a string to use as contents for
+// a YAML-formatted Ansible vars file for consumption by Ansible playbook
+def generateGroupVars = { environment ->
+    def indent = '    '
+    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
+    return """environment_vars:
+${indentedEnv}
+"""
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        Log parsers / error checkers                        */
+/* -------------------------------------------------------------------------- */
+
+// Determine if any of the testcases failed
+// expects pytest output formatting
+def checkForPytestFails(output) {
+    if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(output).find()) {
+        def slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
+        error("One or more pytest testcases failed! \n ${slim_output}")
+    }
+}
+
+// Determines if functional tests failed due to connection errors
+def checkForConnectionErrors(output) {
+    return Pattern.compile(/(?:pytest\_ansible.errors.AnsibleConnectionFailure\:\sHost\sunreachable)/).matcher(output).find()
+}
+
+// Determine if any YAML formatting errors
+// expects yamllint output formatting using custom rules provided in "yamllint.yml"
+def checkForYamlLintErrors(output) {
+    if (Pattern.compile(/\s(?:warning|error)\s/).matcher(output).find()) {
+        error("YAMLLint detected warnings and/or errors! \n ${output}")
+    }
+}
+
+// Determine if any Ansible playbook formatting errors
+// expects ansible-lint output formatting using default rules
+def checkForAnsibleLintErrors(output) {
+    if (Pattern.compile(/^[1-9][0-9]{2,}\s/, Pattern.MULTILINE).matcher(output).find()) {
+        throw new Exception("ansible-lint detected errors! \n ${output}")
+}
+}
+
+// Determine if any tasks failed in a playbook
+// expects output of ansible-playbook
+def checkForAnsiblePlaybookFailure(output) {
+    if (!Pattern.compile(/^[^\s]+\s+\:\sok=[0-9]+\s+changed=[0-9]+\s+unreachable=0\s+failed=0\s+skipped=0\s+rescued=[0-9]+\s+ignored=0/, Pattern.MULTILINE).matcher(output).find()) {
+        error("one or more steps failed during playbook execution, or host was unreachable! \n ${output}")
+    }
+}
+
+// Determine if module has invalid documentation
+// formatting or is missing documentation
+// expects output of ansible-doc
+def checkForAnsibleDocErrors(output) {
+    if (Pattern.compile(/^ERROR!\smodule\s[^\s]+\smissing documentation/).matcher(output).find()) {
+        error("one or more modules has invalid documentation! \n ${output}")
+    }
+}
+
+// Determine if ansible-test raised any errors
+// expects output of ansible-test sanity
+def checkForAnsibleTestErrors(output) {
+    if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
+        error('ansible-test encountered an internal error!')
+    }
+    def errorString = ''
+    def errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
+    while (errors.find()) {
+        errorString = errorString + errors.group(1) + '\n'
+    }
+    if (errorString != '') {
+        error("ansible-test detected errors! \n ${errorString}")
+    }
+}
+
+def checkForBanditErrors(output) {
+    if (Pattern.compile(/>>\s+Issue:\s\[/).matcher(output).find()) {
+        error("Bandit returned errors! \n ${output}")
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           helper functions                                 */
+/* -------------------------------------------------------------------------- */
+
+@NonCPS
+def getPythonScriptsInDir(dirToScan) {
+    def pythonScripts = []
+    new File(dirToScan).eachFile(FileType.FILES) { def f ->
+        if (f.name.endsWith('.py')) {
+            pythonScripts.add(f.name)
+        }
+    }
+    return pythonScripts
+}
+
+// Return boolean indicating whether a file
+// at the provided path is an Ansible module
+def isAnsibleModule(path) {
+    // text to search for, should be present in ansible module
+    def identifyingText = 'AnsibleModule'
+
+    def fileContent = new File(path)
+    if (fileContent.getText('UTF-8').find(identifyingText)) {
+        return true
+    }
+    return false
+}
+
+def checkout() {
+    dir(env.WORKSPACE) {
+        sh "rm -rf ${REPO}"
+        sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}"
+    }
+}
+
+def triggeredByPullRequest() {
+    return (env.x_github_event == 'pull_request' ? true : false)
+}
+
+def getRepoURL() {
+    if (triggeredByPullRequest()) {
+        return env.git_pull_request_head_ssh_url
+    }
+    return env.git_push_ssh_url
+}
+def getCommitSha() {
+    if (triggeredByPullRequest()) {
+        return env.git_pull_request_sha
+    }
+    return env.git_commit_sha
+}
+
+// Update status check on github for particular commit
+def updateGithubCommitStatus(message, state) {
+    repoUrl = getRepoURL()
+    commitSha = getCommitSha()
+    def requestBody = JsonOutput.toJson([state: state, description: message, context: 'continuous-integration/jenkins'])
+    withCredentials([string(credentialsId: 'publicjenkinscommentertoken', variable: 'GITHUB_TOKEN')]) {
+        httpRequest customHeaders: [[name: 'Authorization', value: "token ${GITHUB_TOKEN}"]], httpMode: 'POST', requestBody: requestBody, url: "https://${GITHUB_URL}/repos/${git_full_repo_name}/statuses/${commitSha}"
+    }
+}
+
+docker_object_name = "ansible-test-image:${env.BUILD_ID}"
+
+node('master') {
+    currentBuild.result = 'SUCCESS'
+
+    stage('Checkout') {
+        checkout()
+    }
+    stage('Build Docker Image') {
+        // Write Dockerfile
+        DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
+#                   Docker Image for Testing Environment                       #
+# ---------------------------------------------------------------------------- #
+FROM python:3.9-slim-buster
+WORKDIR /usr/src/app
+# ------------- Environment Variables ------------- #
+# * These paths will exist after volume mount performed by Jenkins
+# Path to Ansible modules
+ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
+# Path to Ansible config
+ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
+COPY ${REPO}/tests/requirements.txt ./
+# --------------------------- Package installation Stage 1 --------------------------- #
+RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client ansible==4.0.0 python-pip && pip3 install --no-cache-dir -r requirements.txt && pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
+# ----------------------------- Copy dependencies ---------------------------- #
+COPY ${REPO} ./${REPO}/
+# --------------------------- Package installation Stage 2 --------------------------- #
+# Update package info, install ansible and openssh
+RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
+# -------------------- Map UID and GID to Jenkins host IDs ------------------- #
+ARG UNAME=jenkins
+ARG UID=114
+ARG GID=121
+""" +
+'''RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER ${UNAME}
+ENV PATH="/home/jenkins/.local/bin:${PATH}"
+# ----------------------------- Configure SSH key ---------------------------- #
+# Address of host to run tests against
+ARG TARGET_HOST
+# Private key contents that can be used to connect to TARGET_HOST
+ARG TARGET_HOST_PRIVATE_KEY
+RUN mkdir -p /home/jenkins/.ssh/
+COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
+# COPY --chown=jenkins:jenkins configuration.yml ./
+# Add SSH key to system and ensure domain is accepted
+RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
+    touch /home/jenkins/.ssh/known_hosts && \
+    ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
+'''
+        writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
+        sh 'cat Dockerfile'
+        sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
+        // Create YAML config file for use by pytest fixtures
+        writeFile(file: "${REPO}/configuration.yml",
+            text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+        withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
+            sh "set +x ; cat ${privKey} > sshkey"
+            ansibleTestingImage = docker.build(docker_object_name,
+                "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
+            sh 'rm sshkey'
+        }
+        sh 'chmod -R 777 .'
+    }
+    stage ('Test Collection Build and Install') {
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}") {
+                // Attempt to build the collection
+                out = sh script: 'ansible-galaxy collection build . --force'
+                // Install the built collection
+                out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                out = sh 'ansible --version'
+                echo out
+                out = sh 'python --version'
+                echo out
+            }
+        }
+    }
+    stage('ansible-test Sanity Tests') {
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}") {
+                // Attempt to build the collection
+                def out = sh script: 'ansible-galaxy collection build . --force'
+                // Install the built collection
+                out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
+
+                dir("ansible_collections/ibm/${REPO}") {
+                    out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
+                    checkForAnsibleTestErrors(out)
+                }
+            }
+        }
+    }
+    stage('Bandit Security Scan') {
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}/plugins") {
+                out = sh script: 'bandit -r -ll -ii . || true', returnStdout: true
+                checkForBanditErrors(out)
+            }
+        }
+    }
+    stage('Unit and Functional Tests') {
+        // Build debian image containing all requirements for test cases
+        // then run our testcases in the image
+        checkout()
+        // write our own ansible.cfg to ensure correctness
+        dir("${REPO}") {
+            dir('playbooks') {
+                writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
+            }
+            writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME,
+                PYTHON_PATH, ENVIRONMENT))
+        }
+
+        ansibleTestingImage.inside("-u jenkins\
+        -e TARGET_HOST=${TARGET_HOST}\
+        -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
+        -e ANSIBLE_ACTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/action\
+        -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
+        -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
+        -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
+        -e ANSIBLE_TIMEOUT=30") {
+            dir("${REPO}") {
+                // Install collection so module_utils imports will be valid in modules
+                // Attempt to build the collection
+                sh script: 'ansible-galaxy collection build . --force'
+                // Install the built collection
+                sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+
+                dir('tests') {
+                    def branchToCompare = 'origin/dev'
+                    if ( "${BRANCH}" == 'dev') {
+                        branchToCompare = 'origin/master'
+                    }
+                    sh 'git branch'
+                    sh 'pwd'
+                    def tests = sh script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s functional/modules/test_module_security.py || true", returnStdout: true
+                    echo '---- Tests Found ----'
+                    echo tests
+                    echo '---------------------'
+                    if (tests) {
+                        def out = ''
+                        for (int i = 0; i < 10; i++) {
+                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
+                            if (checkForConnectionErrors(out)) {
+                                sleep(20)
+                            } else {
+                                break
+                            }
+                        }
+                        echo out
+                        checkForPytestFails(out)
+                    }
+                }
+            }
+        }
+    }
+    out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
+    echo out
+}
