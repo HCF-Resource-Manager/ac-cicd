@@ -3,6 +3,8 @@
 /* This is the evolution of J3 (blake + post-clean) towards MP-4+ */
 /* groovylint-disable NestedBlockDepth */
 /* groovylint-disable GStringExpressionWithinString */
+/* groovylint-disable LineLength */
+
 /* groovylint-disable-next-line NoWildcardImports */
 import java.util.regex.*
 
@@ -194,7 +196,6 @@ RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get ins
 COPY ${REPO} ./${REPO}/
 # --------------------------- Package installation Stage 2 --------------------------- #
 # Update package info, install ansible and openssh
-/* groovylint-disable-next-line LineLength */
 RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
 # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
 ARG UNAME=jenkins
