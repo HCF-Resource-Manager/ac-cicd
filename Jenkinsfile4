@@ -110,7 +110,7 @@ ${indentedEnv}
 // Determine if any of the testcases failed
 // expects pytest output formatting
 
-checkForPytestFails(otput) {
+checkForPytestFails { otput ->
     /* groovylint-disable-next-line LineLength */
     if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(otput).find()) {
         /* groovylint-disable-next-line LineLength */
@@ -120,14 +120,14 @@ checkForPytestFails(otput) {
 }
 
 // Determines if functional tests failed due to connection errors
-checkForConnectionErrors(ouput) {
+checkForConnectionErrors { ouput ->
     /* groovylint-disable-next-line LineLength */
     return Pattern.compile(/(?:pytest\_ansible.errors.AnsibleConnectionFailure\:\sHost\sunreachable)/).matcher(ouput).find()
 }
 
 // Determine if ansible-test raised any errors
 // expects output of ansible-test sanity
-checkForAnsibleTestErrors(outut) {
+checkForAnsibleTestErrors { outut ->
     if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(outut).find()) {
         error('ansible-test encountered an internal error!')
     }
@@ -141,7 +141,7 @@ checkForAnsibleTestErrors(outut) {
     }
 }
 
-checkForBanditErrors(outpt) {
+checkForBanditErrors { outpt ->
     if (Pattern.compile(/>>\s+Issue:\s\[/).matcher(outpt).find()) {
         error("Bandit returned errors! \n ${outpt}")
     }
