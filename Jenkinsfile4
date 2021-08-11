@@ -157,7 +157,7 @@ checkout = {
     dir(env.WORKSPACE) {
         sh "rm -rf ${REPO}"
         sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}"
-        sh "sed -i 's/2.9.6/4.0.0/g' tests/requirements.txt"
+        sh "sed -i 's/2.9.6/4.0.0/g' ${REPO}/tests/requirements.txt"
     }
 }
 
