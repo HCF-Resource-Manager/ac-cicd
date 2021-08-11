@@ -151,14 +151,14 @@ checkForBanditErrors = { outpt ->
 /*                           helper functions                                 */
 /* -------------------------------------------------------------------------- */
 
-checkout {
+checkout = {
     dir(env.WORKSPACE) {
         sh "rm -rf ${REPO}"
         sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}"
     }
 }
 
-buildInstall {
+buildInstall = {
     // Attempt to build the collection
     out = sh script: 'ansible-galaxy collection build . --force'
     // Install the built collection
