@@ -11,20 +11,22 @@ properties (
         buildDiscarder(
             logRotator(
                 artifactDaysToKeepStr: '',
-                artifactNumToKeepStr: '',
+                artifactNumToKeepStr: '60',
                 daysToKeepStr: '',
-                numToKeepStr: '')
+                numToKeepStr: '30')
         ),
         disableConcurrentBuilds(),
         parameters(
             [
                 // ? change host from string to choices once consistent environments?
+                string(name: 'REPO', defaultValue: 'ibm_zos_core'),
                 string(name: 'BRANCH', defaultValue: 'dev'),
                 string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
-                // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
-                credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
+                credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2',
+                    credentialType: 'SSH Username with private key' ),
                 string(name: 'USERNAME', defaultValue: 'omvsadm'),
-                string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8', required: true),
+                string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8',
+                    required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
@@ -41,8 +43,7 @@ properties (
                         PYTHONPATH: "/zoau/v1.2.0/lib"
                         PATH: "/zoau/v1.2.0/bin:/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
-                    ),
-                string(name: 'REPO', defaultValue: 'ibm_zos_core'),
+                ),
             ]
         )
     ]
@@ -97,21 +98,6 @@ ${indentedEnv}
 """
 }
 
-// Build and return a string to use as contents for an Ansible inventory file
-def generateInventory = { hostName, username, pythonPath ->
-    return "${hostName} ansible_user=${username} ansible_python_interpreter=${pythonPath}"
-}
-
-// Build and return a string to use as contents for
-// a YAML-formatted Ansible vars file for consumption by Ansible playbook
-def generateGroupVars = { environment ->
-    def indent = '    '
-    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
-    return """environment_vars:
-${indentedEnv}
-"""
-}
-
 /* -------------------------------------------------------------------------- */
 /*                        Log parsers / error checkers                        */
 /* -------------------------------------------------------------------------- */
@@ -120,7 +106,7 @@ ${indentedEnv}
 // expects pytest output formatting
 def checkForPytestFails(output) {
     if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(output).find()) {
-        def slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
+        slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
         error("One or more pytest testcases failed! \n ${slim_output}")
     }
 }
@@ -235,16 +221,6 @@ def getCommitSha() {
         return env.git_pull_request_sha
     }
     return env.git_commit_sha
-}
-
-// Update status check on github for particular commit
-def updateGithubCommitStatus(message, state) {
-    repoUrl = getRepoURL()
-    commitSha = getCommitSha()
-    def requestBody = JsonOutput.toJson([state: state, description: message, context: 'continuous-integration/jenkins'])
-    withCredentials([string(credentialsId: 'publicjenkinscommentertoken', variable: 'GITHUB_TOKEN')]) {
-        httpRequest customHeaders: [[name: 'Authorization', value: "token ${GITHUB_TOKEN}"]], httpMode: 'POST', requestBody: requestBody, url: "https://${GITHUB_URL}/repos/${git_full_repo_name}/statuses/${commitSha}"
-    }
 }
 
 docker_object_name = "ansible4-test-image:${env.BUILD_ID}"
