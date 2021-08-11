@@ -177,6 +177,11 @@ node('master') {
         checkout()
     }
     stage('Build Docker Image') {
+        echo '---------------------'
+        out = sh "cat ${REPO}/tests/requirements.txt"
+        echo out
+        echo '---------------------'
+
         // Write Dockerfile
         DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
 #                   Docker Image for Testing Environment                       #
