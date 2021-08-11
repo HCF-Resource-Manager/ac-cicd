@@ -110,7 +110,7 @@ ${indentedEnv}
 // Determine if any of the testcases failed
 // expects pytest output formatting
 
-checkForPytestFails { otput ->
+checkForPytestFails = { otput ->
     /* groovylint-disable-next-line LineLength */
     if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(otput).find()) {
         /* groovylint-disable-next-line LineLength */
@@ -120,14 +120,14 @@ checkForPytestFails { otput ->
 }
 
 // Determines if functional tests failed due to connection errors
-checkForConnectionErrors { ouput ->
+checkForConnectionErrors = { ouput ->
     /* groovylint-disable-next-line LineLength */
     return Pattern.compile(/(?:pytest\_ansible.errors.AnsibleConnectionFailure\:\sHost\sunreachable)/).matcher(ouput).find()
 }
 
 // Determine if ansible-test raised any errors
 // expects output of ansible-test sanity
-checkForAnsibleTestErrors { outut ->
+checkForAnsibleTestErrors = { outut ->
     if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(outut).find()) {
         error('ansible-test encountered an internal error!')
     }
@@ -141,7 +141,7 @@ checkForAnsibleTestErrors { outut ->
     }
 }
 
-checkForBanditErrors { outpt ->
+checkForBanditErrors = { outpt ->
     if (Pattern.compile(/>>\s+Issue:\s\[/).matcher(outpt).find()) {
         error("Bandit returned errors! \n ${outpt}")
     }
@@ -156,23 +156,6 @@ checkout {
         sh "rm -rf ${REPO}"
         sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}"
     }
-}
-
-triggeredByPullRequest {
-    return (env.x_github_event == 'pull_request')
-}
-
-getRepoURL {
-    if (triggeredByPullRequest()) {
-        return env.git_pull_request_head_ssh_url
-    }
-    return env.git_push_ssh_url
-}
-getCommitSha {
-    if (triggeredByPullRequest()) {
-        return env.git_pull_request_sha
-    }
-    return env.git_commit_sha
 }
 
 buildInstall {
@@ -246,7 +229,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
             ansibleTestingImage = docker.build(docker_object_name,
-                "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
+                "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' -v .")
             sh 'rm sshkey'
         }
         sh 'chmod -R 777 .'
