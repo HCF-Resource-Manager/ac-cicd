@@ -2,7 +2,7 @@
 
 /* This is the evolution of J3 (blake + post-clean) towards MP-4+ */
 /* groovylint-disable NestedBlockDepth */
-
+/* groovylint-disable GStringExpressionWithinString */
 /* groovylint-disable-next-line NoWildcardImports */
 import java.util.regex.*
 
@@ -202,7 +202,6 @@ ARG UNAME=jenkins
 ARG UID=114
 ARG GID=121
 """ +
-/* groovylint-disable-next-line GStringExpressionWithinString */
 '''RUN groupadd -g $GID -o $UNAME
 RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
 USER ${UNAME}
