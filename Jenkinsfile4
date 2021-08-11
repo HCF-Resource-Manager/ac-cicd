@@ -6,6 +6,7 @@
 /* groovylint-disable-next-line NoWildcardImports */
 import java.util.regex.*
 
+/* groovylint-disable-next-line CompileStatic */
 DEVBRANCH = 'dev'
 
 /* groovylint-disable-next-line CompileStatic */
@@ -94,7 +95,7 @@ NL = '\n'
 // is consumed by functional testing pytest fixtures
 generateYmlConfig = { hostName, username, pythonPath, environment ->
     indent = '    '
-    indentedEnv = indent + environment.split(NL).join(NL + indent)
+    indentedEnv = indent + environment.split("${NL}").join("${NL}" + indent)
     return """host: ${hostName}
 user: ${username}
 python_path: ${pythonPath}
