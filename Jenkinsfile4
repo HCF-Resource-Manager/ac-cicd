@@ -189,9 +189,20 @@ WORKDIR /usr/src/app
 ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
 # Path to Ansible config
 ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-COPY ${REPO}/tests/requirements.txt ./
+COPY ${REPO}/tests/requirements.txt ./requirements.txt
 # --------------------------- Package installation Stage 1 --------------------------- #
-RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client ansible=4.0.0 python-pip && pip3 install --no-cache-dir -r requirements.txt && pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
+# RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client ansible=4.0.0 python-pip && pip3 install --no-cache-dir -r requirements.txt && pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
+RUN apt-get update && apt-get install -y gnupg2 && apt-get update
+RUN apt-get install -y git python3-pip openssh-client sshpass
+RUN apt-get install -y libyaml-dev
+## shellcheck tests if something will be run at shell level.  Skip it
+RUN apt-get remove -y shellcheck
+RUN pip install --upgrade pip
+RUN pip install virtualenv
+RUN pip3 install virtualenv
+RUN pip3 install ansible==4.0.0
+RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
 # ----------------------------- Copy dependencies ---------------------------- #
 COPY ${REPO} ./${REPO}/
 # --------------------------- Package installation Stage 2 --------------------------- #
