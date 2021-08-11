@@ -6,6 +6,8 @@
 /* groovylint-disable-next-line NoWildcardImports */
 import java.util.regex.*
 
+DEVBRANCH = 'dev'
+
 /* groovylint-disable-next-line CompileStatic */
 properties (
     [
@@ -82,7 +84,6 @@ pipelining = True
 
 GITHUB_URL = 'api.github.com'
 NL = '\n'
-DEVBRANCH = 'dev'
 
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
@@ -315,7 +316,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 out = buildInstall()
 
                 dir('tests') {
-                    if ( "${BRANCH}" == DEVBRANCH) {
+                    if ( "${BRANCH}" == "${DEVBRANCH}") {
                         branchToCompare = 'origin/master'
                     }
                     else {
