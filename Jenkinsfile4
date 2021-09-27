@@ -278,6 +278,9 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 out = buildInstall()
 
                 dir("ansible_collections/ibm/${REPO}") {
+                    out = sh 'ansible-test sanity --list-tests'
+                    echo "\nSanity Tests List:\n" + out + "\n"
+
                     out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
                     checkForAnsibleTestErrors(out)
                 }
