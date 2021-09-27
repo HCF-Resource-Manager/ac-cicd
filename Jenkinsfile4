@@ -213,6 +213,7 @@ RUN pip install virtualenv
 RUN pip3 install virtualenv
 RUN pip3 install ansible==4.2.0
 RUN pip3 install --upgrade pycodestyle
+RUN pip3 install voluptuous
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
 # ----------------------------- Copy dependencies ---------------------------- #
