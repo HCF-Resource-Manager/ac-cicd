@@ -140,7 +140,7 @@ checkForAnsibleTestErrors = { outut ->
         errorString = errorString + errors.group(1) + NL
     }
     if (errorString != '') {
-        error("ansible-test detected errors! \n ${errorString}")
+        error("ansible-test detected errors! \n--${errorString}--\n!!${outut}!!\n")
     }
 }
 
