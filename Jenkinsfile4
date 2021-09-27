@@ -8,6 +8,9 @@
 /* groovylint-disable-next-line NoWildcardImports */
 import java.util.regex.*
 
+/* groovylint-disable-next-line CompileStatic */
+DEVBRANCH = 'dev'
+
 properties (
     [
         buildDiscarder(
@@ -22,7 +25,7 @@ properties (
             [
                 // ? change host from string to choices once consistent environments?
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                string(name: 'BRANCH', defaultValue: 'dev'),
+                string(name: 'BRANCH', defaultValue: $DEVBRANCH),
                 string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2',
                     credentialType: 'SSH Username with private key' ),
@@ -53,9 +56,6 @@ properties (
         )
     ]
 )
-
-/* groovylint-disable-next-line CompileStatic */
-DEVBRANCH = 'dev'
 
 YAMLLINT_CONFIG_CONTENTS = '''extends: default
 rules:
@@ -140,7 +140,7 @@ checkForAnsibleTestErrors = { outut ->
         errorString = errorString + errors.group(1) + NL
     }
     if (errorString != '') {
-        error("ansible-test detected errors! \n--${errorString}--\n!!${outut}!!\n")
+        error("ansible-test detected errors! \n-- Trapped: ${errorString}--\n!! Full output: ${outut}!!\n")
     }
 }
 
@@ -158,7 +158,7 @@ checkout = {
     dir(env.WORKSPACE) {
         sh "rm -rf ${REPO}"
         sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}"
-        sh "sed -i 's/2.9.6/4.0.0/g' ${REPO}/tests/requirements.txt"
+        sh "sed -i 's/2.9.6/4.2.0/g' ${REPO}/tests/requirements.txt"
     }
 }
 
@@ -170,6 +170,11 @@ buildInstall = {
     return out
 }
 
+makeflag = { title ->
+    tstr = '======================================\n'
+    echo tstr + "${title}\n" + tstr
+}
+
 docker_object_name = "ansible4-test-image:${env.BUILD_ID}"
 
 node('master') {
@@ -179,10 +184,9 @@ node('master') {
         checkout()
     }
     stage('Build Docker Image') {
-        echo '---------------------'
+        makeflag( 'Build image' )
         out = sh "cat ${REPO}/tests/requirements.txt"
         echo out
-        echo '---------------------'
 
         // Write Dockerfile
         DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
@@ -208,6 +212,7 @@ RUN pip install --upgrade pip
 RUN pip install virtualenv
 RUN pip3 install virtualenv
 RUN pip3 install ansible==4.2.0
+RUN pip3 install --upgrade pycodestyle
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
 # ----------------------------- Copy dependencies ---------------------------- #
@@ -253,6 +258,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         sh 'chmod -R 777 .'
     }
     stage ('Test Collection Build and Install') {
+        makeflag( 'Test Collection build' )
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
                 out = buildInstall()
@@ -265,6 +271,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         }
     }
     stage('ansible-test Sanity Tests') {
+        makeflag( 'Ansible Sanity' )
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
                 out = buildInstall()
@@ -277,6 +284,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         }
     }
     stage('Bandit Security Scan') {
+        makeflag( 'Bandit' )
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}/plugins") {
                 out = sh script: 'bandit -r -ll -ii . || true', returnStdout: true
@@ -285,6 +293,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         }
     }
     stage('Unit and Functional Tests') {
+        makeflag( 'Unit Tests' )
         // Build debian image containing all requirements for test cases
         // then run our testcases in the image
         checkout()
