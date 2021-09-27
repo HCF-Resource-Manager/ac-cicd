@@ -8,7 +8,6 @@
 /* groovylint-disable-next-line NoWildcardImports */
 import java.util.regex.*
 
-@CompileStatic
 properties (
     [
         buildDiscarder(
