@@ -29,7 +29,8 @@ properties (
                 string(name: 'USERNAME', defaultValue: 'omvsadm'),
                 //string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8',
                 //
-                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9')    required: true),
+                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9'),
+                    required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
