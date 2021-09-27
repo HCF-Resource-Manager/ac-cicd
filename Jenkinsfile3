@@ -98,19 +98,19 @@ ${indentedEnv}
 }
 
 // Build and return a string to use as contents for an Ansible inventory file
-def generateInventory = { hostName, username, pythonPath ->
-    return "${hostName} ansible_user=${username} ansible_python_interpreter=${pythonPath}"
-}
+// def generateInventory = { hostName, username, pythonPath ->
+//    return "${hostName} ansible_user=${username} ansible_python_interpreter=${pythonPath}"
+// }
 
 // Build and return a string to use as contents for
 // a YAML-formatted Ansible vars file for consumption by Ansible playbook
-def generateGroupVars = { environment ->
-    def indent = '    '
-    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
-    return """environment_vars:
-${indentedEnv}
-"""
-}
+// def generateGroupVars = { environment ->
+//    def indent = '    '
+//    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
+//    return """environment_vars:
+// ${indentedEnv}
+// """
+// }
 
 /* -------------------------------------------------------------------------- */
 /*                        Log parsers / error checkers                        */
@@ -314,7 +314,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
                 // Attempt to build the collection
-                def out = sh script: 'ansible-galaxy collection build . --force'
+                out = sh script: 'ansible-galaxy collection build . --force'
                 // Install the built collection
                 out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
             }
@@ -324,7 +324,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
                 // Attempt to build the collection
-                def out = sh script: 'ansible-galaxy collection build . --force'
+                out = sh script: 'ansible-galaxy collection build . --force'
                 // Install the built collection
                 out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
 
