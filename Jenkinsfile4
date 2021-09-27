@@ -8,10 +8,6 @@
 /* groovylint-disable-next-line NoWildcardImports */
 import java.util.regex.*
 
-/* groovylint-disable-next-line CompileStatic */
-DEVBRANCH = 'dev'
-
-/* groovylint-disable-next-line CompileStatic */
 properties (
     [
         buildDiscarder(
@@ -22,17 +18,18 @@ properties (
                 numToKeepStr: '30')
         ),
         disableConcurrentBuilds(),
-        parameters(
+        parameters (
             [
                 // ? change host from string to choices once consistent environments?
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                string(name: 'BRANCH', defaultValue: DEVBRANCH),
+                string(name: 'BRANCH', defaultValue: 'dev'),
                 string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2',
                     credentialType: 'SSH Username with private key' ),
                 string(name: 'USERNAME', defaultValue: 'omvsadm'),
-                string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8',
-                    required: true),
+                //string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8',
+                //
+                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9')    required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
@@ -44,17 +41,20 @@ properties (
                         LANG: C
                         ZOAU_ROOT: "/zoau/v1.2.0"
                         ZOAU_HOME: "/zoau/v1.2.0"
-                        LIBPATH: "/zoau/v1.2.0/lib:/python3/usr/lpp/IBM/cyp/v3r8/pyz/lib:/lib:/usr/lib:."
+                        LIBPATH: "/zoau/v1.2.0/lib:/python2/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
                         ZOAUTIL_DIR: "/zoau/v1.2.0"
                         PYTHONPATH: "/zoau/v1.2.0/lib"
                         /* groovylint-disable-next-line LineLength */
-                        PATH: "/zoau/v1.2.0/bin:/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
+                        PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
                 ),
             ]
         )
     ]
 )
+
+/* groovylint-disable-next-line CompileStatic */
+DEVBRANCH = 'dev'
 
 YAMLLINT_CONFIG_CONTENTS = '''extends: default
 rules:
@@ -206,7 +206,7 @@ RUN apt-get remove -y shellcheck
 RUN pip install --upgrade pip
 RUN pip install virtualenv
 RUN pip3 install virtualenv
-RUN pip3 install ansible==4.0.0
+RUN pip3 install ansible==4.2.0
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
 # ----------------------------- Copy dependencies ---------------------------- #
