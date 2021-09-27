@@ -132,7 +132,7 @@ checkForConnectionErrors = { ouput ->
 // expects output of ansible-test sanity
 checkForAnsibleTestErrors = { outut ->
     if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(outut).find()) {
-        error('ansible-test encountered an internal error!')
+        error('ansible-test encountered an internal error!\n!! Full output: ${outut}!!\n')
     }
     errorString = ''
     errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(outut)
