@@ -278,7 +278,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 out = buildInstall()
 
                 dir("ansible_collections/ibm/${REPO}") {
-                    out = sh 'ansible-test sanity --list-tests'
+                    out = sh script: 'ansible-test sanity --list-tests 2>&1', returnStdout: true
                     echo '\nSanity Tests List:\n' + out + '\n'
 
                     out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
@@ -356,5 +356,5 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo out
-    cleanWs()
+    // cleanWs()
 }
