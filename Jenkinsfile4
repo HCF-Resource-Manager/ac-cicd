@@ -279,7 +279,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
 
                 dir("ansible_collections/ibm/${REPO}") {
                     out = sh 'ansible-test sanity --list-tests'
-                    echo "\nSanity Tests List:\n" + out + "\n"
+                    echo '\nSanity Tests List:\n' + out + '\n'
 
                     out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
                     checkForAnsibleTestErrors(out)
@@ -356,4 +356,5 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo out
+    cleanWs()
 }
