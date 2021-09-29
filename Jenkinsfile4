@@ -211,6 +211,7 @@ RUN apt-get remove -y shellcheck
 RUN pip install --upgrade pip
 RUN pip install virtualenv
 RUN pip3 install virtualenv
+RUN pip3 install pkg-config
 RUN pip3 install pycairo
 RUN pip3 install pyyaml
 RUN pip3 install pylint==2.11.1
