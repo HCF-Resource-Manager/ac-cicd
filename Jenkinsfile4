@@ -354,7 +354,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             }
         }
     }
-    out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
-    echo out
+    // out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
+    // echo out
     // cleanWs()
 }
