@@ -214,7 +214,7 @@ RUN pip install virtualenv
 RUN pip3 install virtualenv
 # RUN pip3 install pkg-config
 # RUN pip3 install pycairo
-RUN apt-get install libgirepository1.0-dev
+RUN apt-get install -y libgirepository1.0-dev
 RUN apt-get install python-cairo
 RUN apt-get install libcairo2
 RUN pip3 install pyyaml
