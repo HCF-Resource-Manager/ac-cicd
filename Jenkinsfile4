@@ -211,11 +211,14 @@ RUN apt-get remove -y shellcheck
 RUN pip install --upgrade pip
 RUN pip install virtualenv
 RUN pip3 install virtualenv
+RUN pip3 install pycairo
+RUN pip3 install pyyaml
+RUN pip3 install pylint==2.11.1
 RUN pip3 install ansible==4.2.0
 RUN pip3 install --upgrade pycodestyle
 RUN pip3 install voluptuous
 RUN pip3 install --no-cache-dir -r requirements.txt
-RUN pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
+RUN pip3 install ansible-lint yamllint pytest-ansible bandit
 # ----------------------------- Copy dependencies ---------------------------- #
 COPY ${REPO} ./${REPO}/
 # --------------------------- Package installation Stage 2 --------------------------- #
