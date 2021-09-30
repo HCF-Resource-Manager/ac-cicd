@@ -276,6 +276,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 echo out
                 out = sh 'python --version'
                 echo out
+                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
             }
         }
     }
