@@ -192,7 +192,8 @@ node('master') {
         DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
 #                   Docker Image for Testing Environment                       #
 # ---------------------------------------------------------------------------- #
-FROM python:3.9-slim-buster
+#FROM python:3.9-slim-buster
+FROM python:3.8-slim-buster
 WORKDIR /usr/src/app
 # ------------- Environment Variables ------------- #
 # * These paths will exist after volume mount performed by Jenkins
