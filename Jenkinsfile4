@@ -265,7 +265,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 "--progress=plain --build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
             sh 'rm sshkey'
         }
-        sh 'chmod -R 777 .'
+        sh 'chmod -R 744 .'
     }
     stage ('Test Collection Build and Install') {
         makeflag( 'Test Collection build' )
