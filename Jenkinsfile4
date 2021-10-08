@@ -251,6 +251,7 @@ COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rs
 RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
     touch /home/jenkins/.ssh/known_hosts && \
     ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
+RUN chmod -R 644 ${REPO}/*
 '''
         writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
         sh 'cat Dockerfile'
@@ -265,7 +266,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 "--progress=plain --build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
             sh 'rm sshkey'
         }
-        sh 'chmod -R 744 .'
+        sh 'chmod -R 777 .'
     }
     stage ('Test Collection Build and Install') {
         makeflag( 'Test Collection build' )
@@ -285,7 +286,9 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         makeflag( 'Ansible Sanity' )
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
+                makeflag( 'build install output')
                 out = buildInstall()
+                echo out
 
                 dir("ansible_collections/ibm/${REPO}") {
                     out = sh script: 'ansible-test sanity --list-tests 2>&1', returnStdout: true
