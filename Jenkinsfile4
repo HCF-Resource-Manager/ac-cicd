@@ -220,7 +220,7 @@ RUN apt-get install -y python-cairo
 RUN apt-get install -y libcairo2
 RUN pip3 install pyyaml
 RUN pip3 install pylint==2.11.1
-RUN pip3 install ansible==4.0.0
+RUN pip3 install ansible==4.0.0 --user
 RUN pip3 install --upgrade pycodestyle
 RUN pip3 install voluptuous
 RUN pip3 install --no-cache-dir -r requirements.txt
@@ -294,7 +294,8 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
 
                 dir("ansible_collections/ibm/${REPO}") {
                     out = sh script: 'ansible-test sanity --list-tests 2>&1', returnStdout: true
-                    echo '\nSanity Tests List:\n' + out + '\n'
+                    makeflag( "Sanity tests list:")
+                    echo out
 
                     out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
                     checkForAnsibleTestErrors(out)
