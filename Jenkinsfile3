@@ -175,7 +175,7 @@ def checkForAnsibleTestErrors(output) {
         errorString = errorString + errors.group(1) + '\n'
     }
     if (errorString != '') {
-        error("ansible-test detected errors! \n ${errorString}")
+        error("ansible-test detected errors! \n ${errorString}\n==========\nFull output: ${output}")
     }
 }
 
@@ -238,6 +238,7 @@ def getCommitSha() {
 }
 
 // Update status check on github for particular commit
+// This stopped working, and was commented out... probably the old tokenauth needs updated
 def updateGithubCommitStatus(message, state) {
     repoUrl = getRepoURL()
     commitSha = getCommitSha()
@@ -399,8 +400,10 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         }
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
+    echo 'attempting cleanup\n\n'
     echo out
-    // stage ('Post-build') {
-    //    updateGithubCommitStatus('Pipeline succeeded!', 'success')
-    // }
+    cleanWs()
+// stage ('Post-build') {
+//    updateGithubCommitStatus('Pipeline succeeded!', 'success')
+// }
 }
