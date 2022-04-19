@@ -39,7 +39,7 @@ properties (
                         LIBPATH: "/u/oeusr01/mvsutil/lib:/u/oeusr01/usr/lpp/IBM/cyp/v3r8/pyz/lib:/lib:/usr/lib:."
                         ZOAUTIL_DIR: "/u/oeusr01/mvsutil"
                         PYTHONPATH: "/u/oeusr01/mvsutil/lib"
-                        PATH: "/u/oeusr01/mvsutil/bin:/u/oeusr01/usr/lpp/IBM/cyp/v3r8/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/J8.0/bin" """.stripIndent(),
+                        PATH: "/u/oeusr01/mvsutil/bin:/u/oeusr01/usr/lpp/IBM/cyp/v3r8/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin" """.stripIndent(),
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
