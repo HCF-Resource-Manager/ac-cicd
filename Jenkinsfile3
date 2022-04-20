@@ -331,6 +331,9 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
 
                 dir("ansible_collections/ibm/${REPO}") {
                     out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
+                    echo '--------------------------- Sanity output ----'
+                    echo out
+                    echo '----------------------------------------------'                    
                     checkForAnsibleTestErrors(out)
                 }
             }
