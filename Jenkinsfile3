@@ -277,6 +277,8 @@ COPY ${REPO} ./${REPO}/
 # --------------------------- Package installation Stage 2 --------------------------- #
 # Update package info, install ansible and openssh
 RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
+# It turns out that rstcheck needs to be version-locked, because 4.0+ deprecated python 3.7
+RUN pip3 install rstcheck===3.3.1
 # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
 ARG UNAME=jenkins
 ARG UID=114
@@ -318,6 +320,10 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 out = sh script: 'ansible-galaxy collection build . --force'
                 // Install the built collection
                 out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                out = sh script: "pip3 freeze", returnStdout: true
+                echo '--------------------------- pip freeze output ---------------------------'
+                echo out
+                echo '-------------------------------------------------------------------------'
             }
         }
     }
@@ -331,9 +337,9 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
 
                 dir("ansible_collections/ibm/${REPO}") {
                     out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
-                    echo '--------------------------- Sanity output ----'
+                    echo '--------------------------- Sanity output ---------------------------'
                     echo out
-                    echo '----------------------------------------------'                    
+                    echo '---------------------------------------------------------------------'                    
                     checkForAnsibleTestErrors(out)
                 }
             }
