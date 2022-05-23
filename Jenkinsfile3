@@ -20,8 +20,8 @@ properties (
             [
                 // ? change host from string to choices once consistent environments?
                 string(name: 'BRANCH', defaultValue: 'dev'),
-                // string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
-                string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
+                string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
+                //string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
                 string(name: 'USERNAME', defaultValue: 'omvsadm'),
