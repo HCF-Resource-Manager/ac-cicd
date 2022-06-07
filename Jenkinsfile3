@@ -316,7 +316,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
             sh 'rm sshkey'
         }
-        sh 'chmod -R 777 .'
+//      sh 'chmod -R 777 .' <<-- for a test
     }
     stage ('Test Collection Build and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
@@ -414,9 +414,9 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         }
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
-    echo 'attempting cleanup\n\n'
+    echo 'NOT attempting cleanup\n\n'
     echo out
-    cleanWs()
+    // cleanWs() <<-- for a test
 // stage ('Post-build') {
 //    updateGithubCommitStatus('Pipeline succeeded!', 'success')
 // }
