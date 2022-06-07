@@ -93,8 +93,7 @@ GITHUB_URL = 'api.github.com'
 // is consumed by functional testing pytest fixtures
 def generateYmlConfig = { hostName, username, pythonPath, environment ->
     def indent = '    '
-    // def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
-    def indentedEnv = indent + environment.split("\\n").join("\r\n" + indent)
+    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     return """host: ${hostName}
 user: ${username}
 python_path: ${pythonPath}
