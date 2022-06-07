@@ -94,7 +94,7 @@ GITHUB_URL = 'api.github.com'
 def generateYmlConfig = { hostName, username, pythonPath, environment ->
     def indent = '    '
     // def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
-    def indentedEnv = indent + environment.split("\\n").collect{}.join('\n' + indent)
+    def indentedEnv = indent + environment.split("\\n").join("\\n" + indent)
     return """host: ${hostName}
 user: ${username}
 python_path: ${pythonPath}
