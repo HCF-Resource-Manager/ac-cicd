@@ -36,15 +36,15 @@ properties (
                         _TAG_REDIR_IN: txt
                         _TAG_REDIR_OUT: txt
                         LANG: C
-                        ZOAU_HOME: "/zoau/v1.1.1-ptf1"
-                        ZOAU: "/zoau/v1.1.1-ptf1/bin"                        
-                        ZOAU_ROOT: "/zoau/v1.1.1-ptf1"
-                        LIBPATH: "/zoau/v1.1.1-ptf1/lib:/python/usr/lpp/IBM/cyp/v3r8/pyz/lib:/lib:/usr/lib:."
-                        ZOAUTIL_DIR: "/zoau/v1.1.1-ptf1"
-                        PYTHONPATH: "/zoau/v1.1.1-ptf1/lib"
+                        ZOAU_HOME: "/zoau/v1.2.0f"
+                        ZOAU: "/zoau/v1.2.0f/bin"                        
+                        ZOAU_ROOT: "/zoau/v1.2.0f"
+                        LIBPATH: "/zoau/v1.2.0f/lib:/python/usr/lpp/IBM/cyp/v3r8/pyz/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "/zoau/v1.2.0f"
+                        PYTHONPATH: "/zoau/v1.2.0f/lib"
                         PYTHON_HOME: "/python/usr/lpp/IBM/cyp/v3r8/pyz"
                         PYTHON: "/python/usr/lpp/IBM/cyp/v3r8/pyz/bin"
-                        PATH: "/zoau/v1.1.1-ptf1/bin:/python/usr/lpp/IBM/cyp/v3r8/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin" """.stripIndent(),
+                        PATH: "/zoau/v1.2.0f/bin:/python/usr/lpp/IBM/cyp/v3r8/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin" """.stripIndent(),
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
