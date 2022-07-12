@@ -285,6 +285,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             }
         }
     }
+    /*
     stage('ansible-test Sanity Tests') {
         makeflag( 'Ansible Sanity' )
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
@@ -304,6 +305,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             }
         }
     }
+    */
     stage('Bandit Security Scan') {
         makeflag( 'Bandit' )
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
