@@ -328,6 +328,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME,
                 PYTHON_PATH, ENVIRONMENT))
         }
+        sh "cat ${env.WORKSPACE}/${REPO}/configuration.yml"
 
         ansibleTestingImage.inside("-u jenkins\
         -e TARGET_HOST=${TARGET_HOST}\
