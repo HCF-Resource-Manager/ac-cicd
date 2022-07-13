@@ -339,8 +339,12 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         -e ANSIBLE_TIMEOUT=30") {
             dir("${REPO}") {
                 // Install collection so module_utils imports will be valid in modules
-                out = buildInstall()
-                echo out
+                // out = buildInstall()
+                // Attempt to build the collection
+                sh script: 'ansible-galaxy collection build . --force'
+                // Install the built collection
+                sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                
                 dir('tests') {
                     if ( "${BRANCH}" == "${DEVBRANCH}") {
                         branchToCompare = 'origin/master'
@@ -365,7 +369,6 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                             out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml 2>&1 || true", returnStdout: true
                             
                             out = sh script: "printenv"
-                            echo out
                             if (checkForConnectionErrors(out)) {
                                 sleep(20)
                             } else {
