@@ -363,6 +363,9 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                             
                             /* groovylint-disable-next-line LineLength */
                             out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml 2>&1 || true", returnStdout: true
+                            
+                            out = sh script: "echo $ANSIBLE_LIBRARY"
+                            echo out
                             if (checkForConnectionErrors(out)) {
                                 sleep(20)
                             } else {
