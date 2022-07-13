@@ -340,7 +340,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             dir("${REPO}") {
                 // Install collection so module_utils imports will be valid in modules
                 out = buildInstall()
-
+                echo out
                 dir('tests') {
                     if ( "${BRANCH}" == "${DEVBRANCH}") {
                         branchToCompare = 'origin/master'
