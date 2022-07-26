@@ -26,7 +26,7 @@ properties (
                 // ? change host from string to choices once consistent environments?
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
                 string(name: 'BRANCH', defaultValue: DEVBRANCH),
-                string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
+                string(name: 'TARGET_HOST', defaultValue: 'ec33024a.vmec.svl.ibm.com'),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2',
                     credentialType: 'SSH Username with private key' ),
                 string(name: 'USERNAME', defaultValue: 'omvsadm'),
