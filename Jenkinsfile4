@@ -370,7 +370,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                             // out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
                             
                             /* groovylint-disable-next-line LineLength */
-                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ../tests/functional/modules/test_zos_job_submit_func.py 2>&1 || true", returnStdout: true
+                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ../tests/functional/modules/test_zos_mvs_raw_func.py 2>&1 || true", returnStdout: true
                             
                             sh script: "printenv"
                             if (checkForConnectionErrors(out)) {
