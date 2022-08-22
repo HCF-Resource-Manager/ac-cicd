@@ -345,7 +345,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     echo '--------------------------- Sanity output ---------------------------'
                     echo out
                     echo '-----------configuration.yml-----------------------------------------'                    
-                    cfg_out = sh script: 'cat configation.yml 2>&1 || true', returnStdout: true
+                    cfg_out = sh script: 'cat configuration.yml 2>&1 || true', returnStdout: true
                     echo cfg_out
                     echo '---------------------------------------------------------------------'                    
                     checkForAnsibleTestErrors(out)
