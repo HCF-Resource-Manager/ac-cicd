@@ -391,7 +391,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 dir('tests') {
                     def branchToCompare = 'origin/dev'
                     if ( "${BRANCH}" == 'dev') {
-                        branchToCompare = 'origin/master'
+                        branchToCompare = 'origin/main'
                     }
                     sh 'git branch'
                     sh 'pwd'
