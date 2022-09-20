@@ -220,7 +220,8 @@ RUN apt-get install -y python-cairo
 RUN apt-get install -y libcairo2
 RUN pip3 install pyyaml
 RUN pip3 install pylint==2.11.1
-RUN pip3 install ansible==4.0.0
+# RUN pip3 install ansible==4.0.0
+RUN pip3 install ansible-core==2.11.12
 # Cannot use --user on installation, because it goes to unsearchable path (rem: this user is root)
 RUN pip3 install --upgrade pycodestyle
 RUN pip3 install voluptuous
