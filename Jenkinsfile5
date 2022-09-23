@@ -329,6 +329,13 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
     stage ('Test Collection Build and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
+                 out = sh 'ansible --version'
+                echo out
+
+                out = sh 'python --version'
+                echo out
+                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
+
                 // Attempt to build the collection
                 out = sh script: 'ansible-galaxy collection build . --force'
                 // Install the built collection
