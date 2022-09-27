@@ -279,13 +279,13 @@ COPY ${REPO}/tests/requirements.txt ./
 # --------------------------- Package installation Stage 1 --------------------------- #
 RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client ansible python2.7 python-pip
 RUN pip3 install ansible==4.0.0
-RUN pip3 install ansible-core==2.11.12
 RUN pip3 install --upgrade pycodestyle
 RUN pip3 install voluptuous
 RUN pip3 install --no-cache-dir -r requirements.txt 
 RUN pip3 install yamllint pylint pytest-ansible virtualenv bandit
-RUN pip3 install ansible-lint==6.0.0
-# ----------------------------- Copy dependencies ---------------------------- #
+RUN pip3 install ansible-lint
+RUN pip3 install ansible-core==2.11.12
+      # ----------------------------- Copy dependencies ---------------------------- #
 COPY ${REPO} ./${REPO}/
 # --------------------------- Package installation Stage 2 --------------------------- #
 # Update package info, install ansible and openssh
