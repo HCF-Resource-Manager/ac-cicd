@@ -283,7 +283,7 @@ RUN pip3 install voluptuous
 RUN pip3 install --no-cache-dir -r requirements.txt 
 RUN pip3 install ansible-core==2.11.12
 RUN pip3 install ansible-lint==5.4.0
-RUN pip3 install ansible
+# RUN pip3 install ansible
       # ----------------------------- Copy dependencies ---------------------------- #
 COPY ${REPO} ./${REPO}/
 # --------------------------- Package installation Stage 2 --------------------------- #
