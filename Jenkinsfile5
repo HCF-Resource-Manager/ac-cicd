@@ -278,7 +278,8 @@ ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
 COPY ${REPO}/tests/requirements.txt ./
 # --------------------------- Package installation Stage 1 --------------------------- #
 RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-RUN pip3 install ansible
+# RUN pip3 install ansible
+RUN pip3 install ansible-core==2.11.12
 RUN pip3 install --upgrade pycodestyle
 RUN pip3 install voluptuous
 RUN pip3 install --no-cache-dir -r requirements.txt 
