@@ -266,8 +266,8 @@ node('master') {
         DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
 #                   Docker Image for Testing Environment                       #
 # ---------------------------------------------------------------------------- #
-# FROM python:3.7-slim-buster
-FROM python:3.8-slim-buster
+FROM python:3.7-slim-buster
+# FROM python:3.8-slim-buster
 # FROM python:3.9-slim-buster
 WORKDIR /usr/src/app
 # ------------- Environment Variables ------------- #
