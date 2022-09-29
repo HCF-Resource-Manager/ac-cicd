@@ -283,7 +283,7 @@ RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get ins
 # RUN pip3 install yamllint pylint pytest-ansible virtualenv bandit
 RUN pip3 install --upgrade pycodestyle
 RUN pip3 install pylint
-# RUN pip3 install voluptuous
+RUN pip3 install voluptuous
 RUN pip3 install --no-cache-dir -r requirements.txt 
 RUN pip3 uninstall -y ansible
 RUN pip3 install ansible-core==2.11.12
