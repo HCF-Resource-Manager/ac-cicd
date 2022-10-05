@@ -390,7 +390,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                 sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
 
                 dir('tests') {
-                    def branchToCompare = ${PULL_REQUEST_BASE_BRANCH}
+                    def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
                     if ( "${BRANCH}" == 'dev') {
                         branchToCompare = 'origin/main'
                     }
