@@ -282,7 +282,7 @@ RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get ins
 # RUN pip3 install ansible==2.10.0
 # RUN pip3 install yamllint pylint pytest-ansible virtualenv bandit
 RUN pip3 install --upgrade pycodestyle
-RUN pip3 install pylint
+RUN pip3 install pylint==2.3.1 # version locked to the previous one
 RUN pip3 install yamllint
 RUN pip3 install voluptuous
 RUN pip3 install bandit
