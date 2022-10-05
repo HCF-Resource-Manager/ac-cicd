@@ -219,10 +219,12 @@ def isAnsibleModule(path) {
     return false
 }
 
+// git checkout order must remain as first the PULL_REQUEST_BASE_BRANCH then
+// BRANCH else dependencyfinder will compare BRANCH to itself
 def checkout() {
     dir(env.WORKSPACE) {
         sh "rm -rf ${REPO}"
-        sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}; git checkout ${PULL_REQUEST_BASE_BRANCH};"
+        sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${PULL_REQUEST_BASE_BRANCH}; git checkout ${BRANCH};"
     }
 }
 
