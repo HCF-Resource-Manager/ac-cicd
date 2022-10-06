@@ -276,18 +276,18 @@ ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
 ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
 COPY ${REPO}/tests/requirements.txt ./
 # --------------------------- Package installation Stage 1 --------------------------- #
-// RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-// # RUN pip3 install ansible==2.10.0
-// # RUN pip3 install yamllint pylint pytest-ansible virtualenv bandit
-// RUN pip3 install --upgrade pycodestyle
-// RUN pip3 install pylint==2.3.1 # version locked to the previous one
-// RUN pip3 install yamllint
-// RUN pip3 install voluptuous
-// RUN pip3 install bandit
-// RUN pip3 install --no-cache-dir -r requirements.txt 
-// RUN pip3 uninstall -y ansible
-// RUN pip3 install ansible-core==2.11.12
-// # RUN pip3 install ansible-lint==4.2.0
+# RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client python2.7 python-pip
+# # RUN pip3 install ansible==2.10.0
+# # RUN pip3 install yamllint pylint pytest-ansible virtualenv bandit
+# RUN pip3 install --upgrade pycodestyle
+# RUN pip3 install pylint==2.3.1 # version locked to the previous one
+# RUN pip3 install yamllint
+# RUN pip3 install voluptuous
+# RUN pip3 install bandit
+# RUN pip3 install --no-cache-dir -r requirements.txt 
+# RUN pip3 uninstall -y ansible
+# RUN pip3 install ansible-core==2.11.12
+# # RUN pip3 install ansible-lint==4.2.0
 
 
       # ----------------------------- Copy dependencies ---------------------------- #
