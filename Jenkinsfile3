@@ -20,7 +20,7 @@ properties (
             [
                 // ? change host from string to choices once consistent environments?
                 string(name: 'BRANCH', defaultValue: 'dev'),
-                string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'origin/dev', description: 'Specifies the pull request base branch name, defaults to origin/dev.'),
+                string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
                 string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
@@ -49,6 +49,19 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
+                text(
+                    name: 'ANSIBLE_CONFIG_CONTENTS',
+                    defaultValue: """
+                     #######
+                     [defaults]
+                     forks = 25
+                     timeout = 30
+
+                     [ssh_connection]
+                     pipelining = True""".stripIndent(),
+                    description: 'Set the ansible.cfg options if you have others.',
+                    required: true
+                    ),
             ]
         )
     ]
@@ -74,14 +87,14 @@ rules:
   truthy: disable
 '''
 
-ANSIBLE_CONFIG_CONTENTS = '''#######
-[defaults]
-forks = 25
-timeout = 30
+// ANSIBLE_CONFIG_CONTENTS = '''#######
+// [defaults]
+// forks = 25
+// timeout = 30
 
-[ssh_connection]
-pipelining = True
-'''
+// [ssh_connection]
+// pipelining = True
+// '''
 
 GITHUB_URL = 'api.github.com'
 
