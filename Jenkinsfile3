@@ -51,13 +51,14 @@ properties (
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
-                    defaultValue: """#######
-                        [defaults]
-                        forks = 25
-                        timeout = 30
+                    defaultValue: """
+                     #######
+                     [defaults]
+                     forks = 25
+                     timeout = 30
 
-                        [ssh_connection]
-                        pipelining = True""".stripIndent(),
+                     [ssh_connection]
+                     pipelining = True""".stripIndent(),
                     description: 'Set the ansible.cfg options if you have others.',
                     required: true
                     ),
