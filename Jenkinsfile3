@@ -58,7 +58,7 @@ properties (
 
                         [ssh_connection]
                         pipelining = True""".stripIndent(),
-                    description: 'Set the ansible.cfg options if you have others.'
+                    description: 'Set the ansible.cfg options if you have others.',
                     required: true
                     ),
             ]
