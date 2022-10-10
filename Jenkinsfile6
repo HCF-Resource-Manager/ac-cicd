@@ -266,7 +266,7 @@ node('master') {
         DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
 #                   Docker Image for Testing Environment                       #
 # ---------------------------------------------------------------------------- #
-FROM quay.io/ansible/default-test-container:3.2.2
+FROM quay.io/ansible/default-test-container:main
 WORKDIR /usr/src/app
 # ------------- Environment Variables ------------- #
 # * These paths will exist after volume mount performed by Jenkins
