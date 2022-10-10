@@ -334,7 +334,12 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
     stage ('Test Collection Build and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
-                 out = sh 'ansible --version'
+                out = sh script: "pip3 freeze", returnStdout: true
+                echo '--------------------------- pip freeze output ---------------------------'
+                echo out
+                echo '-------------------------------------------------------------------------'
+                
+                out = sh 'ansible --version'
                 echo out
 
                 out = sh 'python --version'
