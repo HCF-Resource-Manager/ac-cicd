@@ -323,7 +323,8 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
     ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
 '''
         if (ANSIBLE_VERSION == '2.11.12') {
-            dir("${REPO}/Dockerfiles"){
+            sh "git clone https://github.com/HCF-Resource-Manager/ac-cicd.git"
+            dir("ac-cicd/Dockerfiles"){
                 DOCKERFILE_CONTENTS = readFile("ansible-core-2.11.dockerfile")
             }
         }
