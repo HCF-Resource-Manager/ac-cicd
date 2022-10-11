@@ -48,6 +48,7 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
+                string(name: 'ANSIBLE_VERSION', defaultValue: '2.9'),
             ]
         )
     ]
@@ -321,6 +322,11 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
     touch /home/jenkins/.ssh/known_hosts && \
     ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
 '''
+        if (ANSIBLE_VERSION == '2.11.12') {
+            dir("${REPO}/Dockerfiles"){
+                DOCKERFILE_CONTENTS = readFile("ansible-core-2.11.dockerfile")
+            }
+        }
         writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
         sh 'cat Dockerfile'
         sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
