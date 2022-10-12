@@ -291,7 +291,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             }
         }
     }
-    /*
+    
     stage('ansible-test Sanity Tests') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
@@ -308,7 +308,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     cfg_out = sh script: 'cat configuration.yml 2>&1 || true', returnStdout: true
                     echo cfg_out
                     echo '---------------------------------------------------------------------'                    
-                    checkForAnsibleTestErrors(out)
+                    // checkForAnsibleTestErrors(out)
                 }
             }
         }
@@ -319,11 +319,11 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}/plugins") {
                 out = sh script: 'bandit -r -ll -ii . || true', returnStdout: true
-                checkForBanditErrors(out)
+                // checkForBanditErrors(out)
             }
         }
     }
-    */
+    
     stage('Unit and Functional Tests') {
         makeflag( 'Unit Tests' )
         // Build debian image containing all requirements for test cases
