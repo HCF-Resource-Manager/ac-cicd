@@ -20,6 +20,7 @@ properties (
             [
                 // ? change host from string to choices once consistent environments?
                 string(name: 'BRANCH', defaultValue: 'dev'),
+                string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
                 string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
@@ -49,6 +50,19 @@ properties (
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
                 choice(name: 'ANSIBLE_VERSION', defaultValue: '2.9', choices: ['2.9', '2.11']),
+                text(
+                    name: 'ANSIBLE_CONFIG_CONTENTS',
+                    defaultValue: """
+                     #######
+                     [defaults]
+                     forks = 25
+                     timeout = 30
+
+                     [ssh_connection]
+                     pipelining = True""".stripIndent(),
+                    description: 'Set the ansible.cfg options if you have others.',
+                    required: true
+                    ),
             ]
         )
     ]
@@ -219,10 +233,12 @@ def isAnsibleModule(path) {
     return false
 }
 
+// git checkout order must remain as first the PULL_REQUEST_BASE_BRANCH then
+// BRANCH else dependencyfinder will compare BRANCH to itself
 def checkout() {
     dir(env.WORKSPACE) {
         sh "rm -rf ${REPO}"
-        sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}"
+        sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${PULL_REQUEST_BASE_BRANCH}; git pull origin ${PULL_REQUEST_BASE_BRANCH}; git checkout ${BRANCH}; git pull origin ${BRANCH}"
     }
 }
 
@@ -458,7 +474,7 @@ node('master') {
                 sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
 
                 dir('tests') {
-                    def branchToCompare = 'origin/dev'
+                    def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
                     if ( "${BRANCH}" == 'dev') {
                         branchToCompare = 'origin/main'
                     }
