@@ -1,0 +1,397 @@
+#!groovy
+
+/* This is the evolution of J3 (blake + post-clean) towards MP-4+ */
+/* groovylint-disable NestedBlockDepth */
+/* groovylint-disable GStringExpressionWithinString */
+/* groovylint-disable LineLength */
+
+/* groovylint-disable-next-line NoWildcardImports */
+import java.util.regex.*
+
+/* groovylint-disable-next-line CompileStatic */
+DEVBRANCH = 'dev'
+
+properties (
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '60',
+                daysToKeepStr: '',
+                numToKeepStr: '30')
+        ),
+        disableConcurrentBuilds(),
+        parameters (
+            [
+                // ? change host from string to choices once consistent environments?
+                string(name: 'REPO', defaultValue: 'ibm_zos_core'),
+                string(name: 'BRANCH', defaultValue: DEVBRANCH),
+                string(name: 'TARGET_HOST', defaultValue: 'ec33004a.vmec.svl.ibm.com'),
+                credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2',
+                    credentialType: 'SSH Username with private key' ),
+                string(name: 'USERNAME', defaultValue: 'omvsadm'),
+                //string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8',
+                //
+                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9',
+                    required: true),
+                text(
+                    name: 'ENVIRONMENT',
+                    defaultValue: """\
+                        _BPXK_AUTOCVT: "ON"
+                        _CEE_RUNOPTS: "'FILETAG(AUTOCVT,AUTOTAG) POSIX(ON)'"
+                        _TAG_REDIR_ERR: txt
+                        _TAG_REDIR_IN: txt
+                        _TAG_REDIR_OUT: txt
+                        LANG: C
+                        ZOAU_ROOT: "/zoau/v1.2.0"
+                        ZOAU_HOME: "/zoau/v1.2.0"
+                        LIBPATH: "/zoau/v1.2.0/lib:/python2/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "/zoau/v1.2.0"
+                        PYTHONPATH: "/zoau/v1.2.0/lib"
+                        /* groovylint-disable-next-line LineLength */
+                        PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
+                    required: true
+                ),
+            ]
+        )
+    ]
+)
+
+YAMLLINT_CONFIG_CONTENTS = '''extends: default
+rules:
+  braces: {max-spaces-inside: 1, level: error}
+  brackets: {max-spaces-inside: 1, level: error}
+  colons: {max-spaces-after: -1, level: error}
+  commas: {max-spaces-after: -1, level: error}
+  comments: disable
+  comments-indentation: disable
+  document-start: disable
+  empty-lines: {max: 3, level: error}
+  hyphens: {level: error}
+  indentation: disable
+  key-duplicates: enable
+  line-length: disable
+  new-line-at-end-of-file: disable
+  new-lines: {type: unix}
+  trailing-spaces: disable
+  truthy: disable
+'''
+
+ANSIBLE_CONFIG_CONTENTS = '''#######
+[defaults]
+forks = 25
+timeout = 30
+[ssh_connection]
+pipelining = True
+'''
+
+NL = '\n'
+
+/* -------------------------------------------------------------------------- */
+/*                                File builders                               */
+/* -------------------------------------------------------------------------- */
+
+// Buld and returns a string to be used as the contents of
+// a YAML-formatted configuration file. The configuration file
+// is consumed by functional testing pytest fixtures
+generateYmlConfig = { hostName, username, pythonPath, environment ->
+    indent = '    '
+    indentedEnv = indent + environment.split("${NL}").join("${NL}" + indent)
+    return """host: ${hostName}
+user: ${username}
+python_path: ${pythonPath}
+environment:
+${indentedEnv}
+"""
+}
+
+/* -------------------------------------------------------------------------- */
+/*                        Log parsers / error checkers                        */
+/* -------------------------------------------------------------------------- */
+
+// Determine if any of the testcases failed
+// expects pytest output formatting
+
+checkForPytestFails = { otput ->
+    /* groovylint-disable-next-line LineLength */
+    if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(otput).find()) {
+        /* groovylint-disable-next-line LineLength */
+        slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(otput).replaceAll('')
+        error("One or more pytest testcases failed! \n ${slim_output}")
+    }
+}
+
+// Determines if functional tests failed due to connection errors
+checkForConnectionErrors = { ouput ->
+    /* groovylint-disable-next-line LineLength */
+    return Pattern.compile(/(?:pytest\_ansible.errors.AnsibleConnectionFailure\:\sHost\sunreachable)/).matcher(ouput).find()
+}
+
+// Determine if ansible-test raised any errors
+// expects output of ansible-test sanity
+checkForAnsibleTestErrors = { outut ->
+    if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(outut).find()) {
+        error("ansible-test encountered an internal error!\n!! Full output: ${outut}!!\n")
+    }
+    errorString = ''
+    errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(outut)
+    while (errors.find()) {
+        errorString = errorString + errors.group(1) + NL
+    }
+    if (errorString != '') {
+        error("ansible-test detected errors! \n-- Trapped: ${errorString}--\n!! Full output: ${outut}!!\n")
+    }
+}
+
+checkForBanditErrors = { outpt ->
+    if (Pattern.compile(/>>\s+Issue:\s\[/).matcher(outpt).find()) {
+        error("Bandit returned errors! \n ${outpt}")
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           helper functions                                 */
+/* -------------------------------------------------------------------------- */
+
+checkout = {
+    dir(env.WORKSPACE) {
+        sh "rm -rf ${REPO}"
+        sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${BRANCH}"
+        sh "sed -i 's/ansible==2.9.27/ansible-core==2.11.12/g' ${REPO}/tests/requirements.txt"
+    }
+}
+
+buildInstall = {
+    // Attempt to build the collection
+    out = sh script: 'ansible-galaxy collection build . --force'
+    // Install the built collection
+    out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
+    return out
+}
+
+makeflag = { title ->
+    tstr = '======================================\n'
+    echo tstr + "${title}\n" + tstr
+}
+
+docker_object_name = "ansible4-test-image:${env.BUILD_ID}"
+
+node('master') {
+    currentBuild.result = 'SUCCESS'
+
+    stage('Checkout') {
+        checkout()
+    }
+    stage('Build Docker Image') {
+        makeflag( 'Build image' )
+        out = sh "cat ${REPO}/tests/requirements.txt"
+        echo out
+
+        // Write Dockerfile
+        DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
+#                   Docker Image for Testing Environment                       #
+# ---------------------------------------------------------------------------- #
+#FROM python:3.9-slim-buster
+FROM python:3.8-slim-buster
+WORKDIR /usr/src/app
+# ------------- Environment Variables ------------- #
+# * These paths will exist after volume mount performed by Jenkins
+# Path to Ansible modules
+ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
+# Path to Ansible config
+ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
+COPY ${REPO}/tests/requirements.txt ./requirements.txt
+# --------------------------- Package installation Stage 1 --------------------------- #
+# RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client ansible=4.0.0 python-pip && pip3 install --no-cache-dir -r requirements.txt && pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
+RUN apt-get update && apt-get install -y --no-install-recommends apt-utils
+RUN apt-get update && apt-get install -y gnupg2 && apt-get update
+RUN apt-get install -y git python3-pip openssh-client sshpass
+RUN apt-get install -y libyaml-dev
+## shellcheck tests if something will be run at shell level.  Skip it
+RUN apt-get remove -y shellcheck
+RUN pip install --upgrade pip
+RUN pip install virtualenv
+RUN pip3 install virtualenv
+# RUN pip3 install pkg-config
+# RUN pip3 install pycairo
+RUN apt-get install -y libgirepository1.0-dev
+RUN apt-get install -y python-cairo
+RUN apt-get install -y libcairo2
+RUN pip3 install pyyaml
+RUN pip3 install pylint==2.11.1
+# RUN pip3 install ansible==4.0.0
+RUN pip3 install ansible-core==2.11.12
+# Cannot use --user on installation, because it goes to unsearchable path (rem: this user is root)
+RUN pip3 install --upgrade pycodestyle
+RUN pip3 install voluptuous
+RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install ansible-lint yamllint pytest-ansible bandit
+# ----------------------------- Copy dependencies ---------------------------- #
+COPY ${REPO} ./${REPO}/
+# --------------------------- Package installation Stage 2 --------------------------- #
+# Update package info, install ansible and openssh
+RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
+# -------------------- Map UID and GID to Jenkins host IDs ------------------- #
+ARG UNAME=jenkins
+ARG UID=114
+ARG GID=121
+""" +
+'''RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER ${UNAME}
+ENV PATH="/home/jenkins/.local/bin:${PATH}"
+# ----------------------------- Configure SSH key ---------------------------- #
+# Address of host to run tests against
+ARG TARGET_HOST
+# Private key contents that can be used to connect to TARGET_HOST
+ARG TARGET_HOST_PRIVATE_KEY
+RUN mkdir -p /home/jenkins/.ssh/
+COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
+# COPY --chown=jenkins:jenkins configuration.yml ./
+# Add SSH key to system and ensure domain is accepted
+RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
+    touch /home/jenkins/.ssh/known_hosts && \
+    ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
+# RUN chmod -R 644 /usr/src/app/ibm_zos_core/*  <<-doesn't work
+'''
+        writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
+        sh 'cat Dockerfile'
+        sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
+        // Create YAML config file for use by pytest fixtures
+        writeFile(file: "${REPO}/configuration.yml",
+            text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+        withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
+            sh "set +x ; cat ${privKey} > sshkey"
+            ansibleTestingImage = docker.build(docker_object_name,
+                /* groovylint-disable-next-line LineLength */
+                "--progress=plain --build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
+            sh 'rm sshkey'
+        }
+        sh 'chmod -R 777 .'
+    }
+    stage ('Test Collection Build and Install') {
+        makeflag( 'Test Collection build' )
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}") {
+                out = buildInstall()
+                echo out
+
+                out = sh 'ansible --version'
+                echo out
+
+                out = sh 'python --version'
+                echo out
+                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
+
+                out = sh script: "pip3 freeze", returnStdout: true
+                echo '--------------------------- pip freeze output ---------------------------'
+                echo out
+                echo '-------------------------------------------------------------------------'
+            }
+        }
+    }
+    
+    stage('ansible-test Sanity Tests') {
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}") {
+                // Attempt to build the collection
+                out = sh script: 'ansible-galaxy collection build . --force'
+                // Install the built collection
+                out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
+
+                dir("ansible_collections/ibm/${REPO}") {
+                    out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
+                    echo '--------------------------- Sanity output ---------------------------'
+                    echo out
+                    echo '-----------configuration.yml-----------------------------------------'                    
+                    cfg_out = sh script: 'cat configuration.yml 2>&1 || true', returnStdout: true
+                    echo cfg_out
+                    echo '---------------------------------------------------------------------'                    
+                    // checkForAnsibleTestErrors(out)
+                }
+            }
+        }
+    }
+    
+    stage('Bandit Security Scan') {
+        makeflag( 'Bandit' )
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}/plugins") {
+                out = sh script: 'bandit -r -ll -ii . || true', returnStdout: true
+                // checkForBanditErrors(out)
+            }
+        }
+    }
+    
+    stage('Unit and Functional Tests') {
+        makeflag( 'Unit Tests' )
+        // Build debian image containing all requirements for test cases
+        // then run our testcases in the image
+        checkout()
+        // write our own ansible.cfg to ensure correctness
+        dir("${REPO}") {
+            dir('playbooks') {
+                writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
+            }
+            writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME,
+                PYTHON_PATH, ENVIRONMENT))
+        }
+        sh "cat ${env.WORKSPACE}/${REPO}/configuration.yml"
+
+        ansibleTestingImage.inside("-u jenkins\
+        -e TARGET_HOST=${TARGET_HOST}\
+        -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
+        -e ANSIBLE_ACTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/action\
+        -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
+        -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
+        -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
+        -e ANSIBLE_TIMEOUT=30") {
+            dir("${REPO}") {
+                // Install collection so module_utils imports will be valid in modules
+                // out = buildInstall()
+                // Attempt to build the collection
+                sh script: 'ansible-galaxy collection build . --force'
+                // Install the built collection
+                sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                
+                dir('tests') {
+                    if ( "${BRANCH}" == "${DEVBRANCH}") {
+                        branchToCompare = 'origin/main'
+                    }
+                    else {
+                        branchToCompare = 'origin/dev'
+                    }
+                    sh 'git branch'
+                    sh 'pwd'
+                    /* groovylint-disable-next-line LineLength */
+                    tests = sh script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s functional/modules/test_module_security.py -m || true", returnStdout: true
+                    echo '---- Tests Found ----'
+                    echo tests
+                    echo '---------------------'
+                    if (tests) {
+                        out = ''
+                        for (int i = 0; i < 10; i++) {
+                            /* groovylint-disable-next-line LineLength */
+                            // out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
+                            
+                            /* groovylint-disable-next-line LineLength */
+                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
+                            
+                            sh script: "printenv"
+                            if (checkForConnectionErrors(out)) {
+                                sleep(20)
+                            } else {
+                                break
+                            }
+                        }
+                        echo out
+                        checkForPytestFails(out)
+                    }
+                }
+            }
+        }
+    }
+    out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
+    echo out
+    cleanWs()
+}
