@@ -53,7 +53,7 @@ properties (
                     required: true
                 ),
                 // booleanParam(name: 'RUN_FULL_REGRESSION', defaultValue: false, description: 'Check this box to run full regression tests instead of specifically the tests directly impacted by changes.')
-                choice(choices: ['yes', 'no'], description: 'Check this box to run full regression tests instead of specifically the tests directly impacted by changes.', name: 'RunFullRegression')
+                // choice(choices: ['yes', 'no'], description: 'Check this box to run full regression tests instead of specifically the tests directly impacted by changes.', name: 'RunFullRegression')
             ]
         )
     ]
