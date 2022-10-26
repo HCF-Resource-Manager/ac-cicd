@@ -52,7 +52,8 @@ properties (
                         PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
                 ),
-                booleanParam(name: 'RUN_FULL_REGRESSION', defaultValue: false, description: 'Check this box to run full regression tests instead of specifically the tests directly impacted by changes.')
+                // booleanParam(name: 'RUN_FULL_REGRESSION', defaultValue: false, description: 'Check this box to run full regression tests instead of specifically the tests directly impacted by changes.')
+                choice(name: 'TEST_REGRESSION', choices: ['Yes', 'No'], description: 'Testing regression using choice input')
             ]
         )
     ]
@@ -365,7 +366,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     sh 'git branch'
                     sh 'pwd'
                     sh 'echo hello30519'
-                    if ( "${RUN_FULL_REGRESSION}" ) {
+                    if ( "${TEST_REGRESSION}" == 'Yes') {
                         echo 'running regression.....'
                     }
                     else {
