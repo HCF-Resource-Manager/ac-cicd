@@ -366,7 +366,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     sh 'git branch'
                     sh 'pwd'
                     sh 'echo hello30519'
-                    if ( "${RunFullRegression}" ) {
+                    if ( "${RunFullRegression}" is true ) {
                         echo 'running regression.....'
                     }
                     else {
