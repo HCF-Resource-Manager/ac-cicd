@@ -372,7 +372,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     else {
                         echo '++++++++++ RUNNING REGRESSION ++++++++++'
                         /* groovylint-disable-next-line LineLength */
-                        tests = sh script: "python3 -m ./functional/modules/test_module_security.py || true", returnStdout: true
+                        tests = sh script: "python3 -m functional.modules.test_module_security.py || true", returnStdout: true
                     }
                     echo '---- Tests Found ----'
                     echo "${tests}"
