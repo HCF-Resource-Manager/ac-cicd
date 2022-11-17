@@ -32,8 +32,7 @@ properties (
                 string(name: 'USERNAME', defaultValue: 'omvsadm'),
                 //string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8',
                 //
-                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9',
-                    required: true),
+                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
@@ -52,7 +51,14 @@ properties (
                         PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
                 ),
-                choice(name: 'RUN_FULL_REGRESSION', choices: ['Yes', 'No'], description: 'Run full regression tests instead of specifically the tests directly impacted by changes.')
+                string(name: 'WHAT_TO_TEST', defaultValue: 'test-only-changed-files',
+                        description: "Replace the default value for any of the options below:\n
+                                        'test-none': Do not run any tests.\n
+                                        'test-specific-file:<filename>': Test a specific file that is specified in place of <filename>.\n
+                                        'test-only-changed-files': Run the dependencyfinder.py script to find and run only tests that are affected by changes.\n
+                                        'test-all': Perform all tests (full regression).",
+                        required: true
+                )
             ]
         )
     ]
@@ -364,14 +370,27 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     }
                     sh 'git branch'
                     sh 'pwd'
-                    if ( "${RUN_FULL_REGRESSION}" == 'No') {
-                        echo '++++++++++ RUNNING IMPACTED TESTS ++++++++++'
-                        /* groovylint-disable-next-line LineLength */
+
+                    /* Test different scenarios based on user input */
+                    if ("${WHAT_TO_TEST}" == 'test-none') {
+                        echo "No tests will be run based on user input..."
+                        tests = null
+                    }
+                    else if ("${WHAT_TO_TEST}".containing('test-specific-file')) {
+                        def separated = "${WHAT_TO_TEST}".split(':')
+                        def filename = separated[1]
+                        echo "Attempting to run ${filename} tests file..."
+                    }
+                    else if ("${WHAT_TO_TEST}" == 'test-only-changed-files') {
+                        echo 'Attempting to run tests that were affected by changes...'
                         tests = sh script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s functional/modules/test_module_security.py -m || true", returnStdout: true
                     }
-                    else {
-                        echo '++++++++++ RUNNING REGRESSION ++++++++++'
+                    else if ("${WHAT_TO_TEST}" == 'test-all') {
+                        echo "Attempting to run all tests (full regression)..."
                         tests = sh script: "ls functional/modules && ls unit | grep 'test*.py'", returnStdout: true
+                    }
+                    else {
+                        echo "User input '${WHAT_TO_TEST}' is not a valid option for testing..."
                     }
                     echo '---- Tests Found ----'
                     echo "${tests}"
