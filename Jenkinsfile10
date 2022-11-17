@@ -376,7 +376,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                         echo "No tests will be run based on user input..."
                         tests = null
                     }
-                    else if ("${WHAT_TO_TEST}".containing('test-specific-file')) {
+                    else if ("${WHAT_TO_TEST}".contains('test-specific-file')) {
                         def separated = "${WHAT_TO_TEST}".split(':')
                         def filename = separated[1]
                         echo "Attempting to run ${filename} tests file..."
