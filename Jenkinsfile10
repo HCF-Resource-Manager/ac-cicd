@@ -380,6 +380,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                         def separated = "${WHAT_TO_TEST}".split(':')
                         def filename = separated[1]
                         echo "Attempting to run ${filename} tests file..."
+                        tests = "${filename}"
                     }
                     else if ("${WHAT_TO_TEST}" == 'test-only-changed-files') {
                         echo 'Attempting to run tests that were affected by changes...'
