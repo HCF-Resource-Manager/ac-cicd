@@ -53,10 +53,10 @@ properties (
                 ),
                 string(name: 'WHAT_TO_TEST', defaultValue: 'test-only-changed-files',
                         description: "Replace the default value for any of the options below: \
-                                        'test-none': Do not run any tests. \
-                                        'test-specific-file:<filename>': Test a specific file that is specified in place of <filename>. \
-                                        'test-only-changed-files': Run the dependencyfinder.py script to find and run only tests that are affected by changes. \
-                                        'test-all': Perform all tests (full regression).",
+                        'test-none': Do not run any tests. \
+                        'test-specific-file:<filename>': Test a specific file that is specified in place of <filename>. \
+                        'test-only-changed-files': Run the dependencyfinder.py script to find and run only tests that are affected by changes. \
+                        'test-all': Perform all tests (full regression).",
                         required: true
                 )
             ]
@@ -388,7 +388,10 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     }
                     else if ("${WHAT_TO_TEST}" == 'test-all') {
                         echo "Attempting to run all tests (full regression)..."
-                        tests = sh script: "ls functional/modules && ls unit | grep 'test*.py'", returnStdout: true
+                        sh "ls ../plugins/action > listdir.txt"
+                        def files = sh script: "sed 's#^#../plugins/action/#' listdir.txt", returnStdout: true
+                        echo "${files}"
+                        // tests = sh script: "ls functional/modules && ls unit | grep 'test*.py'", returnStdout: true
                     }
                     else {
                         echo "User input '${WHAT_TO_TEST}' is not a valid option for testing..."
