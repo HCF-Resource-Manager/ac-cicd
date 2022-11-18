@@ -391,6 +391,8 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                         sh "ls ../plugins/action > listdir.txt"
                         def files = sh script: "sed 's#^#../plugins/action/#' listdir.txt", returnStdout: true
                         echo "${files}"
+                        tests = "${files}".replaceAll("\n", " ")
+                        echo "${tests}"
                         // tests = sh script: "ls functional/modules && ls unit | grep 'test*.py'", returnStdout: true
                     }
                     else {
