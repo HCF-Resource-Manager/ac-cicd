@@ -388,19 +388,29 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     }
                     else if ("${WHAT_TO_TEST}" == 'test-all') {
                         echo "Attempting to run all tests (full regression)..."
-                        sh "ls ../plugins/action > listdir.txt"
-                        def files = sh script: "sed 's#^#../plugins/action/#' listdir.txt", returnStdout: true
-                        echo "${files}"
-                        tests = "${files}".replaceAll("\n", " ")
+                        sh "rm -f listdir.txt"
+                        // Save all file names to test in a file (listfiles.txt) and prepend the correct filepath for each file
+                        // For plugins/action
+                        sh "ls ../plugins/action > listfiles.txt"
+                        def action_files = sh script: "sed 's#^#../plugins/action/#' listfiles.txt", returnStdout: true
+                        // For plugins/modules
+                        sh "ls -I zos_ping.rexx -I __init__.py ../plugins/modules > listfiles.txt"
+                        def modules_files = sh script: "sed 's#^#../plugins/modules/#' listfiles.txt", returnStdout: true
+                        // For plugins/module_utils
+                        sh "ls ../plugins/module_utils > listfiles.txt"
+                        def module_utils_files = sh script: "sed 's#^#../plugins/module_utils/#' listfiles.txt", returnStdout: true
+
+                        tests = "${action_files}".replaceAll("\n", " ") + "${modules_files}".replaceAll("\n", " ") + "${module_utils_files}".replaceAll("\n", " ")
                         echo "${tests}"
-                        // tests = sh script: "ls functional/modules && ls unit | grep 'test*.py'", returnStdout: true
                     }
                     else {
                         echo "User input '${WHAT_TO_TEST}' is not a valid option for testing..."
                     }
+
                     echo '---- Tests Found ----'
                     echo "${tests}"
                     echo '---------------------'
+
                     if (tests) {
                         out = ''
                         for (int i = 0; i < 10; i++) {
