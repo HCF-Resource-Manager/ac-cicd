@@ -52,11 +52,7 @@ properties (
                     required: true
                 ),
                 string(name: 'WHAT_TO_TEST', defaultValue: 'test-only-changed-files',
-                        description: "Replace the default value for any of the options below: \
-                        'test-none': Do not run any tests. \
-                        'test-specific-file:<filename>': Test a specific file that is specified in place of <filename>. \
-                        'test-only-changed-files': Run the dependencyfinder.py script to find and run only tests that are affected by changes. \
-                        'test-all': Perform all tests (full regression).",
+                        description: "Replace the default value for any of the options below:\n'test-none': Do not run any tests.\n'test-specific-file:ibm_zos_core/<filepath>': Test a specific file that is specified in place of <filepath>.\n'test-only-changed-files': Run the dependencyfinder.py script to find and run only tests that are affected by changes.\n'test-all': Perform all tests (full regression).",
                         required: true
                 )
             ]
@@ -413,12 +409,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     if (tests) {
                         out = ''
                         for (int i = 0; i < 10; i++) {
-                            /* groovylint-disable-neejbdccuulejdjdfbvfruttntvfbkrbevgbngtbvhenjbxt-line LineLength */
-                            // out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
-                            
-                            /* groovylint-disable-next-line LineLength */
-                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
-                            
+                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
                             sh script: "printenv"
                             if (checkForConnectionErrors(out)) {
                                 sleep(20)
