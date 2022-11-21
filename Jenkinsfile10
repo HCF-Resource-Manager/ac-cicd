@@ -406,12 +406,11 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
 
                 // Generate git logs and append to file
                 sh "touch ${gitLogFileName}"
-                // sh "git log remotes/origin/${BRANCH}..origin/${BRANCH_TAG_TO_COMPARE} > ${gitLogFileName}"
                 sh "git log --oneline --decorate ${BRANCH_TAG_TO_COMPARE}..origin/${BRANCH} > ${gitLogFileName}"
 
                 // Send the log file to the artifactory
                 withCredentials([usernamePassword(credentialsId: 'hcfres_artifactory_api_key', usernameVariable: 'ARTIFACTORY_API_KEY_USER', passwordVariable: 'ARTIFACTORY_API_KEY_PASS')]) {
-                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${gitLogFileName} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-ims-generic-local/${BRANCH}/${currentTimeStamp}/logs/", returnStdout: true
+                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${gitLogFileName} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-core-generic-local/${BRANCH}/${currentTimeStamp}/logs/", returnStdout: true
                     echo "${out}"
                     echo "Success: The generated log file was uploaded to artifactory!"
                 }
@@ -440,7 +439,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
 
                 // Send the log file to the artifactory
                 withCredentials([usernamePassword(credentialsId: 'hcfres_artifactory_api_key', usernameVariable: 'ARTIFACTORY_API_KEY_USER', passwordVariable: 'ARTIFACTORY_API_KEY_PASS')]) {
-                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${jenkinsLogFileName} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-ims-generic-local/${BRANCH}/${currentTimeStamp}/logs/", returnStdout: true
+                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${jenkinsLogFileName} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-core-generic-local/${BRANCH}/${currentTimeStamp}/logs/", returnStdout: true
                     echo "Success: The generated log file was uploaded to artifactory!"
                 }
                 sh "rm ${jenkinsLogFileName}"
@@ -463,11 +462,14 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
 
                 // Release artifact to the artifactory
                 withCredentials([usernamePassword(credentialsId: 'hcfres_artifactory_api_key', usernameVariable: 'ARTIFACTORY_API_KEY_USER', passwordVariable: 'ARTIFACTORY_API_KEY_PASS')]) {
-                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${tarfile} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-ims-generic-local/${BRANCH}/${currentTimeStamp}/artifacts/", returnStdout: true
+                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${tarfile} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-core-generic-local/${BRANCH}/${currentTimeStamp}/artifacts/", returnStdout: true
                     echo "Success: The generated artifact was uploaded to artifactory!"
                 }
                 sh "rm ${tarfile}"
             }
+        }
+        else {
+            echo "Skip generating and releasing artifact to artifactory"
         }
     }
 
