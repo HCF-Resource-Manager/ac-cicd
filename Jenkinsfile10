@@ -52,6 +52,11 @@ properties (
                         PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
                 ),
+                choice(name: 'SEND_GIT_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Git logs to artifactory.'),
+                string(name: 'BRANCH_TAG_TO_COMPARE', defaultValue: 'origin/', description: "If above option is 'Yes', specify which branch or tag to compare git commits from the branch (chosen above) that the job is running against. When specifying a branch instead of a tag, precede the branch name by 'origin/'."),
+                choice(name: 'SEND_JENKINS_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Jenkins logs to artifactory.'),
+                choice(name: 'RELEASE_ARTIFACT_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Generate and release artifact to artifactory.'),
+                credentials(name: 'ARTIFACTORY_API_KEY', defaultValue: 'hcfres_artifactory_api_key', credentialType: "Username with password", required: true)
             ]
         )
     ]
@@ -391,6 +396,81 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             }
         }
     }
+
+    stage ('Send Git Logs to Artifactory') {
+        if ("${SEND_GIT_LOGS_TO_ARTIFACTORY}" == "Yes") {
+            echo "Attempting to send git logs to artifactory..."
+            dir("${GIT_REPO_NAME}") {
+                // Create log file name
+                def gitLogFileName = "${BRANCH}-${currentTimeStamp}-git.log"
+
+                // Generate git logs and append to file
+                sh "touch ${gitLogFileName}"
+                // sh "git log remotes/origin/${BRANCH}..origin/${BRANCH_TAG_TO_COMPARE} > ${gitLogFileName}"
+                sh "git log --oneline --decorate ${BRANCH_TAG_TO_COMPARE}..origin/${BRANCH} > ${gitLogFileName}"
+
+                // Send the log file to the artifactory
+                withCredentials([usernamePassword(credentialsId: 'hcfres_artifactory_api_key', usernameVariable: 'ARTIFACTORY_API_KEY_USER', passwordVariable: 'ARTIFACTORY_API_KEY_PASS')]) {
+                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${gitLogFileName} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-ims-generic-local/${BRANCH}/${currentTimeStamp}/logs/", returnStdout: true
+                    echo "${out}"
+                    echo "Success: The generated log file was uploaded to artifactory!"
+                }
+                sh "rm ${gitLogFileName}"
+            }
+        }
+        else {
+            echo "Skip sending git logs to artifactory: SEND_GIT_LOGS_TO_ARTIFACTORY option is set to 'No'"
+        }
+    }
+
+    stage ('Send Jenkins Console Logs to Artifactory') {
+        if ("${SEND_JENKINS_LOGS_TO_ARTIFACTORY}" == "Yes") {
+            echo "Attempting to send jenkins logs to artifactory..."
+            dir("${GIT_REPO_NAME}") {
+                // Create log file name
+                def jenkinsLogFileName = "${BRANCH}-${currentTimeStamp}-jenkins.log"
+
+                // Generate jenkins logs and append to file
+                def jobNum = sh script: "ls -Art $JENKINS_HOME/jobs/$JOB_NAME/builds/ | tail -n 1", returnStdout: true
+                def currentBuildJob = "$JENKINS_HOME/jobs/$JOB_NAME/builds/${jobNum}".replaceAll("\n", "")
+                sh "touch ${jenkinsLogFileName}"
+                echo "For job #${jobNum}: Generating log file from this console log to send to artifactory..."
+                echo "-------------------- Logs until this line will be sent to artifactory. --------------------"
+                sh "cat ${currentBuildJob}/log > ${jenkinsLogFileName}"
+
+                // Send the log file to the artifactory
+                withCredentials([usernamePassword(credentialsId: 'hcfres_artifactory_api_key', usernameVariable: 'ARTIFACTORY_API_KEY_USER', passwordVariable: 'ARTIFACTORY_API_KEY_PASS')]) {
+                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${jenkinsLogFileName} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-ims-generic-local/${BRANCH}/${currentTimeStamp}/logs/", returnStdout: true
+                    echo "Success: The generated log file was uploaded to artifactory!"
+                }
+                sh "rm ${jenkinsLogFileName}"
+            }            
+        }
+        else {
+            echo "Skip sending jenkins logs to artifactory: SEND_JENKINS_LOGS_TO_ARTIFACTORY option is set to 'No'"
+        }
+    }
+
+    stage ('Generate and Release Artifact to Artifactory') {
+        if ("${RELEASE_ARTIFACT_TO_ARTIFACTORY}" == "Yes") {
+            echo "Attempting to generate artifact..."
+            dir("${GIT_REPO_NAME}/..") {
+                sh "python3 -m pip install --user ansible"
+                sh "/var/lib/jenkins/.local/bin/ansible-galaxy collection build ./ibm_zos_ims --force"
+                def tarfile = sh script: "ls | grep 'tar.gz'", returnStdout: true
+                tarfile = "${tarfile}".replaceAll("\n", "")
+                echo "${tarfile}"
+
+                // Release artifact to the artifactory
+                withCredentials([usernamePassword(credentialsId: 'hcfres_artifactory_api_key', usernameVariable: 'ARTIFACTORY_API_KEY_USER', passwordVariable: 'ARTIFACTORY_API_KEY_PASS')]) {
+                    def out = sh script: "curl -H 'X-JFrog-Art-Api:${ARTIFACTORY_API_KEY_PASS}' -T ./${tarfile} https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-ims-generic-local/${BRANCH}/${currentTimeStamp}/artifacts/", returnStdout: true
+                    echo "Success: The generated artifact was uploaded to artifactory!"
+                }
+                sh "rm ${tarfile}"
+            }
+        }
+    }
+
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo out
     cleanWs()
