@@ -52,10 +52,10 @@ properties (
                         PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
                 ),
-                choice(name: 'SEND_GIT_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Git logs to artifactory.'),
+                choice(name: 'SEND_GIT_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Git logs to artifactory (Enabling this is only recommended for releases).'),
                 string(name: 'BRANCH_TAG_TO_COMPARE', defaultValue: 'origin/', description: "If above option is 'Yes', specify which branch or tag to compare git commits from the branch (chosen above) that the job is running against. When specifying a branch instead of a tag, precede the branch name by 'origin/'."),
-                choice(name: 'SEND_JENKINS_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Jenkins logs to artifactory.'),
-                choice(name: 'RELEASE_ARTIFACT_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Generate and release artifact to artifactory.'),
+                choice(name: 'SEND_JENKINS_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Jenkins logs to artifactory (Enabling this is only recommended for releases).'),
+                choice(name: 'RELEASE_ARTIFACT_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Generate and release artifact to artifactory (Enabling this is only recommended for releases).'),
                 credentials(name: 'ARTIFACTORY_API_KEY', defaultValue: 'hcfres_artifactory_api_key', credentialType: "Username with password", required: true)
             ]
         )
