@@ -32,8 +32,7 @@ properties (
                 string(name: 'USERNAME', defaultValue: 'omvsadm'),
                 //string(name: 'PYTHON_PATH', defaultValue: '/python3/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8',
                 //
-                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9',
-                    required: true),
+                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
@@ -52,6 +51,11 @@ properties (
                         PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
                 ),
+
+                string(name: 'WHAT_TO_TEST', defaultValue: 'test-only-changed-files',
+                        description: "Replace the default value for any of the options below:\n'test-none': Do not run any tests.\n'test-specific-file:<filepath>': Test a specific file in ibm_zos_core that is specified in place of <filepath>. For ex. 'test-specific-file:plugins/action/zos_copy.py'.\n'test-only-changed-files': Run the dependencyfinder.py script to find and run only tests that are affected by changes.\n'test-all': Perform all tests (full regression).",
+                        required: true
+                )
                 choice(name: 'SEND_GIT_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Git logs to artifactory (Enabling this is only recommended for releases).'),
                 string(name: 'BRANCH_TAG_TO_COMPARE', defaultValue: 'origin/', description: "If above option is 'Yes', specify which branch or tag to compare git commits from the branch (chosen above) that the job is running against. When specifying a branch instead of a tag, precede the branch name by 'origin/'."),
                 choice(name: 'SEND_JENKINS_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Jenkins logs to artifactory (Enabling this is only recommended for releases).'),
@@ -368,20 +372,50 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
                     }
                     sh 'git branch'
                     sh 'pwd'
-                    /* groovylint-disable-next-line LineLength */
-                    tests = sh script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s functional/modules/test_module_security.py -m || true", returnStdout: true
+
+                    /* Test different scenarios based on user input */
+                    if ("${WHAT_TO_TEST}" == 'test-none') {
+                        echo "No tests will be run based on user input..."
+                        tests = null
+                    }
+                    else if ("${WHAT_TO_TEST}".contains('test-specific-file:')) {
+                        def separated = "${WHAT_TO_TEST}".split(':')
+                        def filename = separated[1]
+                        echo "Attempting to run ${filename} tests file..."
+                        tests = "../${filename}"
+                    }
+                    else if ("${WHAT_TO_TEST}" == 'test-only-changed-files') {
+                        echo 'Attempting to run tests that were affected by changes...'
+                        tests = sh script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s functional/modules/test_module_security.py -m || true", returnStdout: true
+                    }
+                    else if ("${WHAT_TO_TEST}" == 'test-all') {
+                        echo "Attempting to run all tests (full regression)..."
+                        // Save all file names to test in a file (listfiles.txt) and prepend the correct filepath for each file
+                        // For plugins/action
+                        sh "ls ../plugins/action > listfiles.txt"
+                        def action_files = sh script: "sed 's#^#../plugins/action/#' listfiles.txt", returnStdout: true
+                        // For plugins/modules
+                        sh "ls -I zos_ping.rexx -I __init__.py ../plugins/modules > listfiles.txt"
+                        def modules_files = sh script: "sed 's#^#../plugins/modules/#' listfiles.txt", returnStdout: true
+                        // For plugins/module_utils
+                        sh "ls ../plugins/module_utils > listfiles.txt"
+                        def module_utils_files = sh script: "sed 's#^#../plugins/module_utils/#' listfiles.txt", returnStdout: true
+                        sh "rm -f listdir.txt"
+
+                        tests = "${action_files}".replaceAll("\n", " ") + "${modules_files}".replaceAll("\n", " ") + "${module_utils_files}".replaceAll("\n", " ")
+                    }
+                    else {
+                        echo "User input '${WHAT_TO_TEST}' is not a valid option for testing..."
+                    }
+
                     echo '---- Tests Found ----'
-                    echo tests
+                    echo "${tests}"
                     echo '---------------------'
+
                     if (tests) {
                         out = ''
                         for (int i = 0; i < 10; i++) {
-                            /* groovylint-disable-next-line LineLength */
-                            // out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
-                            
-                            /* groovylint-disable-next-line LineLength */
-                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
-                            
+                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
                             sh script: "printenv"
                             if (checkForConnectionErrors(out)) {
                                 sleep(20)
