@@ -279,6 +279,23 @@ node('master') {
         checkout()
     }
     stage('Build Docker Image') {
+        /*
+            We no longer rely on the requirements.txt in our ansible-core repo under
+            tests because dependebot will keep falgging us as 2.9.x is out of support and no
+            more security updates are being done and yet we have to support 2.9.x through
+            Sept 2023. Thus requirements.txt has been removed and now all packages are manged inline
+            to the Jenkins file.
+
+            These have been removed:
+            - from: 'DOCKERFILE_CONTENTS' - '&& pip3 install --no-cache-dir -r requirements.txt \'
+            - from: 'ENV_VARS'- 'COPY ${REPO}/tests/requirements.txt ./
+
+            Notes:
+            - Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
+            - TARGET_HOST - Address of host to run tests against
+            - TARGET_HOST_PRIVATE_KEY - Private key contents that can be used to connect to TARGET_HOST
+            - Removed the commented line out from DOCKER_CMDS - "# COPY --chown=jenkins:jenkins configuration.yml ./"
+        */
         UID_MAPPING = """
             # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
             ARG UNAME=jenkins
@@ -309,22 +326,18 @@ node('master') {
             # Paths for ansible module and config will persist after the volume mount by Jenkins
             ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
             ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-            COPY ${REPO}/tests/requirements.txt ./
             """
 
         DOCKER_CMDS = '''RUN groupadd -g $GID -o $UNAME
             RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
             USER ${UNAME}
             ENV PATH="/home/jenkins/.local/bin:${PATH}"
-            # ----------------------------- Configure SSH key ---------------------------- #
-            # Address of host to run tests against
+
+            # ---------- Add, configure & ensure SSH key is accepted domain -------------- #
             ARG TARGET_HOST
-            # Private key contents that can be used to connect to TARGET_HOST
             ARG TARGET_HOST_PRIVATE_KEY
             RUN mkdir -p /home/jenkins/.ssh/
             COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
-            # COPY --chown=jenkins:jenkins configuration.yml ./
-            # Add SSH key to system and ensure domain is accepted
             RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
             touch /home/jenkins/.ssh/known_hosts && \
             ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
@@ -333,180 +346,193 @@ node('master') {
         DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_7 + ENV_VARS + """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 \
-                && apt-get update \
-                && apt-get install -y git python3-pip openssh-client ansible python2.7 python-pip \
-                && pip3 install --no-cache-dir -r requirements.txt \
-                && pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
+                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && pip3 install \
+                oyaml==0.9 \
+                pytest-ansible==2.2.2 \
+                pytest==5.3.0 \
+                shellescape==3.8.1 \
+                pytest_mock==1.12.1 \
+                mock==3.0.5 \
+                ansible==2.9.27 \
+                rstcheck===3.3.1 \
+                ansible-lint \
+                yamllint \
+                pylint \
+                virtualenv \
+                bandit
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # --------------------------- Package installation Stage 2 ------------------- #
-            # Update packages, install ansible, openssh
+            # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
                 && ansible-test sanity --requirements || true
-
-            # Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
             """
-/*
-oyaml==0.9
-pytest-ansible==2.2.2
-pytest==5.3.0
-shellescape==3.8.1
-pytest_mock==1.12.1
-mock==3.0.5
-ansible==2.9.27
-*/
 
         DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 \
-                && apt-get update \
-                && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-            RUN pip3 install --upgrade pycodestyle
-            RUN pip3 install pylint==2.3.1 # version locked to the previous one
-            RUN pip3 install yamllint
-            RUN pip3 install voluptuous
-            RUN pip3 install bandit
-            RUN pip3 install --no-cache-dir -r requirements.txt
-            RUN pip3 uninstall -y ansible
-            RUN pip3 install ansible-core==2.11.12
+                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && pip3 install \
+                oyaml==0.9 \
+                pytest-ansible==2.2.2 \
+                pytest==5.3.0 \
+                shellescape==3.8.1 \
+                pytest_mock==1.12.1 \
+                mock==3.0.5 \
+                ansible-core==2.11.12 \
+                pycodestyle \
+                rstcheck===3.3.1 \
+                ansible-lint \
+                yamllint \
+                pylint==2.3.1 \
+                voluptuous \
+                virtualenv \
+                bandit
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # --------------------------- Package installation Stage 2 ------------------- #
-            # Update packages, install ansible, openssh
+            # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
                 && ansible-test sanity --requirements || true
-            # Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
             """
 
         DOCKERFILE_CONTENTS_2_12 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 \
-                && apt-get update \
-                && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-            RUN pip3 install --upgrade pycodestyle
-            RUN pip3 install pylint==2.3.1 # version locked to the previous one
-            RUN pip3 install yamllint
-            RUN pip3 install voluptuous
-            RUN pip3 install bandit
-            RUN pip3 install --no-cache-dir -r requirements.txt
-            RUN pip3 uninstall -y ansible
-            RUN pip3 install ansible-core==2.12.10
+                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && pip3 install \
+                oyaml==0.9 \
+                pytest-ansible==2.2.2 \
+                pytest==5.3.0 \
+                shellescape==3.8.1 \
+                pytest_mock==1.12.1 \
+                mock==3.0.5 \
+                ansible-core==2.12.10 \
+                pycodestyle \
+                rstcheck===3.3.1 \
+                ansible-lint \
+                yamllint \
+                pylint==2.3.1 \
+                voluptuous \
+                virtualenv \
+                bandit
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # --------------------------- Package installation Stage 2 ------------------- #
-            # Update packages, install ansible, openssh
+            # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
                 && ansible-test sanity --requirements || true
-            # Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
             """
 
         DOCKERFILE_CONTENTS_2_13 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 \
-                && apt-get update \
-                && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-            RUN pip3 install --upgrade pycodestyle
-            RUN pip3 install pylint==2.3.1 # version locked to the previous one
-            RUN pip3 install yamllint
-            RUN pip3 install voluptuous
-            RUN pip3 install bandit
-            RUN pip3 install --no-cache-dir -r requirements.txt
-            RUN pip3 uninstall -y ansible
-            RUN pip3 install ansible-core==2.13.7
+                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && pip3 install \
+                oyaml==0.9 \
+                pytest-ansible==2.2.2 \
+                pytest==5.3.0 \
+                shellescape==3.8.1 \
+                pytest_mock==1.12.1 \
+                mock==3.0.5 \
+                ansible-core==2.13.7 \
+                pycodestyle \
+                rstcheck===3.3.1 \
+                ansible-lint \
+                yamllint \
+                pylint==2.3.1 \
+                voluptuous \
+                virtualenv \
+                bandit
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # --------------------------- Package installation Stage 2 ------------------- #
-            # Update packages, install ansible, openssh
+            # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
                 && ansible-test sanity --requirements || true
-            # Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
             """
 
         DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 \
-                && apt-get update \
-                && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-            RUN pip3 install --upgrade pycodestyle
-            RUN pip3 install pylint==2.3.1 # version locked to the previous one
-            RUN pip3 install yamllint
-            RUN pip3 install voluptuous
-            RUN pip3 install bandit
-            RUN pip3 install --no-cache-dir -r requirements.txt
-            RUN pip3 uninstall -y ansible
-            RUN pip3 install ansible-core==2.14.1
+                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && pip3 install \
+                oyaml==0.9 \
+                pytest-ansible==2.2.2 \
+                pytest==5.3.0 \
+                shellescape==3.8.1 \
+                pytest_mock==1.12.1 \
+                mock==3.0.5 \
+                ansible-core==2.14.1 \
+                pycodestyle \
+                rstcheck===3.3.1 \
+                ansible-lint \
+                yamllint \
+                pylint==2.3.1 \
+                voluptuous \
+                virtualenv \
+                bandit
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # --------------------------- Package installation Stage 2 ------------------- #
-            # Update packages, install ansible, openssh
+            # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
                 && ansible-test sanity --requirements || true
-            # Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
             """
 
         DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 \
-                && apt-get update \
-                && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-            RUN pip3 install --upgrade pycodestyle
-            RUN pip3 install pylint==2.3.1 # version locked to the previous one
-            RUN pip3 install yamllint
-            RUN pip3 install voluptuous
-            RUN pip3 install bandit
-            RUN pip3 install --no-cache-dir -r requirements.txt
-            RUN pip3 uninstall -y ansible
+                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && pip3 install \
+                oyaml==0.9 \
+                pytest-ansible==2.2.2 \
+                pytest==5.3.0 \
+                shellescape==3.8.1 \
+                pytest_mock==1.12.1 \
+                mock==3.0.5 \
+                pycodestyle \
+                rstcheck===3.3.1 \
+                ansible-lint \
+                yamllint \
+                pylint==2.3.1 \
+                voluptuous \
+                virtualenv \
+                bandit
             RUN pip install --user https://github.com/ansible/ansible/archive/devel.tar.gz
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # --------------------------- Package installation Stage 2 ------------------- #
-            # Update packages, install ansible, openssh
+            # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
                 && ansible-test sanity --requirements || true
-            # Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
             """
+
 /*
         DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
             #                   Docker Image for Testing Environment                       #
