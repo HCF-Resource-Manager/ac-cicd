@@ -378,7 +378,7 @@ node('master') {
                 && ansible-test sanity --requirements || true
             """
 
-        DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+        DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_8 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
                 && apt-get install -y \
@@ -388,9 +388,8 @@ node('master') {
                     openssh-client \
                     python2.7 \
                     python3.5 \
-                    python3.6 \
                     python3.7 \
-                    python3.8 \
+                    python3.9 \
                     python3.10 \
                     python-pip \
                 && pip3 install \
