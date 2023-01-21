@@ -393,11 +393,6 @@ node('master') {
                     git \
                     python3-pip \
                     openssh-client \
-                    python2.7 \
-                    python3.5 \
-                    python3.7 \
-                    python3.9 \
-                    python3.10 \
                     python-pip \
                 && pip3 install \
                 oyaml==0.9 \
