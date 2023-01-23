@@ -290,7 +290,7 @@ node('master') {
             will run without issue. 
         */
         ANSIBLE_RUNTIME_CONTENTS = """
-        requires_ansible: '>=2.9'
+        requires_ansibless: '>=2.9'
         """
 
         /*
