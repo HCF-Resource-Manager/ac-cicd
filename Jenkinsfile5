@@ -581,7 +581,7 @@ node('master') {
             RUN cd ${REPO} \
                 rm -rf meta/runtime.yml; \
                 touch meta/runtime.yml; \
-                echo ${ANSIBLE_RUNTIME_CONTENTS}>meta/runtime.yml
+                echo "${ANSIBLE_RUNTIME_CONTENTS}">meta/runtime.yml
 
             # ---- Package installation Stage 3 - Build, install & validate collection --- #
             RUN cd ${REPO} \
