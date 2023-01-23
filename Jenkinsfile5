@@ -570,7 +570,8 @@ node('master') {
                 virtualenv \
                 bandit \
                 pipdeptree
-            RUN pip install https://github.com/ansible/ansible/archive/devel.tar.gz
+            RUN pip3 install https://github.com/ansible/ansible/archive/devel.tar.gz \
+                pytest-ansible
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
