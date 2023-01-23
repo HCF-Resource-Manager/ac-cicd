@@ -560,7 +560,7 @@ node('master') {
                 voluptuous \
                 virtualenv \
                 bandit
-            RUN pip install --user https://github.com/ansible/ansible/archive/devel.tar.gz
+            RUN pip install https://github.com/ansible/ansible/archive/devel.tar.gz
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
