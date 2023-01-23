@@ -19,7 +19,7 @@ properties (
         parameters(
             [
                 // ? change host from string to choices once consistent environments?
-                string(name: 'BRANCH', defaultValue: 'dev'),
+                string(name: 'BRANCH', defaultValue: 'update/595-596-617-618/ansible-core-2_12-latest-support'),
                 string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
                 string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
