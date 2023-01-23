@@ -59,7 +59,11 @@ properties (
                      timeout = 30
 
                      [ssh_connection]
-                     pipelining = True""".stripIndent(),
+                     pipelining = True
+
+                     [connection]
+                     pipelining = True
+                     """.stripIndent(),
                     description: 'Set the ansible.cfg options if you have others.',
                     required: true
                     ),
@@ -94,11 +98,6 @@ forks = 25
 timeout = 30
 
 [ssh_connection]
-pipelining = True
-
-# Note - if you are using PYZ 3.10 or later, till further notice
-# set pipelining = False else you will see an encoding failure
-[onnection]
 pipelining = True
 '''
 
@@ -348,10 +347,16 @@ node('master') {
             ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
             '''
 
-        DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_7 + ENV_VARS + """
+        DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && apt-get install -y \
+                    gnupg2 \
+                    git \
+                    python3-pip \
+                    openssh-client \
+                    python2.7 \
+                    python-pip \
                 && pip3 install \
                 oyaml==0.9 \
                 pytest-ansible==2.2.2 \
@@ -419,7 +424,13 @@ node('master') {
         DOCKERFILE_CONTENTS_2_12 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && apt-get install -y \
+                    gnupg2 \
+                    git \
+                    python3-pip \
+                    openssh-client \
+                    python2.7 \
+                    python-pip \
                 && pip3 install \
                 oyaml==0.9 \
                 pytest-ansible==2.2.2 \
@@ -451,7 +462,13 @@ node('master') {
         DOCKERFILE_CONTENTS_2_13 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && apt-get install -y \
+                    gnupg2 \
+                    git \
+                    python3-pip \
+                    openssh-client \
+                    python2.7 \
+                    python-pip \
                 && pip3 install \
                 oyaml==0.9 \
                 pytest-ansible==2.2.2 \
@@ -483,7 +500,13 @@ node('master') {
         DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && apt-get install -y \
+                    gnupg2 \
+                    git \
+                    python3-pip \
+                    openssh-client \
+                    python2.7 \
+                    python-pip \
                 && pip3 install \
                 oyaml==0.9 \
                 pytest-ansible==2.2.2 \
@@ -515,19 +538,25 @@ node('master') {
         DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y gnupg2 git python3-pip openssh-client ansible python2.7 python-pip \
+                && apt-get install -y \
+                    gnupg2 \
+                    git \
+                    python3-pip \
+                    openssh-client \
+                    python2.7 \
+                    python-pip \
                 && pip3 install \
-                oyaml==0.9 \
-                pytest-ansible==2.2.2 \
-                pytest==5.3.0 \
-                shellescape==3.8.1 \
-                pytest_mock==1.12.1 \
-                mock==3.0.5 \
+                oyaml \
+                pytest-ansible \
+                pytest \
+                shellescape \
+                pytest_mock \
+                mock \
                 pycodestyle \
-                rstcheck===3.3.1 \
+                rstcheck \
                 ansible-lint \
                 yamllint \
-                pylint==2.3.1 \
+                pylint \
                 voluptuous \
                 virtualenv \
                 bandit
@@ -544,111 +573,6 @@ node('master') {
                 && ansible-test sanity --requirements || true
             """
 
-/*
-        DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
-            #                   Docker Image for Testing Environment                       #
-            # ---------------------------------------------------------------------------- #
-            FROM python:3.7-slim-buster
-            WORKDIR /usr/src/app
-            # ------------- Environment Variables ------------- #
-            # * These paths will exist after volume mount performed by Jenkins
-            # Path to Ansible modules
-            ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
-            # Path to Ansible config
-            ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-            COPY ${REPO}/tests/requirements.txt ./
-            # --------------------------- Package installation Stage 1 --------------------------- #
-            RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client ansible python2.7 python-pip && pip3 install --no-cache-dir -r requirements.txt && pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
-            # ----------------------------- Copy dependencies ---------------------------- #
-            COPY ${REPO} ./${REPO}/
-            # --------------------------- Package installation Stage 2 --------------------------- #
-            # Update package info, install ansible and openssh
-            RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
-            # It turns out that rstcheck needs to be version-locked, because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
-            # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
-            ARG UNAME=jenkins
-            ARG UID=114
-            ARG GID=121
-            """ +
-            '''RUN groupadd -g $GID -o $UNAME
-            RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-            USER ${UNAME}
-            ENV PATH="/home/jenkins/.local/bin:${PATH}"
-            # ----------------------------- Configure SSH key ---------------------------- #
-            # Address of host to run tests against
-            ARG TARGET_HOST
-            # Private key contents that can be used to connect to TARGET_HOST
-            ARG TARGET_HOST_PRIVATE_KEY
-            RUN mkdir -p /home/jenkins/.ssh/
-            COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
-            # COPY --chown=jenkins:jenkins configuration.yml ./
-            # Add SSH key to system and ensure domain is accepted
-            RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
-                touch /home/jenkins/.ssh/known_hosts && \
-                ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
-            ''' 
-
-        if (ANSIBLE_VERSION == '2.11') {
-            DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
-                #                   Docker Image for Testing Environment                       #
-                # ---------------------------------------------------------------------------- #
-                # FROM python:3.7-slim-buster
-                # FROM python:3.8-slim-buster
-                FROM python:3.9-slim-buster
-                WORKDIR /usr/src/app
-                # ------------- Environment Variables ------------- #
-                # * These paths will exist after volume mount performed by Jenkins
-                # Path to Ansible modules
-                ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
-                # Path to Ansible config
-                ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-                COPY ${REPO}/tests/requirements.txt ./
-                # --------------------------- Package installation Stage 1 --------------------------- #
-                RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-                # RUN pip3 install ansible==2.10.0
-                # RUN pip3 install yamllint pylint pytest-ansible virtualenv bandit
-                RUN pip3 install --upgrade pycodestyle
-                RUN pip3 install pylint==2.3.1 # version locked to the previous one
-                RUN pip3 install yamllint
-                RUN pip3 install voluptuous
-                RUN pip3 install bandit
-                RUN pip3 install --no-cache-dir -r requirements.txt 
-                RUN pip3 uninstall -y ansible
-                RUN pip3 install ansible-core==2.11.12
-                # RUN pip3 install ansible-lint==4.2.0
-
-
-                # ----------------------------- Copy dependencies ---------------------------- #
-                COPY ${REPO} ./${REPO}/
-                # --------------------------- Package installation Stage 2 --------------------------- #
-                # Update package info, install ansible and openssh
-                RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
-                # It turns out that rstcheck needs to be version-locked, because 4.0+ deprecated python 3.7
-                RUN pip3 install rstcheck===3.3.1
-                # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
-                ARG UNAME=jenkins
-                ARG UID=114
-                ARG GID=121
-                """ +
-                '''RUN groupadd -g $GID -o $UNAME
-                RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-                USER ${UNAME}
-                ENV PATH="/home/jenkins/.local/bin:${PATH}"
-                # ----------------------------- Configure SSH key ---------------------------- #
-                # Address of host to run tests against
-                ARG TARGET_HOST
-                # Private key contents that can be used to connect to TARGET_HOST
-                ARG TARGET_HOST_PRIVATE_KEY
-                RUN mkdir -p /home/jenkins/.ssh/
-                COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
-                # COPY --chown=jenkins:jenkins configuration.yml ./
-                # Add SSH key to system and ensure domain is accepted
-                RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
-                    touch /home/jenkins/.ssh/known_hosts && \
-                    ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
-                '''
-        } */
 
         /* ----------------------------------------------------------------------------
          *            Logically select and concat vars to create docker file
@@ -691,11 +615,15 @@ node('master') {
     stage ('Test Collection Build and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
-                 out = sh 'ansible --version'
+                out = sh 'ansible --version'
                 echo out
 
                 out = sh 'python --version'
                 echo out
+
+                out = sh 'pip3 --version'
+                echo out
+
                 echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
 
                 // Attempt to build the collection
