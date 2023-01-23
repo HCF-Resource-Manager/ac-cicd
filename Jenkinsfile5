@@ -557,8 +557,7 @@ node('master') {
                 && pip3 install \
                 bandit \
                 pipdeptree
-            RUN pip3 install https://github.com/ansible/ansible/archive/devel.tar.gz \
-                pytest-ansible
+            RUN pip3 install https://github.com/ansible/ansible/archive/devel.tar.gz
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
