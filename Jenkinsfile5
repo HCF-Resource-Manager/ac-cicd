@@ -578,11 +578,12 @@ node('master') {
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # ---- Package installation Stage 2 - Build, install & validate collection --- #
+            # ---- Package installation Stage 2 - Build, install & validate collection --- #\
             RUN cd ${REPO} \
-                && rm -rf meta/runtime.yml \
-                && touch meta/runtime.yml \
-                && echo ${ANSIBLE_RUNTIME_CONTENTS}>meta/runtime.yml \
+                rm -rf meta/runtime.yml; \
+                touch meta/runtime.yml; \
+                echo ${ANSIBLE_RUNTIME_CONTENTS}>meta/runtime.yml \
+            RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
