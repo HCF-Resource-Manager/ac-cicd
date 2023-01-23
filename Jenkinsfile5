@@ -578,18 +578,19 @@ node('master') {
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            # ---- Package installation Stage 2 - Build, install & validate collection --- #\
+            # ---------------- Stage 2 - Update ansible runtime allowed  --------------- #
             RUN cd ${REPO} \
                 rm -rf meta/runtime.yml; \
                 touch meta/runtime.yml; \
-                echo ${ANSIBLE_RUNTIME_CONTENTS}>meta/runtime.yml \
+                echo ${ANSIBLE_RUNTIME_CONTENTS}>meta/runtime.yml
+
+            # ---- Package installation Stage 3 - Build, install & validate collection --- #
             RUN cd ${REPO} \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
                 && ansible-test sanity --requirements || true
             """
-
 
         /* ----------------------------------------------------------------------------
          *            Logically select and concat vars to create docker file
