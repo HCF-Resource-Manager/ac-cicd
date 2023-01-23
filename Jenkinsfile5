@@ -283,6 +283,17 @@ node('master') {
         checkout()
     }
     stage('Build Docker Image') {
+
+        /*
+            When LATEST is selected the vesion needs to be overriden currently
+            in the meta data, this takes the approac in that all later than 2.9
+            will run without issue. 
+        */
+        ANSIBLE_RUNTIME_CONTENTS = """
+        ---
+        requires_ansible: '>=2.9'
+        """
+
         /*
             We no longer rely on the requirements.txt in our ansible-core repo under
             tests because dependebot will keep falgging us as 2.9.x is out of support and no
@@ -507,6 +518,7 @@ node('master') {
                     openssh-client \
                     python2.7 \
                     python-pip \
+                && python3 -m pip install --upgrade pip
                 && pip3 install \
                 oyaml==0.9 \
                 pytest-ansible==2.2.2 \
@@ -545,6 +557,7 @@ node('master') {
                     openssh-client \
                     python2.7 \
                     python-pip \
+                && python3 -m pip install --upgrade pip
                 && pip3 install \
                 oyaml \
                 pytest-ansible \
@@ -568,6 +581,8 @@ node('master') {
 
             # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
+                && 0 > meta/runtime.yml \
+                && echo ${ANSIBLE_RUNTIME_CONTENTS} > /meta/runtime.yml \
                 && ansible-galaxy collection build . --force \
                 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
                 && cd ansible_collections/ibm/${REPO}/ \
@@ -632,11 +647,11 @@ node('master') {
                 echo '-------------------------------------------------------------------------'
 
                 echo '------------------------ workspakce output ------------------------------'
-                echo "\nWorkspace: ${env.WORKSPACE}/${PO}\n"
+                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
                 echo out
                 echo '-------------------------------------------------------------------------'
 
-                out = sh script: "pipdeptree", returnStdout: true
+                out = sh 'pipdeptree'
                 echo '------------------------- pipdeptree output ------------------------------'
                 echo out
                 echo '-------------------------------------------------------------------------'
