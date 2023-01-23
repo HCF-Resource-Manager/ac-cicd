@@ -522,8 +522,7 @@ node('master') {
                 pylint==2.3.1 \
                 voluptuous \
                 virtualenv \
-                bandit \
-                pipdeptree
+                bandit 
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
@@ -560,7 +559,8 @@ node('master') {
                 pylint \
                 voluptuous \
                 virtualenv \
-                bandit
+                bandit \
+                pipdeptree
             RUN pip install https://github.com/ansible/ansible/archive/devel.tar.gz
 
             # ----------------------------- Copy dependencies ---------------------------- #
