@@ -580,7 +580,7 @@ node('master') {
 
             # ---- Package installation Stage 2 - Build, install & validate collection --- #
             RUN cd ${REPO} \
-                && rm meta/runtime.yml \
+                && rm -rf meta/runtime.yml \
                 && touch meta/runtime.yml \
                 && echo ${ANSIBLE_RUNTIME_CONTENTS}>meta/runtime.yml \
                 && ansible-galaxy collection build . --force \
