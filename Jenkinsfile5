@@ -289,9 +289,7 @@ node('master') {
             in the meta data, this takes the approac in that all later than 2.9
             will run without issue. 
         */
-        ANSIBLE_RUNTIME_CONTENTS = """
-        requires_ansible: '>=2.9'
-        """
+        ANSIBLE_RUNTIME_CONTENTS = """ ---\nrequires_ansible: '>=2.9'"""
 
         /*
             We no longer rely on the requirements.txt in our ansible-core repo under
@@ -581,7 +579,7 @@ node('master') {
             CMD cd ${REPO}
             CMD rm -rf meta/runtime.yml
             CMD touch meta/runtime.yml
-            CMD echo "requires_ansible: '>=2.9'">meta/runtime.yml
+            CMD echo "${ANSIBLE_RUNTIME_CONTENTS}">meta/runtime.yml
 
             # ---- Package installation Stage 3 - Build, install & validate collection --- #
             RUN cd ${REPO} \
