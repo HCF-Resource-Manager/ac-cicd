@@ -636,7 +636,7 @@ node('master') {
                 echo out
                 echo '-------------------------------------------------------------------------'
 
-                out = sh script: "pipdeptree -fl", returnStdout: true
+                out = sh script: "pipdeptree", returnStdout: true
                 echo '------------------------- pipdeptree output ------------------------------'
                 echo out
                 echo '-------------------------------------------------------------------------'
