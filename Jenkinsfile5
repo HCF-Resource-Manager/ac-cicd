@@ -634,6 +634,11 @@ node('master') {
                 echo out
                 echo '-------------------------------------------------------------------------'
 
+                echo '------------------------ Update meta/runtime.yml ----------------------------'
+                out = sh 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "${ANSIBLE_RUNTIME_CONTENTS}">meta/runtime.yml'
+                echo out
+                echo '-------------------------------------------------------------------------'
+
                 echo '------------------------ cat meta/runtime.yml ----------------------------'
                 out = sh 'cat meta/runtime.yml'
                 echo out
