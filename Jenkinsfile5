@@ -570,7 +570,7 @@ node('master') {
                 echo out
                 echo '-------------------------------------------------------------------------'
 
-                out = sh (script: 'pipdeptree', returnStdout: true)
+                out = sh (script: '/root/.local/bin/pipdeptree', returnStdout: true)
                 echo '------------------------- pipdeptree output ------------------------------'
                 echo out
                 echo '--------------------------------------------------------------------------'
