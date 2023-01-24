@@ -563,7 +563,7 @@ node('master') {
             COPY ${REPO} ./${REPO}/
 
             # ---------------- Stage 2 - Update ansible runtime allowed  --------------- #
-            RUN rm -rf ${REPO}/meta/runtime.yml; touch meta/runtime.yml; echo "${ANSIBLE_RUNTIME_CONTENTS}">meta/runtime.yml
+            RUN rm -rf ${REPO}/meta/runtime.yml; touch ${REPO}/meta/runtime.yml; echo "${ANSIBLE_RUNTIME_CONTENTS}">${REPO}/meta/runtime.yml
 
             # ---- Package installation Stage 3 - Build, install & validate collection --- #
             #RUN cd ${REPO} \
