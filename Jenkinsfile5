@@ -284,10 +284,14 @@ node('master') {
         script {
             python_ver = "${params.PYTHON_PATH}"
             python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
+            
+            date_org = "${BUILD_TIMESTAMP}"
+            System.setProperty('BUILD_TIMESTAMP', "")
+     
             currentBuild.displayName = "#${BUILD_NUMBER}"
             currentBuild.description = "Branch: ${BRANCH}\n" +
-                                                "Target: ${params.TARGET_HOST}\n" +
-                                                "Python: " + python_ver
+                                        "Target: ${params.TARGET_HOST}\n" +
+                                        "Python: " + python_ver
                                                
         }
     }
