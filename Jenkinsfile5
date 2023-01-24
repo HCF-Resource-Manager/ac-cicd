@@ -282,9 +282,12 @@ node('master') {
     stage('Checkout') {
         checkout()
         script {
-                    currentBuild.displayName = "Build [#${BUILD_NUMBER}]"
-                    currentBuild.description = "Branch: ${BRANCH}\n" +
-                                                "Target: ${params.TARGET_HOST}\n"
+            python_ver = "${params.PYTHON_PATH}"
+            python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
+            currentBuild.displayName = "#${BUILD_NUMBER}"
+            currentBuild.description = "Branch: ${BRANCH}\n" +
+                                                "Target: ${params.TARGET_HOST}\n" +
+                                                "Python: " + python_ver
                                                
         }
     }
@@ -732,13 +735,6 @@ node('master') {
         }
     }
 
-    post {
-        failure {
-            // in case of failure, we'd like to have simple 'git blame' on build history :)
-            currentBuild.displayName = 'This build needs help!!!'
-            buildDescription("Committer: URR")
-        }
-    }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo 'NOT attempting cleanup\n\n'
     echo out
