@@ -604,6 +604,12 @@ node('master') {
          * ----------------------------------------------------------------------------
         */
         writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+
+        /// here 
+        sh (""" rm -rf "${REPO}/meta/runtime.yml" """)
+        # sh (""" touch "${REPO}/meta/runtime.yml" """)
+        # sh (""" echo "---\\nrequires_ansible: \'>=2.9\'" """)
+        writeFile(file: "${REPO}/meta/runtime.yml", text: "---\\nrequires_ansible: \'>=2.9\'")
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
             ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
@@ -614,8 +620,8 @@ node('master') {
     stage ('Test Collection Build and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
-                echo '------------------- ansible-core version output -------------------------'
-                out = sh (script: 'ansible --version', returnStdout: true)
+                echo '------------------------ workspakce output ------------------------------'
+                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
                 echo out
                 echo '-------------------------------------------------------------------------'
 
@@ -629,34 +635,40 @@ node('master') {
                 echo out
                 echo '-------------------------------------------------------------------------'
 
-                echo '------------------------ workspakce output ------------------------------'
-                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
-                echo out
-                echo '-------------------------------------------------------------------------'
-
-                echo '------------------------ Update meta/runtime.yml ----------------------------'
-                out = sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml', returnStdout: true)
-                echo out
-                echo '-------------------------------------------------------------------------'
-
-                echo '------------------------ cat meta/runtime.yml ----------------------------'
-                out = sh (script: 'cat meta/runtime.yml', returnStdout: true)
+                out = sh (script: "pip3 freeze", returnStdout: true)
+                echo '--------------------------- pip freeze output ---------------------------'
                 echo out
                 echo '-------------------------------------------------------------------------'
 
                 out = sh (script: 'pipdeptree', returnStdout: true)
                 echo '------------------------- pipdeptree output ------------------------------'
                 echo out
-                echo '-------------------------------------------------------------------------'
+                echo '--------------------------------------------------------------------------'
 
-                // Attempt to build the collection
-                out = sh (script: 'ansible-galaxy collection build . --force')
-                // Install the built collection
-                out = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force")
-                out = sh (script: "pip3 freeze", returnStdout: true)
-                echo '--------------------------- pip freeze output ---------------------------'
+                echo '------------------- ansible-core version output -------------------------'
+                out = sh (script: 'ansible --version', returnStdout: true)
                 echo out
                 echo '-------------------------------------------------------------------------'
+
+                # echo '------------------------ Update meta/runtime.yml ----------------------------'
+                # out = sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml', returnStdout: true)
+                # echo out
+                # echo '-------------------------------------------------------------------------'
+
+                echo '------------------------ cat meta/runtime.yml ----------------------------'
+                out = sh (script: 'cat meta/runtime.yml', returnStdout: true)
+                echo out
+                echo '-------------------------------------------------------------------------'
+
+                echo '--------------------- Build the collection output ------------------------'
+                out = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
+                echo out
+                echo '--------------------------------------------------------------------------'
+
+                echo '-------------------- Install the collection output -----------------------'
+                out = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force", returnStdout: true)
+                echo out
+                echo '--------------------------------------------------------------------------'
             }
         }
     }
