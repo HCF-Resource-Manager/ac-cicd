@@ -282,9 +282,10 @@ node('master') {
     stage('Checkout') {
         checkout()
         script {
-                    currentBuild.displayName = "Deploy on ${params.TARGET_HOST} [#${BUILD_NUMBER}]"
-                    currentBuild.description = "Destination: ${params.TARGET_HOST}\n" +
-                                               "Executed on: ${NODE_NAME}\n"
+                    currentBuild.displayName = "Build [#${BUILD_NUMBER}]"
+                    currentBuild.description = "Branch: ${BRANCH}\n" +
+                                                "Target: ${params.TARGET_HOST}\n"
+                                               
         }
     }
     stage('Build Docker Image') {
@@ -728,6 +729,14 @@ node('master') {
                     }
                 }
             }
+        }
+    }
+
+    post {
+        failure {
+            // in case of failure, we'd like to have simple 'git blame' on build history :)
+            currentBuild.displayName = 'This build needs help!!!'
+            buildDescription("Committer: URR")
         }
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
