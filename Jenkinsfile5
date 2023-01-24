@@ -53,7 +53,6 @@ properties (
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
                     defaultValue: """
-                     #######
                      [defaults]
                      forks = 25
                      timeout = 30
@@ -274,7 +273,75 @@ def updateGithubCommitStatus(message, state) {
     }
 }
 
+
+
+
+
+/* -------------------------------------------------------------------------- */
+/*         Pipeline Docker Configuration and related configs                  */
+/* -------------------------------------------------------------------------- */
+
+/* --------------------------- Notes ---------------------------------------- */
+/* We no longer rely on the requirements.txt in our ansible-core repo under
+/* tests because dependebot will keep falgging us as 2.9.x is out of community
+/* support but not enterprise support. We still support it through Sept 2023.
+/*
+/* Removed:
+/*  - in: 'DOCKERFILE_CONTENTS' - '&& pip3 install --no-cache-dir -r requirements.txt \''
+/*  - in: 'ENV_VARS'- 'COPY ${REPO}/tests/requirements.txt
+/*  - in: 'DOCKER_CMDS' - "# COPY --chown=jenkins:jenkins configuration.yml ./"
+/* Notes:
+/*  - Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
+/* -------------------------------------------------------------------------- */
+
+/*
+    When LATEST is selected the meta-data vesion needs to be updated to alllow
+    ansible-test to run.
+*/
+ANSIBLE_RUNTIME_CONTENTS = """ ---\\nrequires_ansible: '>=2.9'"""
+
+
+UID_MAPPING = """
+# -------------------- Map UID and GID to Jenkins host IDs ------------------- #
+ARG UNAME=jenkins
+ARG UID=114
+ARG GID=121
+"""
+
+SLIM_BUSTER_3_7 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.7-slim-buster
+WORKDIR /usr/src/app
+"""
+
+SLIM_BUSTER_3_8 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.8-slim-buster
+WORKDIR /usr/src/app
+"""
+
+SLIM_BUSTER_3_9 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.9-slim-buster
+WORKDIR /usr/src/app
+"""
+
+ENV_VARS = """
+# ---------------------------- Environment Variables ------------------------- #
+# Paths for ansible module and config will persist after the volume mount by Jenkins
+ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
+ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
+"""
+
+/* -------------------------------------------------------------------------- */
+/*                           Docker object                                    */
+/* -------------------------------------------------------------------------- */
+
 docker_object_name = "ansible-test-image:${env.BUILD_ID}"
+
+/* -------------------------------------------------------------------------- */
+/*                           Stages                                           */
+/* -------------------------------------------------------------------------- */
 
 node('master') {
     currentBuild.result = 'SUCCESS'
@@ -289,66 +356,15 @@ node('master') {
             currentBuild.displayName = "#${BUILD_NUMBER}"
             currentBuild.description =  "Target: " + target_pre + "\n" +
                                         "Python: " + python_ver + "\n" +
-                                        "Branch: ${BRANCH}"                               
+                                        "Branch: ${BRANCH}"
         }
     }
     stage('Build Docker Image') {
 
-        /*
-            When LATEST is selected the vesion needs to be overriden currently
-            in the meta data, this takes the approac in that all later than 2.9
-            will run without issue. 
-        */
-        ANSIBLE_RUNTIME_CONTENTS = """ ---\\nrequires_ansible: '>=2.9'"""
 
-        /*
-            We no longer rely on the requirements.txt in our ansible-core repo under
-            tests because dependebot will keep falgging us as 2.9.x is out of support and no
-            more security updates are being done and yet we have to support 2.9.x through
-            Sept 2023. Thus requirements.txt has been removed and now all packages are manged inline
-            to the Jenkins file.
 
-            These have been removed:
-            - from: 'DOCKERFILE_CONTENTS' - '&& pip3 install --no-cache-dir -r requirements.txt \'
-            - from: 'ENV_VARS'- 'COPY ${REPO}/tests/requirements.txt ./
 
-            Notes:
-            - Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
-            - TARGET_HOST - Address of host to run tests against
-            - TARGET_HOST_PRIVATE_KEY - Private key contents that can be used to connect to TARGET_HOST
-            - Removed the commented line out from DOCKER_CMDS - "# COPY --chown=jenkins:jenkins configuration.yml ./"
-        */
-        UID_MAPPING = """
-            # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
-            ARG UNAME=jenkins
-            ARG UID=114
-            ARG GID=121
-            """
 
-        SLIM_BUSTER_3_7 = """
-            # ----------------- Docker Image for Testing Environment --------------------- #
-            FROM python:3.7-slim-buster
-            WORKDIR /usr/src/app
-            """
-
-        SLIM_BUSTER_3_8 = """
-            # ----------------- Docker Image for Testing Environment --------------------- #
-            FROM python:3.8-slim-buster
-            WORKDIR /usr/src/app
-            """
-
-        SLIM_BUSTER_3_9 = """
-            # ----------------- Docker Image for Testing Environment --------------------- #
-            FROM python:3.9-slim-buster
-            WORKDIR /usr/src/app
-            """
-
-        ENV_VARS = """
-            # ---------------------------- Environment Variables ------------------------- #
-            # Paths for ansible module and config will persist after the volume mount by Jenkins
-            ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
-            ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-            """
 
         /**
         This snippet with the option --requirements will trigger the test cases
