@@ -404,7 +404,7 @@ node('master') {
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
-            """ + ANSIBLE_TEST_REQ_INSTALL
+            """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
 
 
         DOCKERFILE_CONTENTS_2_9_BAD = SLIM_BUSTER_3_7 + ENV_VARS + """
@@ -445,7 +445,7 @@ node('master') {
 
             # ------------------ Copy Repository to Docker Image ------------------------- #
             COPY ${REPO} ./${REPO}/
-            """
+            """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
 
         DOCKERFILE_CONTENTS_2_12 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
@@ -465,7 +465,7 @@ node('master') {
 
             # ------------------ Copy Repository to Docker Image ------------------------- #
             COPY ${REPO} ./${REPO}/
-            """
+            """ + UID_MAPPING + DOCKER_CMDS
 
         DOCKERFILE_CONTENTS_2_13 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
@@ -485,7 +485,7 @@ node('master') {
 
             # ------------------ Copy Repository to Docker Image ------------------------- #
             COPY ${REPO} ./${REPO}/
-            """
+            """ + UID_MAPPING + DOCKER_CMDS
 
         DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
@@ -507,7 +507,7 @@ node('master') {
 
             # ------------------ Copy Repository to Docker Image ------------------------- #
             COPY ${REPO} ./${REPO}/
-            """
+            """ + UID_MAPPING + DOCKER_CMDS
 
         DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
@@ -527,24 +527,24 @@ node('master') {
 
             # ------------------ Copy Repository to Docker Image ------------------------ #
             COPY ${REPO} ./${REPO}/
-            """
+            """ + UID_MAPPING + DOCKER_CMDS
 
         /* ----------------------------------------------------------------------------
          *            Logically select and concat vars to create docker file
          * ----------------------------------------------------------------------------
         */
         if (ANSIBLE_VERSION == '2.9') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9 + UID_MAPPING + DOCKER_CMDS
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
         } else if (ANSIBLE_VERSION == '2.11') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11 + UID_MAPPING + DOCKER_CMDS
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
         } else if (ANSIBLE_VERSION == '2.12') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12 + UID_MAPPING + DOCKER_CMDS
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12
         } else if (ANSIBLE_VERSION == '2.13') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_13 + UID_MAPPING + DOCKER_CMDS
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_13
         } else if (ANSIBLE_VERSION == '2.14') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_14 + UID_MAPPING + DOCKER_CMDS
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_14
         } else if (ANSIBLE_VERSION == 'LATEST') {
-             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST + UID_MAPPING + DOCKER_CMDS
+             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
 
         /* ----------------------------------------------------------------------------
@@ -626,6 +626,13 @@ node('master') {
     stage('ansible-test Sanity Tests') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
+
+                if (env.ANSIBLE_VERSION == '2.9') {
+                    echo '----------- ansible-2.9 - removing test & doc from build ----------------'
+                    out = sh (script: 'rm -rf docs tests', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+                }
 
                 // Attempt to build the collection
                 out = sh script: 'ansible-galaxy collection build . --force'
