@@ -284,15 +284,12 @@ node('master') {
         script {
             python_ver = "${params.PYTHON_PATH}"
             python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
-           
-            date_org = "${BUILD_TIMESTAMP}"
-            BUILD_TIMESTAMP = ""
-     
+            target_pre = "${params.TARGET_HOST}"
+            target_pre = target_pre.substring(0,9)
             currentBuild.displayName = "#${BUILD_NUMBER}"
-            currentBuild.description = "Branch: ${BRANCH}\n" +
-                                        "Target: ${params.TARGET_HOST}\n" +
-                                        "Python: " + python_ver
-                                               
+            currentBuild.description =  "Target: " + target_pre + "\n" +
+                                        "Python: " + python_ver + "\n" +
+                                        "Branch: ${BRANCH}"                               
         }
     }
     stage('Build Docker Image') {
