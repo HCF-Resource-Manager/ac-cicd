@@ -618,7 +618,6 @@ node('master') {
             dir("${REPO}") {
                 echo '------------------------ workspakce output ------------------------------'
                 echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
-                echo out
                 echo '-------------------------------------------------------------------------'
 
                 echo '------------------------ python version output --------------------------'
