@@ -599,6 +599,8 @@ node('master') {
         sh 'cat Dockerfile'
         sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
 
+        writeFile(file: '${REPO}meta/runtime.yml', text: "---\nrequires_ansible: '>=2.9'")
+
         /* ----------------------------------------------------------------------------
          *                  Create YAML config file for use by pytest fixtures
          * ----------------------------------------------------------------------------
@@ -643,11 +645,6 @@ node('master') {
                 out = sh (script: 'ansible --version', returnStdout: true)
                 echo out
                 echo '-------------------------------------------------------------------------'
-
-                # echo '------------------------ Update meta/runtime.yml ----------------------------'
-                # out = sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml', returnStdout: true)
-                # echo out
-                # echo '-------------------------------------------------------------------------'
 
                 echo '------------------------ cat meta/runtime.yml ----------------------------'
                 out = sh (script: 'cat meta/runtime.yml', returnStdout: true)
