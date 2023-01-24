@@ -635,7 +635,7 @@ node('master') {
                 echo '-------------------------------------------------------------------------'
 
                 echo '------------------------ Update meta/runtime.yml ----------------------------'
-                out = sh 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "${ANSIBLE_RUNTIME_CONTENTS}">meta/runtime.yml'
+                out = sh 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: '>=2.9'">meta/runtime.yml'
                 echo out
                 echo '-------------------------------------------------------------------------'
 
