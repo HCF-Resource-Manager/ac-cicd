@@ -391,7 +391,7 @@ node('master') {
                 && ansible-test sanity --requirements || true
             """
 
-        DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
+        DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_7 + ENV_VARS + """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
             && apt-get install -y \
@@ -413,7 +413,7 @@ node('master') {
             COPY ${REPO} ./${REPO}/
             """
 
-        DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_8 + ENV_VARS +  """
+        DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
             && apt-get install -y \
