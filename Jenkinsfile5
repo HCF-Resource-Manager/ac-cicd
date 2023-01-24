@@ -607,8 +607,6 @@ node('master') {
 
         /// here 
         sh (""" rm -rf "${REPO}/meta/runtime.yml" """)
-        # sh (""" touch "${REPO}/meta/runtime.yml" """)
-        # sh (""" echo "---\\nrequires_ansible: \'>=2.9\'" """)
         writeFile(file: "${REPO}/meta/runtime.yml", text: "---\\nrequires_ansible: \'>=2.9\'")
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
