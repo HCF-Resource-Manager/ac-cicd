@@ -390,7 +390,8 @@ node('master') {
             && pip3 install \
                 bandit \
                 pipdeptree \
-                ansible==2.9.27
+                ansible==2.9.27 \
+                rstcheck===3.3.1
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
