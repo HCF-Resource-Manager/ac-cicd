@@ -390,12 +390,11 @@ node('master') {
             && pip3 install \
                 bandit \
                 pipdeptree \
-                ansible==2.9.27 \
-                rstcheck===3.3.1
+                ansible==2.9.27 
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
-            """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
+            """ + UID_MAPPING + DOCKER_CMDS
 
 
         DOCKERFILE_CONTENTS_2_9_GOOD = SLIM_BUSTER_3_8 + ENV_VARS + """
@@ -646,7 +645,7 @@ node('master') {
                 echo '-------------------------------------------------------------------------'
 
                 dir("ansible_collections/ibm/${REPO}") {
-                    out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
+                    out = sh (script: 'ansible-test sanity --venv 2>&1 || true', returnStdout: true)
                     echo '--------------------------- Sanity output ---------------------------'
                     echo out
                     echo '-----------configuration.yml-----------------------------------------'
