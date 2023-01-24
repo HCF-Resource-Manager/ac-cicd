@@ -340,6 +340,27 @@ node('master') {
             ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
             """
 
+        /**
+        This snippet with the option --requirements will trigger the test cases
+        to run but will also INSTALL any requiements needed. If you rely on
+        ansible-test to install it should always get the right dependencies vs
+        installing frozen versions of the dependencies. Note, that this is added
+        currently to the docker file in my opinion is a hack because docker is
+        built as root and gives global access but the docker image is later run as
+        jenkins and if you try to do this step as jenkins you will get a
+        Permission denied: b'/usr/lib/python3.8/site-packages/ansible.egg-info'
+        type error because running --requirements as jenkins for ansible 2.9 has
+        a bug that tries to write an egg. Apprent fixed in 2.10 or later.
+        **/
+        ANSIBLE_TEST_REQ_INSTALL = """
+            # ---------- Trigger ansible-test to install dependencies -------------- #
+            RUN cd ${REPO} \
+            && ansible-galaxy collection build . --force \
+            && ansible-galaxy collection install ibm-${REPO}* --force -p . \
+            && cd ansible_collections/ibm/${REPO}/ \
+            && ansible-test sanity --requirements || true
+        """
+
         DOCKER_CMDS = '''RUN groupadd -g $GID -o $UNAME
             RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
             USER ${UNAME}
@@ -383,8 +404,7 @@ node('master') {
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
-
-            """
+            """ + ANSIBLE_TEST_REQ_INSTALL
 
 
         DOCKERFILE_CONTENTS_2_9_BAD = SLIM_BUSTER_3_7 + ENV_VARS + """
@@ -550,7 +570,6 @@ node('master') {
     stage ('Test Collection Build and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
-                sh(script: 'export PATH=\"/root/.local/bin:$PATH\"')
                 echo '------------------------ workspakce output ------------------------------'
                 echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
                 echo '-------------------------------------------------------------------------'
@@ -570,7 +589,7 @@ node('master') {
                 echo out
                 echo '-------------------------------------------------------------------------'
 
-                out = sh (script: '/root/.local/bin/pipdeptree', returnStdout: true)
+                out = sh (script: 'pipdeptree', returnStdout: true)
                 echo '------------------------- pipdeptree output ------------------------------'
                 echo out
                 echo '--------------------------------------------------------------------------'
