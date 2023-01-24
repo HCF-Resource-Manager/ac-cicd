@@ -281,6 +281,11 @@ node('master') {
 
     stage('Checkout') {
         checkout()
+        script {
+                    currentBuild.displayName = "Deploy on ${params.TARGET_HOST} [#${BUILD_NUMBER}]"
+                    currentBuild.description = "Destination: ${params.TARGET_HOST}\n" +
+                                               "Executed on: ${NODE_NAME}\n"
+        }
     }
     stage('Build Docker Image') {
 
