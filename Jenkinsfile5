@@ -301,6 +301,7 @@ def updateGithubCommitStatus(message, state) {
 */
 ANSIBLE_RUNTIME_CONTENTS = """ ---\\nrequires_ansible: '>=2.9'"""
 
+SLIM_BUSTER_VERSION = "3.x"
 
 UID_MAPPING = """
 # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
@@ -324,6 +325,12 @@ WORKDIR /usr/src/app
 SLIM_BUSTER_3_9 = """
 # ----------------- Docker Image for Testing Environment --------------------- #
 FROM python:3.9-slim-buster
+WORKDIR /usr/src/app
+"""
+
+SLIM_BUSTER_TEMPLATE = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:${SLIM_BUSTER_VERSION}-slim-buster
 WORKDIR /usr/src/app
 """
 
@@ -375,7 +382,9 @@ touch /home/jenkins/.ssh/known_hosts && \
 ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
 '''
 
-DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
+/* DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """ */
+
+DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_TEMPLATE + ENV_VARS + """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update \
 && apt-get install -y \
@@ -532,6 +541,7 @@ node('master') {
          * ----------------------------------------------------------------------------
         */
         if (ANSIBLE_VERSION == '2.9') {
+            SLIM_BUSTER_VERSION = "3.8"
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
         } else if (ANSIBLE_VERSION == '2.11') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
