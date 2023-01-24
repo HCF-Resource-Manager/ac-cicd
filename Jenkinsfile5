@@ -384,8 +384,6 @@ node('master') {
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
 
-            RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
-
             """
 
 
@@ -614,7 +612,7 @@ node('master') {
         }
     }
     stage('ansible-test Sanity Tests') {
-        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+        ansibleTestingImage.inside("-u omvsadm -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
             
                 // Attempt to build the collection
