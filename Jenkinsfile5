@@ -629,23 +629,27 @@ node('master') {
 
                 if (env.ANSIBLE_VERSION == '2.9') {
                     echo '----------- ansible-2.9 - removing test & doc from build ----------------'
-                    out = sh (script: 'rm -rf docs tests', returnStdout: true)
+                    out = sh (script: 'rm -rf docs tests/.pytest_cache tests/functional tests/helpers tests/unit tests/*.py tests/*.ini tests/requirements.txt ', returnStdout: true)
                     echo out
                     echo '-------------------------------------------------------------------------'
                 }
 
-                // Attempt to build the collection
-                out = sh script: 'ansible-galaxy collection build . --force'
-                // Install the built collection
-                out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
+                echo '----------------------- Build the collection ----------------------------'
+                out = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
+                echo out
+                echo '-------------------------------------------------------------------------'
 
+                echo '----------------------- Install the collection ----------------------------'
+                out = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
+                echo out
+                echo '-------------------------------------------------------------------------'
 
                 dir("ansible_collections/ibm/${REPO}") {
-                    out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
+                    out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
                     echo '--------------------------- Sanity output ---------------------------'
                     echo out
                     echo '-----------configuration.yml-----------------------------------------'
-                    cfg_out = sh script: 'cat configuration.yml 2>&1 || true', returnStdout: true
+                    cfg_out = sh (script: 'cat configuration.yml 2>&1 || true', returnStdout: true)
                     echo cfg_out
                     echo '---------------------------------------------------------------------'
                     checkForAnsibleTestErrors(out)
