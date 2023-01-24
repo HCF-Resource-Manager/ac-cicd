@@ -365,6 +365,7 @@ node('master') {
                     openssh-client \
                     python2.7 \
                     python-pip \
+                && pip3 install --upgrade pip \
                 && pip3 install \
                 oyaml==0.9 \
                 pytest-ansible==2.2.2 \
@@ -382,6 +383,9 @@ node('master') {
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
+
+            RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
+
             """
 
 
@@ -620,7 +624,7 @@ node('master') {
 
 
                 dir("ansible_collections/ibm/${REPO}") {
-                    out = sh script: 'ansible-test sanity --requirements 2>&1 || true', returnStdout: true
+                    out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
                     echo '--------------------------- Sanity output ---------------------------'
                     echo out
                     echo '-----------configuration.yml-----------------------------------------'
