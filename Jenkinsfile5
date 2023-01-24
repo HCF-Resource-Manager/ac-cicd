@@ -355,7 +355,7 @@ node('master') {
             ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
             '''
 
-        DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
+        DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_7 + ENV_VARS + """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
                 && apt-get install -y \
@@ -613,8 +613,7 @@ node('master') {
     stage('ansible-test Sanity Tests') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
-                sh script: 'chown -R 114:121 /usr/local/lib/python3.8/site-packages'
-
+            
                 // Attempt to build the collection
                 out = sh script: 'ansible-galaxy collection build . --force'
                 // Install the built collection
