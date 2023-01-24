@@ -378,7 +378,8 @@ node('master') {
                 yamllint \
                 pylint \
                 virtualenv \
-                bandit
+                bandit \
+                pipdeptree
 
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
