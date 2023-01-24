@@ -508,69 +508,43 @@ node('master') {
         DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y \
-                    gnupg2 \
-                    git \
-                    python3-pip \
-                    openssh-client \
-                    python2.7 \
-                    python-pip \
-                && pip3 install \
-                oyaml==0.9 \
-                pytest-ansible==2.2.2 \
-                pytest==5.3.0 \
-                shellescape==3.8.1 \
-                pytest_mock==1.12.1 \
-                mock==3.0.5 \
-                ansible-core==2.14.1 \
-                pycodestyle \
-                rstcheck===3.3.1 \
-                ansible-lint \
-                yamllint \
-                pylint==2.3.1 \
-                voluptuous \
-                virtualenv \
-                bandit
+            && apt-get install -y \
+                gnupg2 \
+                git \
+                python3-pip \
+                openssh-client \
+                python2.7 \
+                python-pip \
+            && pip3 install --upgrade pip \
+            && pip3 install \
+                bandit \
+                pipdeptree \
+                bandit \
+                pipdeptree \
+                ansible-core==2.14.1
 
-            # ----------------------------- Copy dependencies ---------------------------- #
+            # ------------------ Copy Repository to Docker Image ------------------------- #
             COPY ${REPO} ./${REPO}/
-
-            # ---- Package installation Stage 2 - Build, install & validate collection --- #
-            RUN cd ${REPO} \
-                && ansible-galaxy collection build . --force \
-                && ansible-galaxy collection install ibm-${REPO}* --force -p . \
-                && cd ansible_collections/ibm/${REPO}/ \
-                && ansible-test sanity --requirements || true
             """
 
         DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
-                && apt-get install -y \
-                    gnupg2 \
-                    git \
-                    python3-pip \
-                    openssh-client \
-                    python2.7 \
-                    python-pip \
-                && pip3 install --upgrade pip \
-                && pip3 install \
+            && apt-get install -y \
+                gnupg2 \
+                git \
+                python3-pip \
+                openssh-client \
+                python2.7 \
+                python-pip \
+            && pip3 install --upgrade pip \
+            && pip3 install \
                 bandit \
-                pipdeptree
-            RUN pip3 install https://github.com/ansible/ansible/archive/devel.tar.gz
+                pipdeptree \
+                https://github.com/ansible/ansible/archive/devel.tar.gz
 
-            # ----------------------------- Copy dependencies ---------------------------- #
+            # ------------------ Copy Repository to Docker Image ------------------------ #
             COPY ${REPO} ./${REPO}/
-
-            # ---------------- Stage 2 - Update ansible runtime allowed  --------------- #
-            RUN rm -rf ${REPO}/meta/runtime.yml; touch ${REPO}/meta/runtime.yml; echo "${ANSIBLE_RUNTIME_CONTENTS}">${REPO}/meta/runtime.yml
-
-            # ---- Package installation Stage 3 - Build, install & validate collection --- #
-            #RUN cd ${REPO} \
-            #    && ansible-galaxy collection build . --force \
-            #    && ansible-galaxy collection install ibm-${REPO}* --force -p . \
-            #    && cd ansible_collections/ibm/${REPO}/ \
-            #    && ansible-test sanity --requirements || true
             """
 
         /* ----------------------------------------------------------------------------
