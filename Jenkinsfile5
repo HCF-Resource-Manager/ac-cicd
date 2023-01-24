@@ -379,6 +379,27 @@ node('master') {
         DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
             # --------------------------- Package installation Stage 1 ------------------- #
             RUN apt-get update \
+            && apt-get install -y \
+                gnupg2 \
+                git \
+                python3-pip \
+                openssh-client \
+                python2.7 \
+                python-pip \
+            && pip3 install --upgrade pip \
+            && pip3 install \
+                bandit \
+                pipdeptree \
+                ansible==2.9.27
+
+            # ----------------------------- Copy dependencies ---------------------------- #
+            COPY ${REPO} ./${REPO}/
+            """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
+
+
+        DOCKERFILE_CONTENTS_2_9_GOOD = SLIM_BUSTER_3_8 + ENV_VARS + """
+            # --------------------------- Package installation Stage 1 ------------------- #
+            RUN apt-get update \
                 && apt-get install -y \
                     gnupg2 \
                     git \
@@ -405,27 +426,6 @@ node('master') {
             # ----------------------------- Copy dependencies ---------------------------- #
             COPY ${REPO} ./${REPO}/
             """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
-
-
-        DOCKERFILE_CONTENTS_2_9_BAD = SLIM_BUSTER_3_7 + ENV_VARS + """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-            && apt-get install -y \
-                gnupg2 \
-                git \
-                python3-pip \
-                openssh-client \
-                python2.7 \
-                python-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-                bandit \
-                pipdeptree \
-                ansible==2.9.27
-
-            # ------------------ Copy Repository to Docker Image ------------------------- #
-            COPY ${REPO} ./${REPO}/
-            """
 
         DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
             # --------------------------- Package installation Stage 1 ------------------- #
