@@ -401,8 +401,6 @@ node('master') {
             && pip3 install \
                 bandit \
                 pipdeptree \
-                bandit \
-                pipdeptree \
                 ansible==2.9.27
 
             # ------------------ Copy Repository to Docker Image ------------------------- #
@@ -421,8 +419,6 @@ node('master') {
                 python-pip \
             && pip3 install --upgrade pip \
             && pip3 install \
-                bandit \
-                pipdeptree \
                 bandit \
                 pipdeptree \
                 ansible-core==2.11.12
@@ -445,8 +441,6 @@ node('master') {
             && pip3 install \
                 bandit \
                 pipdeptree \
-                bandit \
-                pipdeptree \
                 ansible-core==2.12.10
 
             # ------------------ Copy Repository to Docker Image ------------------------- #
@@ -465,8 +459,6 @@ node('master') {
                 python-pip \
             && pip3 install --upgrade pip \
             && pip3 install \
-                bandit \
-                pipdeptree \
                 bandit \
                 pipdeptree \
                 ansible-core==2.13.7
@@ -558,6 +550,7 @@ node('master') {
     stage ('Test Collection Build and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
+                sh(script: 'export PATH=\"/root/.local/bin:$PATH\"')
                 echo '------------------------ workspakce output ------------------------------'
                 echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
                 echo '-------------------------------------------------------------------------'
