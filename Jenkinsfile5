@@ -25,8 +25,7 @@ properties (
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
-                string(name: 'USERNAME', defaultValue: 'omvsadm'),
-                // string(name: 'PYTHON_PATH', defaultValue: '/u/oeusr01/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8', required: true),
+                    string(name: 'USERNAME', defaultValue: 'omvsadm'),
                 string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
                 text(
                     name: 'ENVIRONMENT',
@@ -66,6 +65,8 @@ properties (
                     description: 'Set the ansible.cfg options if you have others.',
                     required: true
                     ),
+                checkboxParameter(name: 'Verbose', format: 'JSON',
+                    pipelineSubmitContent: '{"CheckboxParameter": [{"key": "nt","value": "nt"},{"key": "linux","value": "linux"},{"key": "unix","value": "unix"}]}', description: ''),
             ]
         )
     ]
@@ -333,6 +334,171 @@ ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
 ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
 """
 
+/**
+This snippet with the option --requirements will trigger the test cases
+to run but will also INSTALL any requiements needed. If you rely on
+ansible-test to install it should always get the right dependencies vs
+installing frozen versions of the dependencies. Note, that this is added
+currently to the docker file in my opinion is a hack because docker is
+built as root and gives global access but the docker image is later run as
+jenkins and if you try to do this step as jenkins you will get a
+Permission denied: b'/usr/lib/python3.8/site-packages/ansible.egg-info'
+type error because running --requirements as jenkins for ansible 2.9 has
+a bug that tries to write an egg. Apprently fixed in 2.10 or later.  One
+optional solution to this is to try ansible-test sanity --venv but that
+will require other packages be installed in docker first. See:
+https://docs.ansible.com/ansible/latest/dev_guide/testing_running_locally.html#python-virtual-environments
+**/
+
+ANSIBLE_TEST_REQ_INSTALL = """
+# ---------- Trigger ansible-test to install dependencies -------------- #
+RUN cd ${REPO} \
+&& ansible-galaxy collection build . --force \
+&& ansible-galaxy collection install ibm-${REPO}* --force -p . \
+&& cd ansible_collections/ibm/${REPO}/ \
+&& ansible-test sanity --requirements || true
+"""
+
+DOCKER_CMDS = '''
+RUN groupadd -g $GID -o $UNAME
+RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER ${UNAME}
+ENV PATH="/home/jenkins/.local/bin:${PATH}"
+
+# ---------- Add, configure & ensure SSH key is accepted domain -------------- #
+ARG TARGET_HOST
+ARG TARGET_HOST_PRIVATE_KEY
+RUN mkdir -p /home/jenkins/.ssh/
+COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
+RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
+touch /home/jenkins/.ssh/known_hosts && \
+ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
+'''
+
+DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update \
+&& apt-get install -y \
+    gnupg2 \
+    git \
+    python3-pip \
+    openssh-client \
+    python2.7 \
+    python-pip \
+&& pip3 install --upgrade pip \
+&& pip3 install \
+    bandit \
+    pipdeptree \
+    ansible==2.9.27 \
+    rstcheck===3.3.1
+
+# ----------------------------- Copy dependencies ---------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
+
+
+DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update \
+&& apt-get install -y \
+    gnupg2 \
+    git \
+    python3-pip \
+    openssh-client \
+    python2.7 \
+    python-pip \
+&& pip3 install --upgrade pip \
+&& pip3 install \
+    bandit \
+    pipdeptree \
+    ansible-core==2.11.12
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_2_12 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update \
+&& apt-get install -y \
+    gnupg2 \
+    git \
+    python3-pip \
+    openssh-client \
+    python2.7 \
+    python-pip \
+&& pip3 install --upgrade pip \
+&& pip3 install \
+    bandit \
+    pipdeptree \
+    ansible-core==2.12.10
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_2_13 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update \
+&& apt-get install -y \
+    gnupg2 \
+    git \
+    python3-pip \
+    openssh-client \
+    python2.7 \
+    python-pip \
+&& pip3 install --upgrade pip \
+&& pip3 install \
+    bandit \
+    pipdeptree \
+    ansible-core==2.13.7
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update \
+&& apt-get install -y \
+    gnupg2 \
+    git \
+    python3-pip \
+    openssh-client \
+    python2.7 \
+    python-pip \
+&& pip3 install --upgrade pip \
+&& pip3 install \
+    bandit \
+    pipdeptree \
+    bandit \
+    pipdeptree \
+    ansible-core==2.14.1
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update \
+&& apt-get install -y \
+    gnupg2 \
+    git \
+    python3-pip \
+    openssh-client \
+    python2.7 \
+    python-pip \
+&& pip3 install --upgrade pip \
+&& pip3 install \
+    bandit \
+    pipdeptree \
+    https://github.com/ansible/ansible/archive/devel.tar.gz
+
+# ------------------ Copy Repository to Docker Image ------------------------ #
+COPY ${REPO} ./${REPO}/
+""" + UID_MAPPING + DOCKER_CMDS
+
 /* -------------------------------------------------------------------------- */
 /*                           Docker object                                    */
 /* -------------------------------------------------------------------------- */
@@ -360,204 +526,6 @@ node('master') {
         }
     }
     stage('Build Docker Image') {
-
-
-
-
-
-
-        /**
-        This snippet with the option --requirements will trigger the test cases
-        to run but will also INSTALL any requiements needed. If you rely on
-        ansible-test to install it should always get the right dependencies vs
-        installing frozen versions of the dependencies. Note, that this is added
-        currently to the docker file in my opinion is a hack because docker is
-        built as root and gives global access but the docker image is later run as
-        jenkins and if you try to do this step as jenkins you will get a
-        Permission denied: b'/usr/lib/python3.8/site-packages/ansible.egg-info'
-        type error because running --requirements as jenkins for ansible 2.9 has
-        a bug that tries to write an egg. Apprently fixed in 2.10 or later.  One
-        optional solution to this is to try ansible-test sanity --venv but that
-        will require other packages be installed in docker first. See:
-        https://docs.ansible.com/ansible/latest/dev_guide/testing_running_locally.html#python-virtual-environments
-        **/
-        ANSIBLE_TEST_REQ_INSTALL = """
-            # ---------- Trigger ansible-test to install dependencies -------------- #
-            RUN cd ${REPO} \
-            && ansible-galaxy collection build . --force \
-            && ansible-galaxy collection install ibm-${REPO}* --force -p . \
-            && cd ansible_collections/ibm/${REPO}/ \
-            && ansible-test sanity --requirements || true
-        """
-
-        DOCKER_CMDS = '''RUN groupadd -g $GID -o $UNAME
-            RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-            USER ${UNAME}
-            ENV PATH="/home/jenkins/.local/bin:${PATH}"
-
-            # ---------- Add, configure & ensure SSH key is accepted domain -------------- #
-            ARG TARGET_HOST
-            ARG TARGET_HOST_PRIVATE_KEY
-            RUN mkdir -p /home/jenkins/.ssh/
-            COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
-            RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
-            touch /home/jenkins/.ssh/known_hosts && \
-            ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
-            '''
-
-        DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-            && apt-get install -y \
-                gnupg2 \
-                git \
-                python3-pip \
-                openssh-client \
-                python2.7 \
-                python-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-                bandit \
-                pipdeptree \
-                ansible==2.9.27 \
-                rstcheck===3.3.1
-
-            # ----------------------------- Copy dependencies ---------------------------- #
-            COPY ${REPO} ./${REPO}/
-            """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
-
-
-        DOCKERFILE_CONTENTS_2_9_GOOD = SLIM_BUSTER_3_8 + ENV_VARS + """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-                && apt-get install -y \
-                    gnupg2 \
-                    git \
-                    python3-pip \
-                    openssh-client \
-                    python2.7 \
-                    python-pip \
-                && pip3 install --upgrade pip \
-                && pip3 install \
-                oyaml==0.9 \
-                pytest-ansible==2.2.2 \
-                pytest==5.3.0 \
-                shellescape==3.8.1 \
-                pytest_mock==1.12.1 \
-                mock==3.0.5 \
-                ansible==2.9.27 \
-                rstcheck===3.3.1 \
-                yamllint \
-                pylint \
-                virtualenv \
-                bandit \
-                pipdeptree
-
-            # ----------------------------- Copy dependencies ---------------------------- #
-            COPY ${REPO} ./${REPO}/
-            """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
-
-        DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-            && apt-get install -y \
-                gnupg2 \
-                git \
-                python3-pip \
-                openssh-client \
-                python2.7 \
-                python-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-                bandit \
-                pipdeptree \
-                ansible-core==2.11.12
-
-            # ------------------ Copy Repository to Docker Image ------------------------- #
-            COPY ${REPO} ./${REPO}/
-            """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
-
-        DOCKERFILE_CONTENTS_2_12 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-            && apt-get install -y \
-                gnupg2 \
-                git \
-                python3-pip \
-                openssh-client \
-                python2.7 \
-                python-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-                bandit \
-                pipdeptree \
-                ansible-core==2.12.10
-
-            # ------------------ Copy Repository to Docker Image ------------------------- #
-            COPY ${REPO} ./${REPO}/
-            """ + UID_MAPPING + DOCKER_CMDS
-
-        DOCKERFILE_CONTENTS_2_13 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-            && apt-get install -y \
-                gnupg2 \
-                git \
-                python3-pip \
-                openssh-client \
-                python2.7 \
-                python-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-                bandit \
-                pipdeptree \
-                ansible-core==2.13.7
-
-            # ------------------ Copy Repository to Docker Image ------------------------- #
-            COPY ${REPO} ./${REPO}/
-            """ + UID_MAPPING + DOCKER_CMDS
-
-        DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-            && apt-get install -y \
-                gnupg2 \
-                git \
-                python3-pip \
-                openssh-client \
-                python2.7 \
-                python-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-                bandit \
-                pipdeptree \
-                bandit \
-                pipdeptree \
-                ansible-core==2.14.1
-
-            # ------------------ Copy Repository to Docker Image ------------------------- #
-            COPY ${REPO} ./${REPO}/
-            """ + UID_MAPPING + DOCKER_CMDS
-
-        DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
-            # --------------------------- Package installation Stage 1 ------------------- #
-            RUN apt-get update \
-            && apt-get install -y \
-                gnupg2 \
-                git \
-                python3-pip \
-                openssh-client \
-                python2.7 \
-                python-pip \
-            && pip3 install --upgrade pip \
-            && pip3 install \
-                bandit \
-                pipdeptree \
-                https://github.com/ansible/ansible/archive/devel.tar.gz
-
-            # ------------------ Copy Repository to Docker Image ------------------------ #
-            COPY ${REPO} ./${REPO}/
-            """ + UID_MAPPING + DOCKER_CMDS
 
         /* ----------------------------------------------------------------------------
          *            Logically select and concat vars to create docker file
@@ -597,7 +565,7 @@ node('master') {
         }
         //  sh 'chmod -R 777 .' <<-- for a test
     }
-    stage ('Test Collection Build and Install') {
+    stage ('Build Collection and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
                 echo '------------------------ workspakce output ------------------------------'
