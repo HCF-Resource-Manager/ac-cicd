@@ -365,7 +365,6 @@ node('master') {
                     openssh-client \
                     python2.7 \
                     python-pip \
-                && pip3 install --upgrade pip \
                 && pip3 install \
                 oyaml==0.9 \
                 pytest-ansible==2.2.2 \
