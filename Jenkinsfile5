@@ -375,7 +375,6 @@ node('master') {
                 mock==3.0.5 \
                 ansible==2.9.27 \
                 rstcheck===3.3.1 \
-                ansible-lint \
                 yamllint \
                 pylint \
                 virtualenv \
