@@ -385,8 +385,8 @@ ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
 
 DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get -o Dpkg::Use-Pty=0 update \
-&& apt-get -o Dpkg::Use-Pty=0 install -y \
+RUN apt-get ${VERBOSITY ? '' : '> /dev/null'}update \
+&& apt-get ${VERBOSITY ? '' : '> /dev/null'}install -y \
 gnupg2 \
 git \
 python3-pip \
