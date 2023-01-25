@@ -400,6 +400,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 pycodestyle \
+pylint \
 bandit \
 pipdeptree \
 ansible-core==${ANSIBLE_VERSION}
