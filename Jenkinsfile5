@@ -25,8 +25,7 @@ properties (
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
-                string(name: 'USERNAME', defaultValue: 'omvsadm'),
-                // string(name: 'PYTHON_PATH', defaultValue: '/u/oeusr01/usr/lpp/IBM/cyp/v3r8/pyz/bin/python3.8', required: true),
+                    string(name: 'USERNAME', defaultValue: 'omvsadm'),
                 string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
                 text(
                     name: 'ENVIRONMENT',
@@ -38,7 +37,7 @@ properties (
                         _TAG_REDIR_OUT: txt
                         LANG: C
                         ZOAU_HOME: "/zoau/v1.2.1"
-                        ZOAU: "/zoau/v1.2.1/bin"                        
+                        ZOAU: "/zoau/v1.2.1/bin"
                         ZOAU_ROOT: "/zoau/v1.2.1"
                         LIBPATH: "/zoau/v1.2.1/lib:/python2/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
                         ZOAUTIL_DIR: "/zoau/v1.2.1"
@@ -49,20 +48,27 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.9', choices: ['2.9', '2.11']),
+                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.11', choices: ['2.9.27', '2.11.12', '2.12.10', '2.13.7', '2.14.1', 'LATEST']),
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
-                    defaultValue: """
-                     #######
+                    defaultValue: """\
                      [defaults]
                      forks = 25
                      timeout = 30
 
                      [ssh_connection]
-                     pipelining = True""".stripIndent(),
+                     pipelining = True
+
+                     [connection]
+                     pipelining = True
+                     """.stripIndent(),
                     description: 'Set the ansible.cfg options if you have others.',
                     required: true
                     ),
+                booleanParam(name: 'VERBOSITY', defaultValue: false,
+                     description: 'Specifies additional verbosity such as python version, pip version, pip freeze, dependency tree, ansible version, build installation .'),
+                booleanParam(name: 'ANSIBLE_TEST_ONLY', defaultValue: false,
+                     description: 'Specifies only Ansible Certification tests and security scan run, meaning no functional tests run.'),
             ]
         )
     ]
@@ -163,7 +169,7 @@ def checkForYamlLintErrors(output) {
 def checkForAnsibleLintErrors(output) {
     if (Pattern.compile(/^[1-9][0-9]{2,}\s/, Pattern.MULTILINE).matcher(output).find()) {
         throw new Exception("ansible-lint detected errors! \n ${output}")
-}
+    }
 }
 
 // Determine if any tasks failed in a playbook
@@ -189,13 +195,14 @@ def checkForAnsibleTestErrors(output) {
     if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
         error('ansible-test encountered an internal error!')
     }
+    def header = "==============================================================================\n"
     def errorString = ''
     def errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
     while (errors.find()) {
         errorString = errorString + errors.group(1) + '\n'
     }
     if (errorString != '') {
-        error("ansible-test detected errors! \n ${errorString}\n==========\nFull output: ${output}")
+        error(header + "ERROR: ansible-test detected errors\n ${errorString}" + header + "\n" + header + "Full output: ${output}\n"+ header)
     }
 }
 
@@ -270,169 +277,355 @@ def updateGithubCommitStatus(message, state) {
     }
 }
 
+/* -------------------------------------------------------------------------- */
+/*         Pipeline Docker Configuration and related configs                  */
+/* -------------------------------------------------------------------------- */
+
+/* --------------------------- Notes ---------------------------------------- */
+/* We no longer rely on the requirements.txt in our ansible-core repo under
+/* tests because dependebot will keep falgging us as 2.9.x is out of community
+/* support but not enterprise support. We still support it through Sept 2023.
+/*
+/* Removed:
+/*  - in: 'DOCKERFILE_CONTENTS' - '&& pip3 install --no-cache-dir -r requirements.txt \''
+/*  - in: 'ENV_VARS'- 'COPY ${REPO}/tests/requirements.txt
+/*  - in: 'DOCKER_CMDS' - "# COPY --chown=jenkins:jenkins configuration.yml ./"
+/* -------------------------------------------------------------------------- */
+
+/*
+    When LATEST is selected the meta-data vesion needs to be updated to alllow
+    ansible-test to run.
+*/
+ANSIBLE_RUNTIME_CONTENTS = """ ---\\nrequires_ansible: '>=2.9'"""
+
+UID_MAPPING = """
+# -------------------- Map UID and GID to Jenkins host IDs ------------------- #
+ARG UNAME=jenkins
+ARG UID=114
+ARG GID=121
+"""
+
+SLIM_BUSTER_3_7 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.7-slim-buster
+WORKDIR /usr/src/app """
+
+SLIM_BUSTER_3_8 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.8-slim-buster
+WORKDIR /usr/src/app"""
+
+SLIM_BUSTER_3_9 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.9-slim-buster
+WORKDIR /usr/src/app"""
+
+/*  Paths for ansible module and config persist after the volume mount by Jenkins */
+ENV_VARS = """
+# ---------------------------- Environment Variables ------------------------- #
+ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
+ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg"""
+
+/**
+This snippet with the option --requirements will trigger the test cases to run but
+will also INSTALL any requiements needed. If you rely on ansible-test to install
+it should always get the right dependencies vs installing frozen versions of the
+dependencies. Note, that was added to the dockerfile and in my opinion is a hack
+because docker is run as root giving global package access but the docker image
+is run as jenkins; if you try to install ansible-test packagesas jenkins you will
+get a Permission denied: b'/usr/lib/python3.8/site-packages/ansible.egg-info'
+error because running --requirements as jenkins for ansible 2.9 has a bug that
+tries to write an egg to the host. Apprently fixed in 2.10 or later.  An optional
+solution is to try ansible-test sanity --venv but that requires other packages
+be installed in docker first. See:
+https://docs.ansible.com/ansible/latest/dev_guide/testing_running_locally.html#python-virtual-environments
+**/
+ANSIBLE_TEST_INSTALL_DEPENDENCIES = """
+# --------------- Use ansible-test to install dependencies ------------------- #
+RUN cd ${REPO} \
+&& ansible-galaxy collection build . --force \
+&& ansible-galaxy collection install ibm-${REPO}* --force -p . \
+&& cd ansible_collections/ibm/${REPO}/ \
+&& ansible-test sanity --requirements || true
+"""
+
+DOCKER_CMDS = '''
+# ----------------------- Set UID, GID and PATH ------------------------------ #
+RUN groupadd -g $GID -o $UNAME \
+&& useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER ${UNAME}
+ENV PATH="/home/jenkins/.local/bin:${PATH}"
+
+# ------------- Configure & ensure SSH key is accepted domain ---------------- #
+ARG TARGET_HOST
+ARG TARGET_HOST_PRIVATE_KEY
+RUN mkdir -p /home/jenkins/.ssh/
+COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
+RUN chmod 600 /home/jenkins/.ssh/id_rsa \
+&& touch /home/jenkins/.ssh/known_hosts \
+&& ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts'''
+
+/*  - Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7 */
+DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+pylint==2.3.1 \
+bandit \
+pipdeptree \
+ansible==${ANSIBLE_VERSION} \
+rstcheck==3.3.1
+
+# ----------------------------- Copy dependencies ---------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+pycodestyle==2.6.0 \
+pylint==2.6.0 \
+six==1.16.0 \
+voluptuous \
+yamllint \
+bandit \
+pipdeptree \
+ansible-core==${ANSIBLE_VERSION}
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+/*
+ * 'DOCKERFILE_CONTENTS_2_DOT_12_13_14' supports ansible-core versiuons
+ * '2.12.10', '2.13.7', '2.14.1'.
+ *
+ * Testing showed that appending `ANSIBLE_TEST_INSTALL_DEPENDENCIES` to
+ * DOCKERFILE_CONTENTS_2_DOT_12_13_14 was unessary but would rather ansible-test
+ * update any packages it feels it needs to remain in synch and avoid any possible
+ * differences for when we want to run certification for Automation Hub.
+*/
+DOCKERFILE_CONTENTS_2_DOT_12_13_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+ansible-core==${ANSIBLE_VERSION}
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+https://github.com/ansible/ansible/archive/devel.tar.gz
+
+# ------------------ Copy Repository to Docker Image ------------------------ #
+COPY ${REPO} ./${REPO}/
+""" + UID_MAPPING + DOCKER_CMDS
+
+/* -------------------------------------------------------------------------- */
+/*                           Docker object                                    */
+/* -------------------------------------------------------------------------- */
+
 docker_object_name = "ansible-test-image:${env.BUILD_ID}"
+
+/* -------------------------------------------------------------------------- */
+/*                           Stages                                           */
+/* -------------------------------------------------------------------------- */
 
 node('master') {
     currentBuild.result = 'SUCCESS'
 
     stage('Checkout') {
         checkout()
+        script {
+            python_ver = "${params.PYTHON_PATH}"
+            python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
+            target_pre = "${params.TARGET_HOST}"
+            target_pre = target_pre.substring(0,9)
+            currentBuild.displayName = "#${BUILD_NUMBER}"
+            currentBuild.description =  "Target: " + target_pre + "\n" +
+                                        "Python z/OS: " + python_ver + "\n" +
+                                        "Ansible: " + params.ANSIBLE_VERSION + "\n" +
+                                        "Branch: ${BRANCH}"
+        }
     }
     stage('Build Docker Image') {
-        // Write Dockerfile
-        DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
-            #                   Docker Image for Testing Environment                       #
-            # ---------------------------------------------------------------------------- #
-            FROM python:3.7-slim-buster
-            WORKDIR /usr/src/app
-            # ------------- Environment Variables ------------- #
-            # * These paths will exist after volume mount performed by Jenkins
-            # Path to Ansible modules
-            ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
-            # Path to Ansible config
-            ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-            COPY ${REPO}/tests/requirements.txt ./
-            # --------------------------- Package installation Stage 1 --------------------------- #
-            RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client ansible python2.7 python-pip && pip3 install --no-cache-dir -r requirements.txt && pip3 install ansible-lint yamllint pylint pytest-ansible virtualenv bandit
-            # ----------------------------- Copy dependencies ---------------------------- #
-            COPY ${REPO} ./${REPO}/
-            # --------------------------- Package installation Stage 2 --------------------------- #
-            # Update package info, install ansible and openssh
-            RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
-            # It turns out that rstcheck needs to be version-locked, because 4.0+ deprecated python 3.7
-            RUN pip3 install rstcheck===3.3.1
-            # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
-            ARG UNAME=jenkins
-            ARG UID=114
-            ARG GID=121
-            """ +
-            '''RUN groupadd -g $GID -o $UNAME
-            RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-            USER ${UNAME}
-            ENV PATH="/home/jenkins/.local/bin:${PATH}"
-            # ----------------------------- Configure SSH key ---------------------------- #
-            # Address of host to run tests against
-            ARG TARGET_HOST
-            # Private key contents that can be used to connect to TARGET_HOST
-            ARG TARGET_HOST_PRIVATE_KEY
-            RUN mkdir -p /home/jenkins/.ssh/
-            COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
-            # COPY --chown=jenkins:jenkins configuration.yml ./
-            # Add SSH key to system and ensure domain is accepted
-            RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
-                touch /home/jenkins/.ssh/known_hosts && \
-                ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
-            '''
-        if (ANSIBLE_VERSION == '2.11') {
-            DOCKERFILE_CONTENTS = """# ---------------------------------------------------------------------------- #
-                #                   Docker Image for Testing Environment                       #
-                # ---------------------------------------------------------------------------- #
-                # FROM python:3.7-slim-buster
-                # FROM python:3.8-slim-buster
-                FROM python:3.9-slim-buster
-                WORKDIR /usr/src/app
-                # ------------- Environment Variables ------------- #
-                # * These paths will exist after volume mount performed by Jenkins
-                # Path to Ansible modules
-                ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
-                # Path to Ansible config
-                ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-                COPY ${REPO}/tests/requirements.txt ./
-                # --------------------------- Package installation Stage 1 --------------------------- #
-                RUN apt-get update && apt-get install -y gnupg2 && apt-get update && apt-get install -y git python3-pip openssh-client python2.7 python-pip
-                # RUN pip3 install ansible==2.10.0
-                # RUN pip3 install yamllint pylint pytest-ansible virtualenv bandit
-                RUN pip3 install --upgrade pycodestyle
-                RUN pip3 install pylint==2.3.1 # version locked to the previous one
-                RUN pip3 install yamllint
-                RUN pip3 install voluptuous
-                RUN pip3 install bandit
-                RUN pip3 install --no-cache-dir -r requirements.txt 
-                RUN pip3 uninstall -y ansible
-                RUN pip3 install ansible-core==2.11.12
-                # RUN pip3 install ansible-lint==4.2.0
 
+        /* ----------------------------------------------------------------------------
+         *            Logically select and concat vars to create docker file
+         * ----------------------------------------------------------------------------
+        */
 
-                    # ----------------------------- Copy dependencies ---------------------------- #
-                COPY ${REPO} ./${REPO}/
-                # --------------------------- Package installation Stage 2 --------------------------- #
-                # Update package info, install ansible and openssh
-                RUN cd ${REPO} && ansible-galaxy collection build . --force && ansible-galaxy collection install ibm-${REPO}* --force -p . && cd ansible_collections/ibm/${REPO}/ && ansible-test sanity --requirements || true
-                # It turns out that rstcheck needs to be version-locked, because 4.0+ deprecated python 3.7
-                RUN pip3 install rstcheck===3.3.1
-                # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
-                ARG UNAME=jenkins
-                ARG UID=114
-                ARG GID=121
-                """ +
-                '''RUN groupadd -g $GID -o $UNAME
-                RUN useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
-                USER ${UNAME}
-                ENV PATH="/home/jenkins/.local/bin:${PATH}"
-                # ----------------------------- Configure SSH key ---------------------------- #
-                # Address of host to run tests against
-                ARG TARGET_HOST
-                # Private key contents that can be used to connect to TARGET_HOST
-                ARG TARGET_HOST_PRIVATE_KEY
-                RUN mkdir -p /home/jenkins/.ssh/
-                COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
-                # COPY --chown=jenkins:jenkins configuration.yml ./
-                # Add SSH key to system and ensure domain is accepted
-                RUN chmod 600 /home/jenkins/.ssh/id_rsa && \
-                    touch /home/jenkins/.ssh/known_hosts && \
-                    ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
-                '''
+        if (ANSIBLE_VERSION == '2.9.27') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
+        } else if (ANSIBLE_VERSION == '2.11.12') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
+        } else if (ANSIBLE_VERSION == '2.12.10') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+        } else if (ANSIBLE_VERSION == '2.13.7') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+        } else if (ANSIBLE_VERSION == '2.14.1') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+        } else if (ANSIBLE_VERSION == 'LATEST') {
+             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
+
+        /* ----------------------------------------------------------------------------
+         *                  Write Docker Image for Testing Environment
+         * ----------------------------------------------------------------------------
+        */
         writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
         sh 'cat Dockerfile'
         sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
-        // Create YAML config file for use by pytest fixtures
+
+        /* ----------------------------------------------------------------------------
+         *                  Create YAML config file for use by pytest fixtures
+         * ----------------------------------------------------------------------------
+        */
         writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
             ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
             sh 'rm sshkey'
         }
-//      sh 'chmod -R 777 .' <<-- for a test
+        //  sh 'chmod -R 777 .' <<-- for a test
     }
-    stage ('Test Collection Build and Install') {
+    stage ('Build Collection and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
-                 out = sh 'ansible --version'
-                echo out
 
-                out = sh 'python --version'
-                echo out
-                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
+                /* Perform these operations to ensure ansible version selection is correctly represented */
+                if (env.ANSIBLE_VERSION == 'LATEST') {
+                    /* Update meta/runtime.yml */
+                    sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
+                }
 
-                // Attempt to build the collection
-                out = sh script: 'ansible-galaxy collection build . --force'
-                // Install the built collection
-                out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
-                out = sh script: "pip3 freeze", returnStdout: true
-                echo '--------------------------- pip freeze output ---------------------------'
-                echo out
-                echo '-------------------------------------------------------------------------'
+                if (env.ANSIBLE_VERSION == '2.9.27') {
+                    /* ansible-2.9 - removing test & doc from build */
+                    sh (script: 'rm -rf docs tests/.pytest_cache tests/functional tests/helpers tests/unit tests/*.py tests/*.ini tests/requirements.txt ')
+                }
+
+                /*  Build the collection */
+                out_galaxy_build = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
+
+                /* Install the collection */
+                out_galaxy_install = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
+
+                if (VERBOSITY.toBoolean()){
+                    echo '------------------------ workspakce output ------------------------------'
+                    echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
+                    echo '-------------------------------------------------------------------------'
+
+                    echo '------------------------ python version output --------------------------'
+                    out = sh (script: 'python --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    echo '------------------------ pip3 version output ----------------------------'
+                    out = sh (script: 'pip3 --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    out = sh (script: "pip3 freeze", returnStdout: true)
+                    echo '--------------------------- pip freeze output ---------------------------'
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    out = sh (script: 'pipdeptree', returnStdout: true)
+                    echo '------------------------- pipdeptree output ------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+
+                    echo '------------------- ansible-core version output -------------------------'
+                    out = sh (script: 'ansible --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    if (env.ANSIBLE_VERSION == 'LATEST') {
+                        echo '------------------------ Update meta/runtime.yml ----------------------------'
+                        echo "Updated collections meta/runtime.yaml to support ansible-core latest"
+                        echo '-------------------------------------------------------------------------'
+                    }
+
+                    echo '------------------------ cat meta/runtime.yml ----------------------------'
+                    out = sh (script: 'cat meta/runtime.yml', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    echo '------------------------ cat configuration.yml --------------------------'
+                    cfg_out = sh (script: 'cat configuration.yml 2>&1 || true', returnStdout: true)
+                    echo cfg_out
+                    echo '-------------------------------------------------------------------------'
+
+                    if (env.ANSIBLE_VERSION == '2.9.27') {
+                        echo '----------- ansible-2.9.27 - removing test & doc from build ----------------'
+                        echo "Removed collection content that should not be scanned to supplement build_ignore 2.9 limitations."
+                        echo '-------------------------------------------------------------------------'
+                    }
+
+                    echo '--------------------- Build the collection ------------------------'
+                    echo out_galaxy_build
+                    echo '--------------------------------------------------------------------------'
+
+                    echo '-------------------- Install the collection -----------------------'
+                    echo out_galaxy_install
+                    echo '--------------------------------------------------------------------------'
+                }
             }
         }
     }
-    stage('ansible-test Sanity Tests') {
+    stage('Ansible Certification Tests') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
-                // Attempt to build the collection
-                out = sh script: 'ansible-galaxy collection build . --force'
-                // Install the built collection
-                out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
-
-                
                 dir("ansible_collections/ibm/${REPO}") {
-                    out = sh script: 'ansible-test sanity 2>&1 || true', returnStdout: true
-                    echo '--------------------------- Sanity output ---------------------------'
-                    echo out
-                    echo '-----------configuration.yml-----------------------------------------'                    
-                    cfg_out = sh script: 'cat configuration.yml 2>&1 || true', returnStdout: true
-                    echo cfg_out
-                    echo '---------------------------------------------------------------------'                    
+
+                    out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
+
+                    if (VERBOSITY.toBoolean()){
+                        echo '----------------------------- Sanity output ------------------------------'
+                        echo out
+                        echo '--------------------------------------------------------------------------'
+                    }
                     checkForAnsibleTestErrors(out)
                 }
             }
@@ -446,61 +639,65 @@ node('master') {
             }
         }
     }
-    stage('Unit and Functional Tests') {
-        // Build debian image containing all requirements for test cases
-        // then run our testcases in the image
-        checkout()
-        // write our own ansible.cfg to ensure correctness
-        dir("${REPO}") {
-            dir('playbooks') {
-                writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
-            }
-            writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
-        }
-
-        ansibleTestingImage.inside("-u jenkins\
-        -e TARGET_HOST=${TARGET_HOST}\
-        -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
-        -e ANSIBLE_ACTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/action\
-        -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
-        -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
-        -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
-        -e ANSIBLE_TIMEOUT=30") {
+    if (! ANSIBLE_TEST_ONLY.toBoolean()){
+        stage('Unit and Functional Tests') {
+            // Build debian image containing all requirements for test cases
+            // then run our testcases in the image
+            checkout()
+            // write our own ansible.cfg to ensure correctness
             dir("${REPO}") {
-                // Install collection so module_utils imports will be valid in modules
-                // Attempt to build the collection
-                sh script: 'ansible-galaxy collection build . --force'
-                // Install the built collection
-                sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                dir('playbooks') {
+                    writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
+                }
+                writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+            }
 
-                dir('tests') {
-                    def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
-                    if ( "${BRANCH}" == 'dev') {
-                        branchToCompare = 'origin/main'
-                    }
-                    sh 'git branch'
-                    sh 'pwd'
-                    def tests = sh script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s functional/modules/test_module_security.py -m || true", returnStdout: true
-                    echo '---- Tests Found ----'
-                    echo tests
-                    echo '---------------------'
-                    if (tests) {
-                        def out = ''
-                        for (int i = 0; i < 10; i++) {
-                            out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
-                            if (checkForConnectionErrors(out)) {
-                                sleep(20)
-                            } else {
-                                break
-                            }
+            ansibleTestingImage.inside("-u jenkins\
+            -e TARGET_HOST=${TARGET_HOST}\
+            -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
+            -e ANSIBLE_ACTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/action\
+            -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
+            -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
+            -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
+            -e ANSIBLE_TIMEOUT=30") {
+                dir("${REPO}") {
+                    sh script: 'pip3 install oyaml pytest-ansible pytest shellescape pytest_mock mock pycodestyle'
+                    // Install collection so module_utils imports will be valid in modules
+                    // Attempt to build the collection
+                    sh script: 'ansible-galaxy collection build . --force'
+                    // Install the built collection
+                    sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+
+                    dir('tests') {
+                        def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
+                        if ( "${BRANCH}" == 'dev') {
+                            branchToCompare = 'origin/main'
                         }
-                        echo out
-                        checkForPytestFails(out)
+                        sh 'git branch'
+                        sh 'pwd'
+                        def tests = sh script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s functional/modules/test_module_security.py -m || true", returnStdout: true
+                        echo '---- Tests Found ----'
+                        echo tests
+                        echo '---------------------'
+                        if (tests) {
+                            def out = ''
+                            for (int i = 0; i < 10; i++) {
+                                out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true
+                                if (checkForConnectionErrors(out)) {
+                                    sleep(20)
+                                } else {
+                                    break
+                                }
+                            }
+                            echo out
+                            checkForPytestFails(out)
+                        }
                     }
                 }
             }
         }
     }
+
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo 'NOT attempting cleanup\n\n'
     echo out
