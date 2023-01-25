@@ -394,8 +394,8 @@ RUN apt-get -qq -o=Dpkg::Use-Pty=0 update \
     openssh-client \
     python2.7 \
     python-pip \
-&& pip3 ${VERBOSITY ? '' : '-q'} install --upgrade pip \
-&& pip3 ${VERBOSITY ? '' : '-q'} install \
+&& pip3 install --upgrade pip \
+&& pip3 install \
     bandit \
     pipdeptree \
     ansible==2.9.27 \
