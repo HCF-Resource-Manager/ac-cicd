@@ -530,7 +530,7 @@ node('master') {
             currentBuild.displayName = "#${BUILD_NUMBER}"
             currentBuild.description =  "Target: " + target_pre + "\n" +
                                         "Python: " + python_ver + "\n" +
-                                        "Ansible:" + params.ANSIBLE_VERSION + "\n"
+                                        "Ansible:" + params.ANSIBLE_VERSION + "\n" + 
                                         "Branch: ${BRANCH}"
         }
     }
