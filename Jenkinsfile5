@@ -289,8 +289,6 @@ def updateGithubCommitStatus(message, state) {
 /*  - in: 'DOCKERFILE_CONTENTS' - '&& pip3 install --no-cache-dir -r requirements.txt \''
 /*  - in: 'ENV_VARS'- 'COPY ${REPO}/tests/requirements.txt
 /*  - in: 'DOCKER_CMDS' - "# COPY --chown=jenkins:jenkins configuration.yml ./"
-/* Notes:
-/*  - Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7
 /* -------------------------------------------------------------------------- */
 
 /*
@@ -366,6 +364,7 @@ RUN chmod 600 /home/jenkins/.ssh/id_rsa \
 && touch /home/jenkins/.ssh/known_hosts \
 && ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts'''
 
+/*  - Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7 */
 DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -531,6 +530,7 @@ node('master') {
             currentBuild.displayName = "#${BUILD_NUMBER}"
             currentBuild.description =  "Target: " + target_pre + "\n" +
                                         "Python: " + python_ver + "\n" +
+                                        "Ansible:" + params.ANSIBLE_VERSION + "\n"
                                         "Branch: ${BRANCH}"
         }
     }
