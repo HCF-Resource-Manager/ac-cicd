@@ -401,6 +401,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 pycodestyle==2.6.0 \
 pylint==2.6.0 \
+six==1.16.0 \
 voluptuous \
 yamllint \
 bandit \
