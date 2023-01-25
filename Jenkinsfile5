@@ -402,6 +402,7 @@ python-pip \
 pycodestyle \
 pylint \
 voluptuous \
+yamllint \
 bandit \
 pipdeptree \
 ansible-core==${ANSIBLE_VERSION}
