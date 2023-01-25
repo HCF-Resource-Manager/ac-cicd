@@ -350,7 +350,7 @@ RUN cd ${REPO} \
 && ansible-test sanity --requirements || true
 """
 
-DOCKER_CMDS = """
+DOCKER_CMDS = '''
 # ----------------------- Set UID, GID and PATH ------------------------------ #
 RUN groupadd -g $GID -o $UNAME \
 && useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
@@ -364,7 +364,7 @@ RUN mkdir -p /home/jenkins/.ssh/
 COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
 RUN chmod 600 /home/jenkins/.ssh/id_rsa \
 && touch /home/jenkins/.ssh/known_hosts \
-&& ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts"""
+&& ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts'''
 
 DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
 # --------------------------- Package installation Stage 1 ------------------- #
