@@ -391,17 +391,18 @@ DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
 && apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-    gnupg2 \
-    git \
-    python3-pip \
-    openssh-client \
-    python2.7 \
-    python-pip \
-&& pip3 install --upgrade pip \
-&& pip3 install \
-    bandit \
-    pipdeptree \
-    ansible-core==${ANSIBLE_VERSION}
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+pycodestyle \
+bandit \
+pipdeptree \
+ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -409,66 +410,6 @@ COPY ${REPO} ./${REPO}/
 
 /* Template supports ansible-core '2.12.10', '2.13.7', '2.14.1' */
 DOCKERFILE_CONTENTS_2_DOT_12_13_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-# --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-gnupg2 \
-git \
-python3-pip \
-openssh-client \
-python2.7 \
-python-pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
-bandit \
-pipdeptree \
-ansible-core==${ANSIBLE_VERSION}
-
-# ------------------ Copy Repository to Docker Image ------------------------- #
-COPY ${REPO} ./${REPO}/
-""" + UID_MAPPING + DOCKER_CMDS
-
-DOCKERFILE_CONTENTS_2_12 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-# --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-gnupg2 \
-git \
-python3-pip \
-openssh-client \
-python2.7 \
-python-pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
-bandit \
-pipdeptree \
-ansible-core==${ANSIBLE_VERSION}
-
-# ------------------ Copy Repository to Docker Image ------------------------- #
-COPY ${REPO} ./${REPO}/
-""" + UID_MAPPING + DOCKER_CMDS
-
-DOCKERFILE_CONTENTS_2_13 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-# --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-gnupg2 \
-git \
-python3-pip \
-openssh-client \
-python2.7 \
-python-pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
-bandit \
-pipdeptree \
-ansible-core==${ANSIBLE_VERSION}
-
-# ------------------ Copy Repository to Docker Image ------------------------- #
-COPY ${REPO} ./${REPO}/
-""" + UID_MAPPING + DOCKER_CMDS
-
-DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
 && apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -531,7 +472,7 @@ node('master') {
             currentBuild.displayName = "#${BUILD_NUMBER}"
             currentBuild.description =  "Target: " + target_pre + "\n" +
                                         "Python: " + python_ver + "\n" +
-                                        "Ansible:" + params.ANSIBLE_VERSION + "\n" + 
+                                        "Ansible:" + params.ANSIBLE_VERSION + "\n" +
                                         "Branch: ${BRANCH}"
         }
     }
@@ -638,6 +579,11 @@ node('master') {
                     echo out
                     echo '-------------------------------------------------------------------------'
 
+                    echo '------------------------ cat configuration.yml --------------------------'
+                    cfg_out = sh (script: 'cat configuration.yml 2>&1 || true', returnStdout: true)
+                    echo cfg_out
+                    echo '-------------------------------------------------------------------------'
+
                     if (env.ANSIBLE_VERSION == '2.9.27') {
                         echo '----------- ansible-2.9.27 - removing test & doc from build ----------------'
                         echo "Removed collection content that should not be scanned to supplement build_ignore 2.9 limitations."
@@ -659,13 +605,14 @@ node('master') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
                 dir("ansible_collections/ibm/${REPO}") {
+
                     out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
-                    echo '--------------------------- Sanity output ---------------------------'
-                    echo out
-                    echo '-----------configuration.yml-----------------------------------------'
-                    cfg_out = sh (script: 'cat configuration.yml 2>&1 || true', returnStdout: true)
-                    echo cfg_out
-                    echo '---------------------------------------------------------------------'
+
+                    if (VERBOSITY.toBoolean()){
+                        echo '----------------------------- Sanity output ------------------------------'
+                        echo out
+                        echo '--------------------------------------------------------------------------'
+                    }
                     checkForAnsibleTestErrors(out)
                 }
             }
