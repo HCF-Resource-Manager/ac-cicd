@@ -301,7 +301,7 @@ def updateGithubCommitStatus(message, state) {
 */
 ANSIBLE_RUNTIME_CONTENTS = """ ---\\nrequires_ansible: '>=2.9'"""
 
-SLIM_BUSTER_VERSION = "3.x"
+SLIM_BUSTER_VERSION = "3.9"
 
 UID_MAPPING = """
 # -------------------- Map UID and GID to Jenkins host IDs ------------------- #
@@ -382,12 +382,10 @@ touch /home/jenkins/.ssh/known_hosts && \
 ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
 '''
 
-/* DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """ */
-
-DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_TEMPLATE + ENV_VARS + """
+DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update \
-&& apt-get install -y \
+RUN apt-get -qq update \
+&& apt-get -qq install -y \
     gnupg2 \
     git \
     python3-pip \
@@ -408,8 +406,8 @@ COPY ${REPO} ./${REPO}/
 
 DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update \
-&& apt-get install -y \
+RUN apt-get -qq update \
+&& apt-get -qq install -y \
     gnupg2 \
     git \
     python3-pip \
@@ -428,8 +426,8 @@ COPY ${REPO} ./${REPO}/
 
 DOCKERFILE_CONTENTS_2_12 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update \
-&& apt-get install -y \
+RUN apt-get -qq update \
+&& apt-get -qq install -y \
     gnupg2 \
     git \
     python3-pip \
@@ -448,8 +446,8 @@ COPY ${REPO} ./${REPO}/
 
 DOCKERFILE_CONTENTS_2_13 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update \
-&& apt-get install -y \
+RUN apt-get -qq update \
+&& apt-get -qq install -y \
     gnupg2 \
     git \
     python3-pip \
@@ -468,8 +466,8 @@ COPY ${REPO} ./${REPO}/
 
 DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update \
-&& apt-get install -y \
+RUN apt-get -qq update \
+&& apt-get -qq install -y \
     gnupg2 \
     git \
     python3-pip \
@@ -490,8 +488,8 @@ COPY ${REPO} ./${REPO}/
 
 DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update \
-&& apt-get install -y \
+RUN apt-get -qq update \
+&& apt-get -qq install -y \
     gnupg2 \
     git \
     python3-pip \
@@ -541,7 +539,6 @@ node('master') {
          * ----------------------------------------------------------------------------
         */
         if (ANSIBLE_VERSION == '2.9') {
-            SLIM_BUSTER_VERSION = "3.8"
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
         } else if (ANSIBLE_VERSION == '2.11') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
@@ -579,66 +576,74 @@ node('master') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
 
-                if (VERBOSITY.toBoolean()){
-
-                }
-                echo '------------------------ workspakce output ------------------------------'
-                echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
-                echo '-------------------------------------------------------------------------'
-
-                echo '------------------------ python version output --------------------------'
-                out = sh (script: 'python --version', returnStdout: true)
-                echo out
-                echo '-------------------------------------------------------------------------'
-
-                echo '------------------------ pip3 version output ----------------------------'
-                out = sh (script: 'pip3 --version', returnStdout: true)
-                echo out
-                echo '-------------------------------------------------------------------------'
-
-                out = sh (script: "pip3 freeze", returnStdout: true)
-                echo '--------------------------- pip freeze output ---------------------------'
-                echo out
-                echo '-------------------------------------------------------------------------'
-
-                out = sh (script: 'pipdeptree', returnStdout: true)
-                echo '------------------------- pipdeptree output ------------------------------'
-                echo out
-                echo '--------------------------------------------------------------------------'
-
-                echo '------------------- ansible-core version output -------------------------'
-                out = sh (script: 'ansible --version', returnStdout: true)
-                echo out
-                echo '-------------------------------------------------------------------------'
-
+                /* Perform these operations to ensure ansible version selection is correctly represented */
                 if (env.ANSIBLE_VERSION == 'LATEST') {
-                    echo '------------------------ Update meta/runtime.yml ----------------------------'
-                    out = sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml', returnStdout: true)
-                    echo out
-                    echo '-------------------------------------------------------------------------'
+                    /* Update meta/runtime.yml */
+                    sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
                 }
-
-                echo '------------------------ cat meta/runtime.yml ----------------------------'
-                out = sh (script: 'cat meta/runtime.yml', returnStdout: true)
-                echo out
-                echo '-------------------------------------------------------------------------'
 
                 if (env.ANSIBLE_VERSION == '2.9') {
-                    echo '----------- ansible-2.9 - removing test & doc from build ----------------'
-                    out = sh (script: 'rm -rf docs tests/.pytest_cache tests/functional tests/helpers tests/unit tests/*.py tests/*.ini tests/requirements.txt ', returnStdout: true)
-                    echo out
-                    echo '-------------------------------------------------------------------------'
+                    /* ansible-2.9 - removing test & doc from build */
+                    sh (script: 'rm -rf docs tests/.pytest_cache tests/functional tests/helpers tests/unit tests/*.py tests/*.ini tests/requirements.txt ')
                 }
 
-                echo '--------------------- Build the collection ------------------------'
-                out = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
-                echo out
-                echo '--------------------------------------------------------------------------'
+                if (VERBOSITY.toBoolean()){
+                    echo '------------------------ workspakce output ------------------------------'
+                    echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
+                    echo '-------------------------------------------------------------------------'
 
-                echo '-------------------- Install the collection -----------------------'
-                out = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
-                echo out
-                echo '--------------------------------------------------------------------------'
+                    echo '------------------------ python version output --------------------------'
+                    out = sh (script: 'python --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    echo '------------------------ pip3 version output ----------------------------'
+                    out = sh (script: 'pip3 --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    out = sh (script: "pip3 freeze", returnStdout: true)
+                    echo '--------------------------- pip freeze output ---------------------------'
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    out = sh (script: 'pipdeptree', returnStdout: true)
+                    echo '------------------------- pipdeptree output ------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+
+                    echo '------------------- ansible-core version output -------------------------'
+                    out = sh (script: 'ansible --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    if (env.ANSIBLE_VERSION == 'LATEST') {
+                        echo '------------------------ Update meta/runtime.yml ----------------------------'
+                        echo "Updated collections meta/runtime.yaml to support ansible-core latest"
+                        echo '-------------------------------------------------------------------------'
+                    }
+
+                    echo '------------------------ cat meta/runtime.yml ----------------------------'
+                    out = sh (script: 'cat meta/runtime.yml', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    if (env.ANSIBLE_VERSION == '2.9') {
+                        echo '----------- ansible-2.9 - removing test & doc from build ----------------'
+                        echo "Removed collection content that should not be scanned to supplement build_ignore 2.9 limitations."
+                        echo '-------------------------------------------------------------------------'
+                    }
+
+                    echo '--------------------- Build the collection ------------------------'
+                    out = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+
+                    echo '-------------------- Install the collection -----------------------'
+                    out = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+                }
             }
         }
     }
