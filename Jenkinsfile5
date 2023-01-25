@@ -698,7 +698,6 @@ node('master') {
         }
     }
 
-
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo 'NOT attempting cleanup\n\n'
     echo out
