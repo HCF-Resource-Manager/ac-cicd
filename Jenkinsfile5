@@ -484,7 +484,7 @@ node('master') {
             target_pre = target_pre.substring(0,9)
             currentBuild.displayName = "#${BUILD_NUMBER}"
             currentBuild.description =  "Target: " + target_pre + "\n" +
-                                        "Pytyhon z/OS: " + python_ver + "\n" +
+                                        "Python z/OS: " + python_ver + "\n" +
                                         "Ansible: " + params.ANSIBLE_VERSION + "\n" +
                                         "Branch: ${BRANCH}"
         }
