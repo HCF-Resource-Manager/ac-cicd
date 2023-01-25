@@ -48,10 +48,10 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.11', choices: ['2.9', '2.11', '2.12', '2.13', '2.14', 'LATEST']),
+                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.11', choices: ['2.9.27', '2.11.12', '2.12.10', '2.13.7', '2.14.1', 'LATEST']),
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
-                    defaultValue: """
+                    defaultValue: """\
                      [defaults]
                      forks = 25
                      timeout = 30
@@ -396,13 +396,12 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-ansible==2.9.27 \
+ansible==${ANSIBLE_VERSION} \
 rstcheck===3.3.1
 
 # ----------------------------- Copy dependencies ---------------------------- #
 COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
-
 
 DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
@@ -418,7 +417,28 @@ RUN apt-get -qq update \
 && pip3 install \
     bandit \
     pipdeptree \
-    ansible-core==2.11.12
+    ansible-core==${ANSIBLE_VERSION}
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_REQ_INSTALL + UID_MAPPING + DOCKER_CMDS
+
+/* Template supports ansible-core '2.12.10', '2.13.7', '2.14.1' */
+DOCKERFILE_CONTENTS_2_12_13_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -438,7 +458,7 @@ RUN apt-get -qq update \
 && pip3 install \
     bandit \
     pipdeptree \
-    ansible-core==2.12.10
+    ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -458,7 +478,7 @@ RUN apt-get -qq update \
 && pip3 install \
     bandit \
     pipdeptree \
-    ansible-core==2.13.7
+    ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -466,8 +486,8 @@ COPY ${REPO} ./${REPO}/
 
 DOCKERFILE_CONTENTS_2_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get -qq update \
-&& apt-get -qq install -y \
+RUN apt-get update \
+&& apt-get install -y \
     gnupg2 \
     git \
     python3-pip \
@@ -478,9 +498,7 @@ RUN apt-get -qq update \
 && pip3 install \
     bandit \
     pipdeptree \
-    bandit \
-    pipdeptree \
-    ansible-core==2.14.1
+    ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -543,11 +561,11 @@ node('master') {
         } else if (ANSIBLE_VERSION == '2.11') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
         } else if (ANSIBLE_VERSION == '2.12') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
         } else if (ANSIBLE_VERSION == '2.13') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_13
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
         } else if (ANSIBLE_VERSION == '2.14') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_14
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
         } else if (ANSIBLE_VERSION == 'LATEST') {
              DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
