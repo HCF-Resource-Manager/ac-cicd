@@ -585,10 +585,16 @@ node('master') {
                     sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
                 }
 
-                if (env.ANSIBLE_VERSION == '2.9') {
+                if (env.ANSIBLE_VERSION == '2.9.27') {
                     /* ansible-2.9 - removing test & doc from build */
                     sh (script: 'rm -rf docs tests/.pytest_cache tests/functional tests/helpers tests/unit tests/*.py tests/*.ini tests/requirements.txt ')
                 }
+
+                /*  Build the collection */
+                out_galaxy_build = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
+
+                /* Install the collection */
+                out_galaxy_install = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
 
                 if (VERBOSITY.toBoolean()){
                     echo '------------------------ workspakce output ------------------------------'
@@ -631,20 +637,18 @@ node('master') {
                     echo out
                     echo '-------------------------------------------------------------------------'
 
-                    if (env.ANSIBLE_VERSION == '2.9') {
-                        echo '----------- ansible-2.9 - removing test & doc from build ----------------'
+                    if (env.ANSIBLE_VERSION == '2.9.27') {
+                        echo '----------- ansible-2.9.27 - removing test & doc from build ----------------'
                         echo "Removed collection content that should not be scanned to supplement build_ignore 2.9 limitations."
                         echo '-------------------------------------------------------------------------'
                     }
 
                     echo '--------------------- Build the collection ------------------------'
-                    out = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
-                    echo out
+                    echo out_galaxy_build
                     echo '--------------------------------------------------------------------------'
 
                     echo '-------------------- Install the collection -----------------------'
-                    out = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
-                    echo out
+                    echo out_galaxy_install
                     echo '--------------------------------------------------------------------------'
                 }
             }
@@ -654,10 +658,10 @@ node('master') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}") {
                 // Attempt to build the collection
-                out = sh script: 'ansible-galaxy collection build . --force'
+                //out = sh script: 'ansible-galaxy collection build . --force'
                 // Install the built collection
-                out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
-                
+                //out = sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true
+
                 dir("ansible_collections/ibm/${REPO}") {
                     out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
                     echo '--------------------------- Sanity output ---------------------------'
