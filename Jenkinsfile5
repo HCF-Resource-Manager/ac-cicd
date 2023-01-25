@@ -378,7 +378,7 @@ python2.7 \
 python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
-pylint == 2.3.1 \
+pylint==2.3.1 \
 bandit \
 pipdeptree \
 ansible==${ANSIBLE_VERSION} \
@@ -484,7 +484,7 @@ node('master') {
             target_pre = target_pre.substring(0,9)
             currentBuild.displayName = "#${BUILD_NUMBER}"
             currentBuild.description =  "Target: " + target_pre + "\n" +
-                                        "Python: " + python_ver + "\n" +
+                                        "Pytyhon z/OS: " + python_ver + "\n" +
                                         "Ansible:" + params.ANSIBLE_VERSION + "\n" +
                                         "Branch: ${BRANCH}"
         }
