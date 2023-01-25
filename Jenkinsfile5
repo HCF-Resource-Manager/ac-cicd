@@ -68,7 +68,7 @@ properties (
                 booleanParam(name: 'VERBOSITY', defaultValue: false,
                      description: 'Specifies additional verbosity such as python version, pip version, pip freeze, dependency tree, ansible version, build installation .'),
                 booleanParam(name: 'ANSIBLE_TEST_ONLY', defaultValue: false,
-                     description: 'Specifies additional verbosity such as python version, pip version, pip freeze, dependency tree, ansible version, build installation .'),
+                     description: 'Specifies only Ansible Certification tests and security scan run, meaning no functional tests run.'),
             ]
         )
     ]
@@ -169,7 +169,7 @@ def checkForYamlLintErrors(output) {
 def checkForAnsibleLintErrors(output) {
     if (Pattern.compile(/^[1-9][0-9]{2,}\s/, Pattern.MULTILINE).matcher(output).find()) {
         throw new Exception("ansible-lint detected errors! \n ${output}")
-}
+    }
 }
 
 // Determine if any tasks failed in a playbook
