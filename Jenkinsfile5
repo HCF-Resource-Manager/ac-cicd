@@ -540,15 +540,16 @@ node('master') {
          *            Logically select and concat vars to create docker file
          * ----------------------------------------------------------------------------
         */
-        if (ANSIBLE_VERSION == '2.9') {
+
+        if (ANSIBLE_VERSION == '2.9.27') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
-        } else if (ANSIBLE_VERSION == '2.11') {
+        } else if (ANSIBLE_VERSION == '2.11.12') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
-        } else if (ANSIBLE_VERSION == '2.12') {
+        } else if (ANSIBLE_VERSION == '2.12.10') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
-        } else if (ANSIBLE_VERSION == '2.13') {
+        } else if (ANSIBLE_VERSION == '2.13.7') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
-        } else if (ANSIBLE_VERSION == '2.14') {
+        } else if (ANSIBLE_VERSION == '2.14.1') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
         } else if (ANSIBLE_VERSION == 'LATEST') {
              DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
