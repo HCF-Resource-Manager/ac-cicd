@@ -378,6 +378,7 @@ python2.7 \
 python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+pylint == 2.3.1 \
 bandit \
 pipdeptree \
 ansible==${ANSIBLE_VERSION} \
