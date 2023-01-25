@@ -382,19 +382,18 @@ touch /home/jenkins/.ssh/known_hosts && \
 ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts
 '''
 
-
 DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
 # --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get ${VERBOSITY ? '' : '> /dev/null'}update \
-&& apt-get ${VERBOSITY ? '' : '> /dev/null'}install -y \
+RUN apt-get "${VERBOSITY.toBoolean() ? '' : '> /dev/null'}"update \
+&& apt-get "${VERBOSITY.toBoolean() ? '' : '> /dev/null'}"install -y \
 gnupg2 \
 git \
 python3-pip \
 openssh-client \
 python2.7 \
 python-pip \
-&& pip3 ${VERBOSITY ? '' : '-q'}install --upgrade pip \
-&& pip3 ${VERBOSITY ? '' : '-q'}install \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'}install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'}install \
 bandit \
 pipdeptree \
 ansible==2.9.27 \
