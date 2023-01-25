@@ -202,7 +202,7 @@ def checkForAnsibleTestErrors(output) {
         errorString = errorString + errors.group(1) + '\n'
     }
     if (errorString != '') {
-        error(header + "ERRORS: ansible-test detected errors! \n ${errorString}\n" + header + "\n" + header + "Full output: ${output}\n"+ header)
+        error(header + "ERROR: ansible-test detected errors\n ${errorString}" + header + "\n" + header + "Full output: ${output}\n"+ header)
     }
 }
 
