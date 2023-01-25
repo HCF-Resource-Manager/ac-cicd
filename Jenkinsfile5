@@ -413,7 +413,15 @@ ansible-core==${ANSIBLE_VERSION}
 COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
-/* Template supports ansible-core '2.12.10', '2.13.7', '2.14.1' */
+/*
+ * 'DOCKERFILE_CONTENTS_2_DOT_12_13_14' supports ansible-core versiuons
+ * '2.12.10', '2.13.7', '2.14.1'.
+ *
+ * Testing showed that appending `ANSIBLE_TEST_INSTALL_DEPENDENCIES` to
+ * DOCKERFILE_CONTENTS_2_DOT_12_13_14 was unessary but would rather ansible-test
+ * update any packages it feels it needs to remain in synch and avoid any possible
+ * differences for when we want to run certification for Automation Hub.
+*/
 DOCKERFILE_CONTENTS_2_DOT_12_13_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -432,7 +440,7 @@ ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
-""" + UID_MAPPING + DOCKER_CMDS
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
 DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
