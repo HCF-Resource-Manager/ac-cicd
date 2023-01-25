@@ -381,7 +381,7 @@ python-pip \
 bandit \
 pipdeptree \
 ansible==${ANSIBLE_VERSION} \
-rstcheck===3.3.1
+rstcheck==3.3.1
 
 # ----------------------------- Copy dependencies ---------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -399,8 +399,8 @@ python2.7 \
 python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
-pycodestyle \
-pylint \
+pycodestyle==2.6.0 \
+pylint==2.6.0 \
 voluptuous \
 yamllint \
 bandit \
