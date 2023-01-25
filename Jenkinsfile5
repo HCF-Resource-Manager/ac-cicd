@@ -19,7 +19,7 @@ properties (
         parameters(
             [
                 // ? change host from string to choices once consistent environments?
-                string(name: 'BRANCH', defaultValue: 'update/595-596-617-618/ansible-core-2_12-latest-support'),
+                string(name: 'BRANCH', defaultValue: 'dev'),
                 string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
                 string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
@@ -408,7 +408,7 @@ COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
 /* Template supports ansible-core '2.12.10', '2.13.7', '2.14.1' */
-DOCKERFILE_CONTENTS_2_12_13_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+DOCKERFILE_CONTENTS_2_DOT_12_13_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
 && apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -546,11 +546,11 @@ node('master') {
         } else if (ANSIBLE_VERSION == '2.11.12') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
         } else if (ANSIBLE_VERSION == '2.12.10') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == '2.13.7') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == '2.14.1') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_12_13_14
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == 'LATEST') {
              DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
