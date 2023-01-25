@@ -48,7 +48,7 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.9.27', '2.11.12', '2.12.10', '2.13.7', '2.14.1', 'LATEST']),
+                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
                     defaultValue: """\
