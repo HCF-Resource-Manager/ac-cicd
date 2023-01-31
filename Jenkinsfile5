@@ -685,7 +685,7 @@ node('master') {
                         sh 'pwd'
 
                         /* ----------------------------------------------------------------------------
-                        *                  Defaults passed from UI
+                        *                  Skip tests passed from UI
                         * ----------------------------------------------------------------------------
                         */
                         def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
