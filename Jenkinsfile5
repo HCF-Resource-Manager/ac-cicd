@@ -484,6 +484,8 @@ node('master') {
     currentBuild.result = 'SUCCESS'
 
     stage('Checkout') {
+        def skip_tests = """${SKIP_FUNCTIONAL_TESTS}""".stripIndent().replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
+        echo ${skip_tests}
         checkout()
         script {
             python_ver = "${params.PYTHON_PATH}"
