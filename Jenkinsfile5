@@ -702,7 +702,7 @@ node('master') {
                         echo '-------------------------------------------------------------------------'
 
                         echo '--------------------------- Tests Found ---------------------------------'
-                        def tests = sh (script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s ${skip_tests} -m || true", returnStdout: true)
+                        def tests = sh (script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s \"${skip_tests}\" -m || true", returnStdout: true)
                         echo tests
                         echo '-------------------------------------------------------------------------'
 
