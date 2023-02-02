@@ -185,11 +185,12 @@ makeflag = { title ->
 
 def setHost() {
     // Read hosts inventory file for ASA or AC depending on the REPO the job is running against
+    def hosts_file
     if ("${REPO}" == "ibm_zos_ims") {
-        def hosts_file = "/var/lib/jenkins/workspace/asa_hosts_inventory.txt"
+        hosts_file = "/var/lib/jenkins/workspace/asa_hosts_inventory.txt"
     }
     else {
-        def hosts_file = "/var/lib/jenkins/workspace/ac_hosts_inventory.txt"
+        hosts_file = "/var/lib/jenkins/workspace/ac_hosts_inventory.txt"
     }
     def hosts = new File("${hosts_file}").text.readLines()
 
