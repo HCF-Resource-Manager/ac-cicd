@@ -239,6 +239,27 @@ def setHost() {
 
     // Remove any remaining temp files
     sh "rm ${currdir}/temp_rotated_hosts.txt"
+
+    // Launch Ansible Tower job to kick off IPL of EC machine if it is not online
+    def pingOutput
+    try {
+        pingOutput = sh script: "ping -c5 ${TARGET_HOST}", returnStdout: true // ping host to check if available
+    } catch(Exception ex) {
+        echo "Pinging failed."
+    }
+
+    echo "${pingOutput}"
+    if (pingOutput == null || !pingOutput.contains("5 packets transmitted, 5 received, 0% packet loss")) {
+        echo "Target host '${TARGET_HOST}' does not seem to be online. Launching Ansible Tower job to perform IPL..."
+        launchTowerJob()
+    }
+    else {
+        echo "Target host '${TARGET_HOST}' seems to be online. Skip launching Ansible Tower job to perform IPL..."
+    }
+
+    // Perform additionl health checks below...
+    // ...
+    // ...
 }
 
 docker_object_name = "ansible4-test-image:${env.BUILD_ID}"
