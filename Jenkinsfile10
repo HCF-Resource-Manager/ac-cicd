@@ -51,11 +51,10 @@ properties (
                         PATH: "/zoau/v1.2.0/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0/bin" """.stripIndent(),
                     required: true
                 ),
-
                 string(name: 'WHAT_TO_TEST', defaultValue: 'test-only-changed-files',
                         description: "Replace the default value for any of the options below:\n'test-none': Do not run any tests.\n'test-specific-file:<filepath>': Test a specific file in ibm_zos_core that is specified in place of <filepath>. For ex. 'test-specific-file:plugins/action/zos_copy.py'.\n'test-only-changed-files': Run the dependencyfinder.py script to find and run only tests that are affected by changes.\n'test-all': Perform all tests (full regression).",
                         required: true
-                )
+                ),
                 choice(name: 'SEND_GIT_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Git logs to artifactory (Enabling this is only recommended for releases).'),
                 string(name: 'BRANCH_TAG_TO_COMPARE', defaultValue: 'origin/', description: "If above option is 'Yes', specify which branch or tag to compare git commits from the branch (chosen above) that the job is running against. When specifying a branch instead of a tag, precede the branch name by 'origin/'."),
                 choice(name: 'SEND_JENKINS_LOGS_TO_ARTIFACTORY', choices: ['No', 'Yes'], description: 'Send Jenkins logs to artifactory (Enabling this is only recommended for releases).'),
@@ -239,6 +238,88 @@ def setHost() {
 
     // Remove any remaining temp files
     sh "rm ${currdir}/temp_rotated_hosts.txt"
+
+    // Launch Ansible Tower job to kick off IPL of EC machine if it is not online
+    def pingOutput
+    try {
+        pingOutput = sh script: "ping -c5 ${TARGET_HOST}", returnStdout: true // ping host to check if available
+    } catch(Exception ex) {
+        echo "Pinging failed."
+    }
+
+    echo "${pingOutput}"
+    if (pingOutput == null || !pingOutput.contains("5 packets transmitted, 5 received, 0% packet loss")) {
+        echo "Target host '${TARGET_HOST}' does not seem to be online. Launching Ansible Tower job to perform IPL..."
+        launchTowerJob()
+    }
+    else {
+        echo "Target host '${TARGET_HOST}' seems to be online. Skip launching Ansible Tower job to perform IPL..."
+    }
+
+    // Perform additionl health checks below...
+    // ...
+    // ...
+}
+
+def launchTowerJob() {
+    def controller = "${TARGET_HOST}".substring(2,7)
+    def controllerId = "CTL" + "${controller}"
+    echo "${controllerId}"
+
+    withCredentials([usernamePassword(credentialsId: 'hcfres_ansible_tower', usernameVariable: 'TOWER_USERNAME', passwordVariable: 'TOWER_PASS')]) {
+        // Here we launching the Tower job in async mode
+        tower_job = ansibleTower(
+            async: true,
+            jobTemplate: 'IPL Controller',
+            templateType: 'job',
+            towerServer: 'HCF Tower 1',
+            extraVars: "controllerToIpl: ${controllerId}",
+            towerCredentialsId: 'hcfres_ansible_tower'
+        )
+        println("Tower job "+ tower_job.get("JOB_ID") +" was submitted. Job URL is: "+ tower_job.get("JOB_URL"))
+    }
+
+    // Wait for Tower job
+    def job = tower_job.get("job", null)
+    if(job == null) {
+        error("The tower job was defined as null!")
+    }
+    timeout(120) {
+        waitUntil {
+            return job.isComplete()
+        }
+    }
+
+    // Check job results
+    if(job == null) {
+        error("Tower job was null")
+    }
+
+    // Get and display the logs
+    def Vector<String> logs = job.getLogs()
+    for (String line : logs) {
+        println(line)
+    }
+
+    // Get our exports, these depend on us calling getLogs
+    def HashMap<String, String> exports = job.getExports()
+    def returned_value = exports.get("value", "Not Defined")
+    if(returned_value != "T-REX") {
+        println("Tower job did not return a T-Rex: "+ returned_value)
+    } else {
+        println("Exports were as expected")
+    }
+
+    // Finally, see if the job was successful
+    boolean successful = job.wasSuccessful()
+    if(successful) {
+        println("Job ran successfully")
+    } else {
+        error("The job did not end well")
+    }
+
+    // Release the Tower token (see note below)
+    job.releaseToken()
 }
 
 docker_object_name = "ansible4-test-image:${env.BUILD_ID}"
