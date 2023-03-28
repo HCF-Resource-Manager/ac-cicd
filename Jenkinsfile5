@@ -26,7 +26,7 @@ properties (
                 // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
                     string(name: 'USERNAME', defaultValue: 'omvsadm'),
-                string(name: 'PYTHON_PATH', defaultValue: '/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
+                string(name: 'PYTHON_PATH', defaultValue: '/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
@@ -36,15 +36,15 @@ properties (
                         _TAG_REDIR_IN: txt
                         _TAG_REDIR_OUT: txt
                         LANG: C
-                        ZOAU_HOME: "/zoau/v1.2.1"
-                        ZOAU: "/zoau/v1.2.1/bin"
-                        ZOAU_ROOT: "/zoau/v1.2.1"
-                        LIBPATH: "/zoau/v1.2.1/lib:/python2/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
-                        ZOAUTIL_DIR: "/zoau/v1.2.1"
-                        PYTHONPATH: "/zoau/v1.2.1/lib"
-                        PYTHON_HOME: "/python2/usr/lpp/IBM/cyp/v3r9/pyz"
-                        PYTHON: "/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin"
-                        PATH: "/zoau/v1.2.1/bin:/python2/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin" """.stripIndent(),
+                        ZOAU_HOME: "/zoau/v1.2.2"
+                        ZOAU: "/zoau/v1.2.2/bin"
+                        ZOAU_ROOT: "/zoau/v1.2.2"
+                        LIBPATH: "/zoau/v1.2.2/lib:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "/zoau/v1.2.2"
+                        PYTHONPATH: "/zoau/v1.2.2/lib"
+                        PYTHON_HOME: "/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz"
+                        PYTHON: "/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin"
+                        PATH: "/zoau/v1.2.2/bin:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin" """.stripIndent(),
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
