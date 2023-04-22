@@ -105,14 +105,15 @@ rules:
   truthy: disable
 '''
 
-ANSIBLE_CONFIG_CONTENTS = '''#######
-[defaults]
-forks = 25
-timeout = 30
-
-[ssh_connection]
-pipelining = True
-'''
+// Disable this as its coming from the defaults in the options.
+//ANSIBLE_CONFIG_CONTENTS = '''#######
+//[defaults]
+//forks = 25
+//timeout = 30
+//
+//[ssh_connection]
+//pipelining = True
+//'''
 
 GITHUB_URL = 'api.github.com'
 
