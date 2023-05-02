@@ -646,7 +646,9 @@ node('master') {
     stage('Bandit Security Scan') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}/plugins") {
-                out = sh script: 'bandit -r -ll -ii . || true', returnStdout: true
+                sh script: 'bandit -r -ll -ii . >> ./bandit.log', returnStdout: false
+                out = sh script: 'cat ./bandit.log', returnStdout: true
+                sh script: 'rm ./bandit.log', returnStdout: false
                 checkForBanditErrors(out)
             }
         }
