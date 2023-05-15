@@ -566,7 +566,7 @@ node('master') {
                 out_galaxy_install = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
 
                 if (VERBOSITY.toBoolean()){
-                    echo '------------------------ workspakce output ------------------------------'
+                    echo '------------------------ workspace output -------------------------------'
                     echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
                     echo '-------------------------------------------------------------------------'
 
@@ -727,6 +727,9 @@ node('master') {
                             // temporary output to show configuration
                             def out = ''
                             out = sh (script: "ansible-config dump 2>&1 || true", returnStdout: true)
+                            echo out
+                            out = ''
+                            out = sh (script: "ansible-galaxy --version 2>&1 || true", returnStdout: true)
                             echo out
                             out = ''
                             out = sh (script: "ansible-galaxy collection list 2>&1 || true", returnStdout: true)
