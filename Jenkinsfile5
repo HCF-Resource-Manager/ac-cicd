@@ -747,7 +747,8 @@ node('master') {
                             }
 
                             for (int i = 0; i < 10; i++) {
-                                out = sh (script: "python3 -m pytest -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                // out = sh (script: "python3 -m pytest -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                out = sh (script: "python3 -m pytest -x --durations=0 --host-pattern=all -Z=/home/jenkins/.ansible/collections/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
