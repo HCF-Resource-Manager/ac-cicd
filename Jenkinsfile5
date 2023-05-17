@@ -743,7 +743,7 @@ node('master') {
                                 out = ''
                                 out = sh (script: "ansible-galaxy collection list -v 2>&1 || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "ls -l /home/jenkins/.ansible/collections || true", returnStdout: true)
+                                out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
                                 echo out
                                 out = ''
                             }
