@@ -676,11 +676,6 @@ node('master') {
                     writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                 }
                 writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
-                echo "configuration.yml is here: "
-                sh script: "pwd"
-                sh "cat configuration.yml"
-                sh "cat playbooks/ansible.cfg"
-                echo "--- this is on build box ^^^"
             }
 
             ansibleTestingImage.inside("-u jenkins\
@@ -767,11 +762,11 @@ node('master') {
                                 echo out
                                 out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
                                 echo out
-                                ont = sh (script: "cat /var/lib/jenkins/workspace/zosAnsible/ibm_zos_core/configuration.yml || true", returnStdout: true)
+                                out = sh (script: "cat /var/lib/jenkins/workspace/zosAnsible/ibm_zos_core/configuration.yml || true", returnStdout: true)
                                 echo "wrong: "
                                 echo out
-                                ont = sh (script: "cat /var/lib/jenkins/workspace/zosAnsible/ibm_zos_core/configuration.yml || true", returnStdout: true)
-                                echo "wrong: "
+                                out = sh (script: "cat ~/.ansible/collections/ansible_collections/ibm/ibm_zos_core/configuration.yml || true", returnStdout: true)
+                                echo "maybe: "
                                 echo out
                                 out = "${env.WORKSPACE}/${REPO}"
                                 echo out
@@ -783,7 +778,9 @@ node('master') {
 
                             for (int i = 0; i < 10; i++) {
                                 // Changing -s to -v
-                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                // out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                // changed configuration location
+                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=~/.ansible/collections/ansible_collections/ibm/ibm_zos_core/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
