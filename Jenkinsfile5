@@ -675,6 +675,10 @@ node('master') {
                     writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                 }
                 writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+                echo "configuration.yml is here: "
+                sh script: "pwd"
+                sh "cat configuration.yml"
+                sh "cat ansible.cfg"
             }
 
             ansibleTestingImage.inside("-u jenkins\
