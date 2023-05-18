@@ -670,6 +670,7 @@ node('master') {
             // then run our testcases in the image
             checkout()
             // write our own ansible.cfg to ensure correctness
+            // ***** ERROR?!?!  This is on build box, so docker can't see these?!?!
             dir("${REPO}") {
                 dir('playbooks') {
                     writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
@@ -690,6 +691,13 @@ node('master') {
             -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
             -e ANSIBLE_TIMEOUT=30") {
                 dir("${REPO}") {
+                    // next 2 writes are added so they are visible within docker repo
+                    dir('playbooks') {
+                        writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
+                    }
+                    writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+
+
                     sh script: 'pip3 install oyaml pytest-ansible pytest shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
