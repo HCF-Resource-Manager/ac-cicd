@@ -737,12 +737,12 @@ node('master') {
                             // temporary output to show configuration
                             def out = ''
                             if (VERBOSITY.toBoolean()){
+                                out = sh (script: "set | grep -i ansib || true", returnStdout: true)
+                                echo out
                                 out = sh (script: "ansible-config dump 2>&1 || true", returnStdout: true)
                                 echo out
-                                out = ''
                                 out = sh (script: "ansible-galaxy --version 2>&1 || true", returnStdout: true)
                                 echo out
-                                out = ''
                                 out = sh (script: "ansible-galaxy collection list -v 2>&1 || true", returnStdout: true)
                                 echo out
                                 out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
@@ -751,8 +751,8 @@ node('master') {
                             }
 
                             for (int i = 0; i < 10; i++) {
-                                // observation: 1st line works (sorta), second line makes more sense.
-                                out = sh (script: "python3 -m pytest -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml -s ${tests} 2>&1 || true", returnStdout: true)
+                                // observation: 1st line works (sorta), second line makes more sense.  Changing -s to -v
+                                out = sh (script: "python3 -m pytest -v -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 // out = sh (script: "python3 -m pytest -x --durations=0 --host-pattern=all -Z=/home/jenkins/.ansible/collections/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
