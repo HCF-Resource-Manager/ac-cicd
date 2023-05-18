@@ -58,6 +58,8 @@ properties (
                      [defaults]
                      forks = 25
                      timeout = 30
+                     collections_paths = ~/.ansible/collections
+                     module_utils = ~/.ansible/collections/ansible_collections/ibm/ibm_zos_core/plugins/module_utils
 
                      [ssh_connection]
                      pipelining = True
@@ -752,7 +754,7 @@ node('master') {
 
                             for (int i = 0; i < 10; i++) {
                                 // observation: 1st line works (sorta), second line makes more sense.  Changing -s to -v
-                                out = sh (script: "python3 -m pytest -v -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                out = sh (script: "python3 -m pytest -vv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 // out = sh (script: "python3 -m pytest -x --durations=0 --host-pattern=all -Z=/home/jenkins/.ansible/collections/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
