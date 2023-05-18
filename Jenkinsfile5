@@ -762,25 +762,21 @@ node('master') {
                                 echo out
                                 out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "cat /var/lib/jenkins/workspace/zosAnsible/ibm_zos_core/configuration.yml || true", returnStdout: true)
-                                echo "wrong: "
-                                echo out
-                                out = sh (script: "cat ~/.ansible/collections/ansible_collections/ibm/ibm_zos_core/configuration.yml || true", returnStdout: true)
-                                echo "maybe: "
+                                out = sh (script: "cat ${env.WORKSPACE}/${REPO}/configuration.yml || true", returnStdout: true)
+                                echo "on build box: "
                                 echo out
                                 out = "${env.WORKSPACE}/${REPO}"
                                 echo out
                                 out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                 echo out
                                 out = sh (script: "python3 -m pytest --help 2>&1 || true", returnStdout: true)
+                                echo out
                                 out = ''
                             }
 
                             for (int i = 0; i < 10; i++) {
                                 // Changing -s to -v
-                                // out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
-                                // changed configuration location
-                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=~/.ansible/collections/ansible_collections/ibm/ibm_zos_core/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
