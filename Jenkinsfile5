@@ -679,7 +679,8 @@ node('master') {
                 echo "configuration.yml is here: "
                 sh script: "pwd"
                 sh "cat configuration.yml"
-                sh "cat ansible.cfg"
+                sh "cat playbooks/ansible.cfg"
+                echo "--- this is on build box ^^^"
             }
 
             ansibleTestingImage.inside("-u jenkins\
@@ -696,6 +697,11 @@ node('master') {
                         writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                     }
                     writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+                    echo "configuration.yml is here: "
+                    sh script: "pwd"
+                    sh "cat configuration.yml"
+                    sh "cat playbooks/ansible.cfg"
+                    echo "--- this is in dockerenv ^^^"
 
 
                     sh script: 'pip3 install oyaml pytest-ansible pytest shellescape pytest_mock mock pycodestyle'
@@ -762,6 +768,10 @@ node('master') {
                                 out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
                                 echo out
                                 ont = sh (script: "cat /var/lib/jenkins/workspace/zosAnsible/ibm_zos_core/configuration.yml || true", returnStdout: true)
+                                echo "wrong: "
+                                echo out
+                                ont = sh (script: "cat /var/lib/jenkins/workspace/zosAnsible/ibm_zos_core/configuration.yml || true", returnStdout: true)
+                                echo "wrong: "
                                 echo out
                                 out = "${env.WORKSPACE}/${REPO}"
                                 echo out
