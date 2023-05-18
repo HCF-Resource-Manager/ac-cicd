@@ -689,8 +689,8 @@ node('master') {
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
                     sh script: 'ansible-galaxy collection build . --force'
-                    // Install the built collection - added -p at the end
-                    sh script: "ansible-galaxy collection install ibm-${REPO}* --force -p /home/jenkins/.ansible/collections"
+                    // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
+                    sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
 
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
