@@ -769,8 +769,6 @@ node('master') {
                                 echo out
                                 out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "python3 -m pytest --help 2>&1 || true", returnStdout: true)
-                                echo out
                                 out = ''
                             }
 
