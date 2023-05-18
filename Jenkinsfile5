@@ -749,18 +749,19 @@ node('master') {
                                 echo out
                                 out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
+                                ont = sh (script: "cat /var/lib/jenkins/workspace/zosAnsible/ibm_zos_core/configuration.yml || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "python3 -m pytest --fixtures 2>&1 || true", returnStdout: true)
+                                out = "${env.WORKSPACE}/${REPO}"
+                                echo out
+                                out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                 echo out
                                 out = sh (script: "python3 -m pytest --help 2>&1 || true", returnStdout: true)
                                 out = ''
                             }
 
                             for (int i = 0; i < 10; i++) {
-                                // observation: 1st line works (sorta), second line makes more sense.  Changing -s to -v
-                                out = sh (script: "python3 -m pytest -vv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
-                                // out = sh (script: "python3 -m pytest -x --durations=0 --host-pattern=all -Z=/home/jenkins/.ansible/collections/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                // Changing -s to -v
+                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
