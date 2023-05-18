@@ -749,6 +749,11 @@ node('master') {
                                 echo out
                                 out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
                                 echo out
+                                out = sh (script: "python3 -m pytest --version ${tests} 2>&1 || true", returnStdout: true)
+                                echo out
+                                out = sh (script: "python3 -m pytest --fixtures ${tests} 2>&1 || true", returnStdout: true)
+                                echo out
+                                out = sh (script: "python3 -m pytest --help ${tests} 2>&1 || true", returnStdout: true)
                                 out = ''
                             }
 
