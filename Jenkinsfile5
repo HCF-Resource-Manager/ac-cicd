@@ -719,6 +719,12 @@ node('master') {
                         *                  Skip tests passed from UI
                         * ----------------------------------------------------------------------------
                         */
+                        if (VERBOSITY.toBoolean()){
+                            echo '-------------------------- initial data skipped tests -------------------'
+                            echo "${params.SKIP_FUNCTIONAL_TESTS}"
+                            echo '-------------------------------------------------------------------------'
+                        }
+
                         def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll(".py+",".py ").replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
 
                         /* If skip_tests  is empty, hard code this to be skipped till it can be evaluated
