@@ -725,8 +725,8 @@ node('master') {
                             echo '-------------------------------------------------------------------------'
                         }
 
-                        def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll(".py+",".py ").replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
-
+                        // def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll(".py+",".py ").replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
+                        def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".replaceAll(".py+",".py ").replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
                         /* If skip_tests  is empty, hard code this to be skipped till it can be evaluated
                          * functional/modules/test_module_security.py
                          */
