@@ -1,0 +1,112 @@
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'RELEASE_REPO', defaultValue: 'ibm_zos_core', description: '')
+        string(name: 'RELEASE_BRANCH', defaultValue: 'dev', description: 'Branch on which to base a new branch for release tasks.')
+        string(name: 'RELEASE_VERSION', defaultValue: '', description: 'Semantic version to be used in the release. Matches M.m.p e.g. 1.4.0 do NOT use v1.4.0')
+        string(name: 'DOCS_REPO', defaultValue: 'https://github.com/IBM/z_ansible_collections_doc', description: 'Docs repository on which module docs are generated.')
+        string(name: 'DOCS_BRANCH', defaultValue: 'main', description: 'Branch on which docs will be generated.')
+        choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST'])
+    }
+
+    environment {
+        RELEASE_WORKING_DIR = "${params.RELEASE_BRANCH}${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        /*
+        Parameters:
+            $collection_version
+            $release_date
+
+        Identified Manual steps:
+            - Releaser will have to review the imports manually
+            - Copy any additional playbook or manual tests performed into the release folder
+            - Copy the pipeline log from Jenkins into the release folder
+            - Copy the Galaxy import log in the release folder
+            - Copy the git log into the release folder
+        
+        If we use the make commands we need to setup a py venv
+        */
+        stage('Checkout repos') {
+            sh "mkdir $RELEASE_WORKING_DIR"
+            dir("$RELEASE_WORKING_DIR") {
+                git branch: "${params.RELEASE_BRANCH}", url: "https://github.com/ansible-collections/ibm_zos_core${REPO}.git"
+                git branch: "${params.DOCS_BRANCH}", url: "${DOCS_REPO}"
+            }
+
+        }
+        stage('Setup python venv') {
+            dir("$RELEASE_WORKING_DIR") {
+                sh "which python3"
+            }
+        }
+        /*
+        ********* Start Scan tasks *****************
+        */
+        stage('Perform MEND Scan') {
+
+        }
+        stage('Perform Bandit Scan') {
+            // This is replacable for ac command once 1.7.0 is live
+            sh "python3 -m bandit -r plugins/* -ll"
+        }
+        /*
+        ********* End Scan tasks *****************
+        */
+        /*
+        ********* Start Collection tasks *****************
+        */
+        stage('Update collection version') {
+            // update galaxy.yml with $collection_version
+            sh "sed -i -e 's/version: .*/version: ${params.RELEASE_VERSION}/g' galaxy.yml"
+            // update meta/runtime.yml with right ansible support version
+            // update meta/ibm_zos_core_meta.yml with $collection_version
+            sh "sed -i -e '0,/version: .*/{s/version: .*/version: \"${params.RELEASE_VERSION}\"}' ./meta/ibm_zos_core_meta.yml"
+        }
+        stage('Update Copyrights'){
+            // Detect which modules, module_utils had changes in this release and update te copyright
+        }
+        stage('Update build changelog'){
+            // use the make command to build it
+        }
+        stage('Update release notes') {
+            // This will mainly be excracting the content from the changelog built in the previous step
+        }
+        /*
+        ********* End Collection tasks *****************
+        */
+        /*
+        ********* Start General tasks *****************
+        */
+        stage('Execute full regression') {
+
+        }
+        }
+        /*
+        ********* End General tasks *****************
+        */
+        /*
+        ********* Start Validation tasks *****************
+        */
+        stage('Test galaxy importer') {
+
+        }
+        stage('Upload to Ansible development Galaxy Server') {
+
+        }
+        stage('Upload to IBM development Galaxy Server') {
+
+        }
+        /*
+        ********* End Validation tasks *****************
+        */
+    }
+
+    post {
+        always {
+            cleanWs()
+        }
+    }
+}
