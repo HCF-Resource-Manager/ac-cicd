@@ -143,13 +143,13 @@ static String getAnsibleRequirements(String version) {
     switch(version) {
         case '2.9.27':
             return """
-            ansible:2.9.27
-            pylint:2.3.1
-            rstcheck:3.3.1
+            ansible==2.9.27
+            pylint==2.3.1
+            rstcheck==3.3.1
             """
         case '2.11.12':
             return """
-            ansible-core:2.11.12
+            ansible-core==2.11.12
             pylint
             six
             voluptuous
@@ -158,19 +158,19 @@ static String getAnsibleRequirements(String version) {
             """
         case '2.12.10':
             return """
-            ansible-core:2.12.10
+            ansible-core==2.12.10
             pylint
             rstcheck
             """
         case '2.13.7':
             return """
-            ansible-core:2.13.7
+            ansible-core==2.13.7
             pylint
             rstcheck   
             """
         case '2.14.1':
             return """
-            ansible-core:2.14.1
+            ansible-core==2.14.1
             pylint
             rstcheck
             """
