@@ -63,11 +63,13 @@ pipeline {
         // }
         stage('Perform Bandit Scan') {
             steps {
-                // This is replacable for ac command once 1.7.0 is live
-                sh """
-                . ./venv${ANSIBLE_VERSION}/bin/activate
-                python3 -m bandit -r plugins/* -ll
-                """
+                dir("$RELEASE_WORKING_DIR") {
+                    // This is replacable for ac command once 1.7.0 is live
+                    sh """
+                    . ./venv${ANSIBLE_VERSION}/bin/activate
+                    python3 -m bandit -r plugins/* -ll
+                    """
+                }
             }
         }
         /*
