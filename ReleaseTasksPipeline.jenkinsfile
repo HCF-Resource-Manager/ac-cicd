@@ -199,9 +199,9 @@ static String getAnsibleRequirements(String version) {
             ansible-core==2.14.1
             pylint
             rstcheck
+            galaxy-importer
             antsibull-changelog
             bandit
-            galaxy-importer
             """
         break
     }
