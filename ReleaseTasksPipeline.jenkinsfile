@@ -50,7 +50,6 @@ pipeline {
                     sh """
                     python3 -m venv venv${params.ANSIBLE_VERSION}
                     . ./venv${params.ANSIBLE_VERSION}/bin/activate
-                    pip install bandit
                     pip install -r ./venv${params.ANSIBLE_VERSION}/requirements.txt
                     """
                 }
@@ -83,7 +82,6 @@ pipeline {
             steps {
                 dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
                     // update galaxy.yml with $collection_version
-                    sh "ls -l ."
                     sh "sed -i -e 's/version: .*/version: ${params.RELEASE_VERSION}/g' galaxy.yml"
                     sh "cat galaxy.yml"
                     // update meta/runtime.yml with right ansible support version
@@ -96,9 +94,16 @@ pipeline {
         // stage('Update Copyrights'){
         //     // Detect which modules, module_utils had changes in this release and update te copyright
         // }
-        // stage('Update build changelog'){
-        //     // use the make command to build it
-        // }
+        stage('Update build changelog'){
+            dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
+                sh """
+                . ./../venv${ANSIBLE_VERSION}/bin/activate
+                antsibull-changelog release
+                cat ./changelogs/changelog.yaml
+                """
+            }
+            
+        }
         // stage('Update release notes') {
         //     // This will mainly be excracting the content from the changelog built in the previous step
         // }
@@ -146,6 +151,7 @@ static String getAnsibleRequirements(String version) {
             ansible==2.9.27
             pylint==2.3.1
             rstcheck==3.3.1
+            antsibull-changelog
             """
         case '2.11.12':
             return """
@@ -155,24 +161,31 @@ static String getAnsibleRequirements(String version) {
             voluptuous
             yamllint
             rstcheck
+            antsibull-changelog
+            bandit
             """
         case '2.12.10':
             return """
             ansible-core==2.12.10
             pylint
             rstcheck
+            antsibull-changelog
+            bandit
             """
         case '2.13.7':
             return """
             ansible-core==2.13.7
             pylint
-            rstcheck   
+            rstcheck
+            bandit
             """
         case '2.14.1':
             return """
             ansible-core==2.14.1
             pylint
             rstcheck
+            antsibull-changelog
+            bandit
             """
         break
     }
