@@ -33,8 +33,9 @@ pipeline {
             steps {
                 sh "mkdir $RELEASE_WORKING_DIR"
                 dir("$RELEASE_WORKING_DIR") {
-                    git branch: "${params.RELEASE_BRANCH}", url: "https://github.com/ansible-collections/ibm_zos_core${RELEASE_REPO}.git"
-                    git branch: "${params.DOCS_BRANCH}", url: "${DOCS_REPO}"
+                    // git branch: "${params.RELEASE_BRANCH}", url: "https://github.com/ansible-collections/${RELEASE_REPO}.git"
+                    sh "git clone https://github.com/ansible-collections/${RELEASE_REPO}.git ; git checkout ${params.RELEASE_BRANCH}; git pull origin ${params.RELEASE_BRANCH}"
+                    // git branch: "${params.DOCS_BRANCH}", url: "${DOCS_REPO}"
                 }
             }
         }
