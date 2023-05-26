@@ -123,9 +123,18 @@ pipeline {
         // /*
         // ********* Start Validation tasks *****************
         // */
-        // stage('Test galaxy importer') {
-
-        // }
+        stage('Test galaxy importer') {
+            steps {
+                dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
+                    sh """
+                    . ./../venv${ANSIBLE_VERSION}/bin/activate
+                    rm -rf ibm-ibm_zos_core-*.tar.gz
+                    ansible-galaxy collection build
+                    python3 -m galaxy_importer.main ibm-ibm_zos_core-*
+                    """
+                }
+            }
+        }
         // stage('Upload to Ansible development Galaxy Server') {
 
         // }
