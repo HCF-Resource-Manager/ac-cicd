@@ -33,7 +33,7 @@ pipeline {
             steps {
                 sh "mkdir $RELEASE_WORKING_DIR"
                 dir("$RELEASE_WORKING_DIR") {
-                    git branch: "${params.RELEASE_BRANCH}", url: "https://github.com/ansible-collections/ibm_zos_core${REPO}.git"
+                    git branch: "${params.RELEASE_BRANCH}", url: "https://github.com/ansible-collections/ibm_zos_core${RELEASE_REPO}.git"
                     git branch: "${params.DOCS_BRANCH}", url: "${DOCS_REPO}"
                 }
             }
