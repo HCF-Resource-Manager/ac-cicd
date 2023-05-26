@@ -32,11 +32,15 @@ pipeline {
         stage('Checkout repos') {
             steps {
                 sh "mkdir $RELEASE_WORKING_DIR"
-                dir("$RELEASE_WORKING_DIR") {
+                dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
                     git branch: "${params.RELEASE_BRANCH}", credentialsId: '47a1fbb8-e3af-4333-8a78-b60394690540', url: "https://github.com/ansible-collections/${RELEASE_REPO}.git"
                     // sh "git clone https://github.com/ansible-collections/${RELEASE_REPO}.git ; cd ${RELEASE_REPO}; git checkout ${params.RELEASE_BRANCH}; git pull origin ${params.RELEASE_BRANCH}"
+                }
+                dir("$RELEASE_WORKING_DIR\\docs") {
                     git branch: "${params.DOCS_BRANCH}", credentialsId: '47a1fbb8-e3af-4333-8a78-b60394690540', url: "${DOCS_REPO}"
                     // sh "git clone ${DOCS_REPO} ; cd z_ansible_collections_doc; git checkout ${params.DOCS_BRANCH}; git pull origin ${params.DOCS_BRANCH}"
+                }
+                dir("$RELEASE_WORKING_DIR") {
                     sh "ls -R ."
                 }
             }
