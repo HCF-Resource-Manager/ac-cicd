@@ -83,7 +83,6 @@ pipeline {
         stage('Execute full regression') {
 
         }
-        }
         /*
         ********* End General tasks *****************
         */
