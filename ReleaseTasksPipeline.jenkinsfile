@@ -69,6 +69,7 @@ pipeline {
             steps {
                 dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
                     // update galaxy.yml with $collection_version
+                    sh "ls -l ."
                     sh "sed -i -e 's/version: .*/version: ${params.RELEASE_VERSION}/g' galaxy.yml"
                     sh "cat galaxy.yml"
                     // update meta/runtime.yml with right ansible support version
