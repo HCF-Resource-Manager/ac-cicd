@@ -49,6 +49,12 @@ pipeline {
             steps {
                 dir("$RELEASE_WORKING_DIR") {
                     sh "which python3"
+                    sh """
+                    python3 -m venv venv${ANSIBLE_VERSION}
+                    source ./venv${ANSIBLE_VERSION}/bin/activate
+                    pip install bandit
+                    pip list
+                    """
                 }
             }
         }
