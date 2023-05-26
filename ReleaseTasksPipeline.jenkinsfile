@@ -45,7 +45,7 @@ pipeline {
         stage('Setup python venv') {
             steps {
                 dir("$RELEASE_WORKING_DIR") {
-                    writeFile file: './venv${params.ANSIBLE_VERSION}/requirements.txt', text: getAnsibleRequirements(${params.ANSIBLE_VERSION})
+                    writeFile file: "./venv${params.ANSIBLE_VERSION}/requirements.txt", text: getAnsibleRequirements(${params.ANSIBLE_VERSION})
                     
                     sh """
                     python3 -m venv venv${params.ANSIBLE_VERSION}
