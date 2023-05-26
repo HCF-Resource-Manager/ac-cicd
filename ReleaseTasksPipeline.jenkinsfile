@@ -30,27 +30,32 @@ pipeline {
         If we use the make commands we need to setup a py venv
         */
         stage('Checkout repos') {
-            sh "mkdir $RELEASE_WORKING_DIR"
-            dir("$RELEASE_WORKING_DIR") {
-                git branch: "${params.RELEASE_BRANCH}", url: "https://github.com/ansible-collections/ibm_zos_core${REPO}.git"
-                git branch: "${params.DOCS_BRANCH}", url: "${DOCS_REPO}"
+            steps {
+                sh "mkdir $RELEASE_WORKING_DIR"
+                dir("$RELEASE_WORKING_DIR") {
+                    git branch: "${params.RELEASE_BRANCH}", url: "https://github.com/ansible-collections/ibm_zos_core${REPO}.git"
+                    git branch: "${params.DOCS_BRANCH}", url: "${DOCS_REPO}"
+                }
             }
-
         }
         stage('Setup python venv') {
-            dir("$RELEASE_WORKING_DIR") {
-                sh "which python3"
+            steps {
+                dir("$RELEASE_WORKING_DIR") {
+                    sh "which python3"
+                }
             }
         }
         /*
         ********* Start Scan tasks *****************
         */
-        stage('Perform MEND Scan') {
+        // stage('Perform MEND Scan') {
 
-        }
+        // }
         stage('Perform Bandit Scan') {
-            // This is replacable for ac command once 1.7.0 is live
-            sh "python3 -m bandit -r plugins/* -ll"
+            steps {
+                // This is replacable for ac command once 1.7.0 is live
+                sh "python3 -m bandit -r plugins/* -ll"
+            }
         }
         /*
         ********* End Scan tasks *****************
@@ -59,45 +64,47 @@ pipeline {
         ********* Start Collection tasks *****************
         */
         stage('Update collection version') {
-            // update galaxy.yml with $collection_version
-            sh "sed -i -e 's/version: .*/version: ${params.RELEASE_VERSION}/g' galaxy.yml"
-            // update meta/runtime.yml with right ansible support version
-            // update meta/ibm_zos_core_meta.yml with $collection_version
-            sh "sed -i -e '0,/version: .*/{s/version: .*/version: \"${params.RELEASE_VERSION}\"}' ./meta/ibm_zos_core_meta.yml"
+            steps {
+                // update galaxy.yml with $collection_version
+                sh "sed -i -e 's/version: .*/version: ${params.RELEASE_VERSION}/g' galaxy.yml"
+                // update meta/runtime.yml with right ansible support version
+                // update meta/ibm_zos_core_meta.yml with $collection_version
+                sh "sed -i -e '0,/version: .*/{s/version: .*/version: \"${params.RELEASE_VERSION}\"}' ./meta/ibm_zos_core_meta.yml"
+            }
         }
-        stage('Update Copyrights'){
-            // Detect which modules, module_utils had changes in this release and update te copyright
-        }
-        stage('Update build changelog'){
-            // use the make command to build it
-        }
-        stage('Update release notes') {
-            // This will mainly be excracting the content from the changelog built in the previous step
-        }
+        // stage('Update Copyrights'){
+        //     // Detect which modules, module_utils had changes in this release and update te copyright
+        // }
+        // stage('Update build changelog'){
+        //     // use the make command to build it
+        // }
+        // stage('Update release notes') {
+        //     // This will mainly be excracting the content from the changelog built in the previous step
+        // }
         /*
         ********* End Collection tasks *****************
         */
         /*
         ********* Start General tasks *****************
         */
-        stage('Execute full regression') {
+        // stage('Execute full regression') {
 
-        }
-        /*
-        ********* End General tasks *****************
-        */
-        /*
-        ********* Start Validation tasks *****************
-        */
-        stage('Test galaxy importer') {
+        // }
+        // /*
+        // ********* End General tasks *****************
+        // */
+        // /*
+        // ********* Start Validation tasks *****************
+        // */
+        // stage('Test galaxy importer') {
 
-        }
-        stage('Upload to Ansible development Galaxy Server') {
+        // }
+        // stage('Upload to Ansible development Galaxy Server') {
 
-        }
-        stage('Upload to IBM development Galaxy Server') {
+        // }
+        // stage('Upload to IBM development Galaxy Server') {
 
-        }
+        // }
         /*
         ********* End Validation tasks *****************
         */
