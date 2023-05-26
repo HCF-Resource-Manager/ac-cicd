@@ -7,7 +7,7 @@ pipeline {
         string(name: 'RELEASE_VERSION', defaultValue: '', description: 'Semantic version to be used in the release. Matches M.m.p e.g. 1.4.0 do NOT use v1.4.0')
         string(name: 'DOCS_REPO', defaultValue: 'https://github.com/IBM/z_ansible_collections_doc', description: 'Docs repository on which module docs are generated.')
         string(name: 'DOCS_BRANCH', defaultValue: 'main', description: 'Branch on which docs will be generated.')
-        choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST'])
+        choice(name: 'ANSIBLE_VERSION', choices: ['2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST'])
     }
 
     environment {
