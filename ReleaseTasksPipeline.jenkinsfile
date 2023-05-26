@@ -95,14 +95,15 @@ pipeline {
         //     // Detect which modules, module_utils had changes in this release and update te copyright
         // }
         stage('Update build changelog'){
-            dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
+            steps {
+                dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
                 sh """
                 . ./../venv${ANSIBLE_VERSION}/bin/activate
                 antsibull-changelog release
                 cat ./changelogs/changelog.yaml
                 """
+                }
             }
-            
         }
         // stage('Update release notes') {
         //     // This will mainly be excracting the content from the changelog built in the previous step
