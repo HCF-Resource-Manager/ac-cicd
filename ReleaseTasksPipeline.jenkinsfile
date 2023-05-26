@@ -162,6 +162,8 @@ static String getAnsibleRequirements(String version) {
             pylint==2.3.1
             rstcheck==3.3.1
             antsibull-changelog
+            bandit
+            galaxy_importer
             """
         case '2.11.12':
             return """
@@ -173,6 +175,7 @@ static String getAnsibleRequirements(String version) {
             rstcheck
             antsibull-changelog
             bandit
+            galaxy_importer
             """
         case '2.12.10':
             return """
@@ -181,6 +184,7 @@ static String getAnsibleRequirements(String version) {
             rstcheck
             antsibull-changelog
             bandit
+            galaxy_importer
             """
         case '2.13.7':
             return """
@@ -188,6 +192,7 @@ static String getAnsibleRequirements(String version) {
             pylint
             rstcheck
             bandit
+            galaxy_importer
             """
         case '2.14.1':
             return """
@@ -196,6 +201,7 @@ static String getAnsibleRequirements(String version) {
             rstcheck
             antsibull-changelog
             bandit
+            galaxy_importer
             """
         break
     }
