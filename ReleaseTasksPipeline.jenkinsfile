@@ -79,7 +79,7 @@ pipeline {
                     sh "cat galaxy.yml"
                     // update meta/runtime.yml with right ansible support version
                     // update meta/ibm_zos_core_meta.yml with $collection_version
-                    sh "sed -i -e '0,/version: .*/{s/version: .*/version: \"${params.RELEASE_VERSION}\"}' ./meta/ibm_zos_core_meta.yml"
+                    sh "sed -i -e '0,/version: .*/{s/version: .*/version: \"${params.RELEASE_VERSION}\"/}' ./meta/ibm_zos_core_meta.yml"
                     sh "cat ./meta/ibm_zos_core_meta.yml"
                 }
             }
