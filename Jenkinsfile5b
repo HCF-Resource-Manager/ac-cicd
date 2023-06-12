@@ -501,7 +501,7 @@ node('master') {
         } else if (ANSIBLE_VERSION == '2.15.0') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == 'LATEST') {
-             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
 
         /* ----------------------------------------------------------------------------
