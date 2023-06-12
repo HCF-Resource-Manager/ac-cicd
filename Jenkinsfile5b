@@ -51,7 +51,7 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.15.1', choices: ['2.15.1', '2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
+                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.15.0', choices: ['2.15.0', '2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
                     defaultValue: """\
@@ -407,7 +407,7 @@ COPY ${REPO} ./${REPO}/
 
 /*
  * 'DOCKERFILE_CONTENTS_2_DOT_12_13_14' supports ansible-core versions
- * '2.12.10', '2.13.7', '2.14.1'.  (adding 2.15.1)
+ * '2.12.10', '2.13.7', '2.14.1'.  (adding 2.15.0)
  *
  * Testing showed that appending `ANSIBLE_TEST_INSTALL_DEPENDENCIES` to
  * DOCKERFILE_CONTENTS_2_DOT_12_13_14 was unessary but would rather ansible-test
@@ -498,7 +498,7 @@ node('master') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == '2.14.1') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.15.1') {
+        } else if (ANSIBLE_VERSION == '2.15.0') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == 'LATEST') {
              DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
