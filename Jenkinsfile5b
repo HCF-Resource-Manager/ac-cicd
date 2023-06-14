@@ -638,6 +638,12 @@ node('master') {
                     echo '-------------------- Install the collection -----------------------'
                     echo out_galaxy_install
                     echo '--------------------------------------------------------------------------'
+
+                    echo '-------------------- validate the collection -----------------------'
+                    out = sh( script: 'ansible-galaxy collection list', returnStdout: true)
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+
                 }
             }
         }
