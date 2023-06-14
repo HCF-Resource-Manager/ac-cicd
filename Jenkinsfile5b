@@ -457,7 +457,7 @@ COPY ${REPO} ./${REPO}/
 /* -------------------------------------------------------------------------- */
 
 // docker_object_name = "ansible-test-image:${env.BUILD_ID}"
-docker_object_name = "${env.JOB_NAME}:${env.BUILD_NUMBER}"
+docker_object_name = "${env.JOB_NAME}:${env.BUILD_NUMBER}".toLowerCase()
 
 /* -------------------------------------------------------------------------- */
 /*                           Stages                                           */
