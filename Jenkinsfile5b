@@ -23,9 +23,7 @@ properties (
                 string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
                 booleanParam(name: 'RUN_ALL_TESTS', defaultValue: false,
                      description: 'Specifies all test suites be run, honors the any values in SKIP_FUNCTIONAL_TESTS, disables PULL_REQUEST_BASE_BRANCH'),
-                string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
-                // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
-                // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
+                string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
                     string(name: 'USERNAME', defaultValue: 'omvsadm'),
                 string(name: 'PYTHON_PATH', defaultValue: '/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
@@ -458,7 +456,8 @@ COPY ${REPO} ./${REPO}/
 /*                           Docker object                                    */
 /* -------------------------------------------------------------------------- */
 
-docker_object_name = "ansible-test-image:${env.BUILD_ID}"
+// docker_object_name = "ansible-test-image:${env.BUILD_ID}"
+docker_object_name = "${env.JOB_NAME}:${env.BUILD_NUMBER}"
 
 /* -------------------------------------------------------------------------- */
 /*                           Stages                                           */
