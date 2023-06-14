@@ -405,7 +405,7 @@ COPY ${REPO} ./${REPO}/
 
 /*
  * 'DOCKERFILE_CONTENTS_2_DOT_12_13_14' supports ansible-core versions
- * '2.12.10', '2.13.7', '2.14.1'.  (adding 2.15.0)
+ * '2.12.10', '2.13.7', '2.14.1'.
  *
  * Testing showed that appending `ANSIBLE_TEST_INSTALL_DEPENDENCIES` to
  * DOCKERFILE_CONTENTS_2_DOT_12_13_14 was unessary but would rather ansible-test
@@ -431,6 +431,28 @@ ansible-core==${ANSIBLE_VERSION}
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+ansible-core==${ANSIBLE_VERSION} \
+ansible_collections
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
 
 DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
@@ -498,7 +520,7 @@ node('master') {
         } else if (ANSIBLE_VERSION == '2.14.1') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == '2.15.0') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
         } else if (ANSIBLE_VERSION == 'LATEST') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
@@ -533,10 +555,10 @@ node('master') {
                     sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
                 }
 
-                if (env.ANSIBLE_VERSION == '2.15.0') {
-                    /* Update meta/runtime.yml (experiment) */
-                    sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
-                }
+                // if (env.ANSIBLE_VERSION == '2.15.0') {
+                //    /* Update meta/runtime.yml (experiment - no impact?!) */
+                //    sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
+                // }
 
                 if (env.ANSIBLE_VERSION == '2.9.27') {
                     /* ansible-2.9 - removing test & doc from build */
