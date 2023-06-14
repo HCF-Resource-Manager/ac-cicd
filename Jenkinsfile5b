@@ -318,11 +318,11 @@ ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg"""
 
 /**
 This snippet with the option --requirements will trigger the test cases to run but
-will also INSTALL any requiements needed. If you rely on ansible-test to install
+will also INSTALL any requirements needed. If you rely on ansible-test to install
 it should always get the right dependencies vs installing frozen versions of the
 dependencies. Note, that was added to the dockerfile and in my opinion is a hack
 because docker is run as root giving global package access but the docker image
-is run as jenkins; if you try to install ansible-test packagesas jenkins you will
+is run as jenkins; if you try to install ansible-test packages as jenkins you will
 get a Permission denied: b'/usr/lib/python3.8/site-packages/ansible.egg-info'
 error because running --requirements as jenkins for ansible 2.9 has a bug that
 tries to write an egg to the host. Apprently fixed in 2.10 or later.  An optional
@@ -447,6 +447,7 @@ python-pip \
 bandit \
 pipdeptree \
 ansible-core==${ANSIBLE_VERSION} \
+ansible-galaxy \
 ansible-lint
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
