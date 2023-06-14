@@ -533,6 +533,11 @@ node('master') {
                     sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
                 }
 
+                if (env.ANSIBLE_VERSION == '2.15.0') {
+                    /* Update meta/runtime.yml (experiment) */
+                    sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
+                }
+
                 if (env.ANSIBLE_VERSION == '2.9.27') {
                     /* ansible-2.9 - removing test & doc from build */
                     sh (script: 'rm -rf docs tests/.pytest_cache tests/functional tests/helpers tests/unit tests/*.py tests/*.ini tests/requirements.txt ')
