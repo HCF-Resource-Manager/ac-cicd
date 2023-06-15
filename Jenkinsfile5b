@@ -312,7 +312,8 @@ WORKDIR /usr/src/app"""
 ENV_VARS = """
 # ---------------------------- Environment Variables ------------------------- #
 ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
-ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg"""
+ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
+ENV PYTHONPATH=/home/jenkins/.ansible/collections"""
 /// Removed: ENV PYTHONPATH=/home/jenkins/.ansible/collections"""
 /* Note pythonpath above added to test import issue-rp 20230510 */
 
