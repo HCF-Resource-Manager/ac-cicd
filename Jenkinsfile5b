@@ -640,7 +640,7 @@ node('master') {
                     echo '--------------------------------------------------------------------------'
 
                     echo '-------------------- validate the collection -----------------------'
-                    out = sh( script: 'ansible-galaxy collection list -v -p', returnStdout: true)
+                    out = sh( script: 'ansible-galaxy collection list -v -p .', returnStdout: true)
                     echo out
                     echo '--------------------------------------------------------------------------'
 
