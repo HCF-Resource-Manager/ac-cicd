@@ -38,15 +38,15 @@ properties (
                         _TAG_REDIR_IN: txt
                         _TAG_REDIR_OUT: txt
                         LANG: C
-                        ZOAU_HOME: "/zoau/v1.2.2"
-                        ZOAU: "/zoau/v1.2.2/bin"
-                        ZOAU_ROOT: "/zoau/v1.2.2"
-                        LIBPATH: "/zoau/v1.2.2/lib:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
-                        ZOAUTIL_DIR: "/zoau/v1.2.2"
-                        PYTHONPATH: "/zoau/v1.2.2/lib"
+                        ZOAU_HOME: "/zoau/v1.2.3"
+                        ZOAU: "/zoau/v1.2.3/bin"
+                        ZOAU_ROOT: "/zoau/v1.2.3"
+                        LIBPATH: "/zoau/v1.2.3/lib:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "/zoau/v1.2.3"
+                        PYTHONPATH: "/zoau/v1.2.3/lib"
                         PYTHON_HOME: "/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz"
                         PYTHON: "/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin"
-                        PATH: "/zoau/v1.2.2/bin:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin"
+                        PATH: "/zoau/v1.2.3/bin:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin"
                         PYTHONSTDINENCODING: "cp1047" """.stripIndent(),
                     required: true
                     ),
