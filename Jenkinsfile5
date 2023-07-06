@@ -63,6 +63,8 @@ properties (
 
                      [ssh_connection]
                      pipelining = True
+                     ssh_args = -o ControlMaster=auto -o ControlPersist=28800 -o 
+                     ConnectTimeout=240s
 
                      [connection]
                      pipelining = True
