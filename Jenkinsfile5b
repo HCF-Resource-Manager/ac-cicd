@@ -19,11 +19,13 @@ properties (
         parameters(
             [
                 // ? change host from string to choices once consistent environments?
-                string(name: 'BRANCH', defaultValue: 'dev'),
-                string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
+                // string(name: 'BRANCH', defaultValue: 'dev'),
+                // string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
                 booleanParam(name: 'RUN_ALL_TESTS', defaultValue: false,
                      description: 'Specifies all test suites be run, honors the any values in SKIP_FUNCTIONAL_TESTS, disables PULL_REQUEST_BASE_BRANCH'),
-                string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
+                // string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
+                // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
+                // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
                     string(name: 'USERNAME', defaultValue: 'omvsadm'),
                 string(name: 'PYTHON_PATH', defaultValue: '/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
@@ -49,7 +51,7 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.15.0', choices: ['2.15.0', '2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
+                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
                     defaultValue: """\
@@ -69,8 +71,6 @@ properties (
                     description: 'Set the ansible.cfg options if you have others.',
                     required: true
                     ),
-                booleanParam(name: 'RUN_LINT', defaultValue: true,
-                     description: 'Indicates ansible-lint should be run as another test step.'),
                 booleanParam(name: 'VERBOSITY', defaultValue: false,
                      description: 'Specifies additional verbosity such as python version, pip version, pip freeze, dependency tree, ansible version, build installation .'),
                 booleanParam(name: 'ANSIBLE_TEST_ONLY', defaultValue: false,
@@ -108,6 +108,16 @@ rules:
   truthy: disable
 '''
 
+// Disable this as its coming from the defaults in the options.
+//ANSIBLE_CONFIG_CONTENTS = '''#######
+//[defaults]
+//forks = 25
+//timeout = 30
+//
+//[ssh_connection]
+//pipelining = True
+//'''
+
 GITHUB_URL = 'api.github.com'
 
 /* -------------------------------------------------------------------------- */
@@ -128,6 +138,20 @@ ${indentedEnv}
 """
 }
 
+// Build and return a string to use as contents for an Ansible inventory file
+// def generateInventory = { hostName, username, pythonPath ->
+//    return "${hostName} ansible_user=${username} ansible_python_interpreter=${pythonPath}"
+// }
+
+// Build and return a string to use as contents for
+// a YAML-formatted Ansible vars file for consumption by Ansible playbook
+// def generateGroupVars = { environment ->
+//    def indent = '    '
+//    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
+//    return """environment_vars:
+// ${indentedEnv}
+// """
+// }
 
 /* -------------------------------------------------------------------------- */
 /*                        Log parsers / error checkers                        */
@@ -315,18 +339,17 @@ WORKDIR /usr/src/app"""
 ENV_VARS = """
 # ---------------------------- Environment Variables ------------------------- #
 ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
-ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg
-ENV PYTHONPATH=/home/jenkins/.ansible/collections"""
+ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg"""
 /// Removed: ENV PYTHONPATH=/home/jenkins/.ansible/collections"""
 /* Note pythonpath above added to test import issue-rp 20230510 */
 
 /**
 This snippet with the option --requirements will trigger the test cases to run but
-will also INSTALL any requirements needed. If you rely on ansible-test to install
+will also INSTALL any requiements needed. If you rely on ansible-test to install
 it should always get the right dependencies vs installing frozen versions of the
 dependencies. Note, that was added to the dockerfile and in my opinion is a hack
 because docker is run as root giving global package access but the docker image
-is run as jenkins; if you try to install ansible-test packages as jenkins you will
+is run as jenkins; if you try to install ansible-test packagesas jenkins you will
 get a Permission denied: b'/usr/lib/python3.8/site-packages/ansible.egg-info'
 error because running --requirements as jenkins for ansible 2.9 has a bug that
 tries to write an egg to the host. Apprently fixed in 2.10 or later.  An optional
@@ -408,7 +431,7 @@ COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
 /*
- * 'DOCKERFILE_CONTENTS_2_DOT_12_13_14' supports ansible-core versions
+ * 'DOCKERFILE_CONTENTS_2_DOT_12_13_14' supports ansible-core versiuons
  * '2.12.10', '2.13.7', '2.14.1'.
  *
  * Testing showed that appending `ANSIBLE_TEST_INSTALL_DEPENDENCIES` to
@@ -436,29 +459,6 @@ ansible-core==${ANSIBLE_VERSION}
 COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
-DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_9 + ENV_VARS +  """
-# --------------------------- Package installation Stage 1 ------------------- #
-RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
-gnupg2 \
-git \
-python3-pip \
-openssh-client \
-python2.7 \
-python-pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
-bandit \
-pipdeptree \
-ansible-core==${ANSIBLE_VERSION} \
-ansible-lint \
-rstcheck
-
-# ------------------ Copy Repository to Docker Image ------------------------- #
-COPY ${REPO} ./${REPO}/
-""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
-
-
 DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -484,7 +484,7 @@ COPY ${REPO} ./${REPO}/
 /* -------------------------------------------------------------------------- */
 
 // docker_object_name = "ansible-test-image:${env.BUILD_ID}"
-docker_object_name = "${env.JOB_NAME}:${env.BUILD_NUMBER}".toLowerCase()
+docker_object_name="ati-${env.JOB_BASE_NAME}-${env.BUILD_ID}"
 
 /* -------------------------------------------------------------------------- */
 /*                           Stages                                           */
@@ -524,10 +524,8 @@ node('master') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == '2.14.1') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.15.0') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
         } else if (ANSIBLE_VERSION == 'LATEST') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
+             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
 
         /* ----------------------------------------------------------------------------
@@ -637,12 +635,6 @@ node('master') {
                     echo '-------------------- Install the collection -----------------------'
                     echo out_galaxy_install
                     echo '--------------------------------------------------------------------------'
-
-                    echo '-------------------- validate the collection -----------------------'
-                    out = sh( script: 'ansible-galaxy collection list -v -p .', returnStdout: true)
-                    echo out
-                    echo '--------------------------------------------------------------------------'
-
                 }
             }
         }
@@ -674,42 +666,6 @@ node('master') {
             }
         }
     }
-    stage('Ansible-Lint') {
-        if( RUN_LINT.toBoolean() ) {
-            echo "-------------- Attempting Ansible-Lint ----------------"
-
-            ansibleTestingImage.inside("-u jenkins\
-                -e TARGET_HOST=${TARGET_HOST}\
-                -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
-                -e ANSIBLE_ACTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/action\
-                -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
-                -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
-                -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
-                -e ANSIBLE_TIMEOUT=30") {
-                dir("${REPO}") {
-                    // next 2 writes are added so they are visible within docker repo
-                    dir('playbooks') {
-                        writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
-                    }
-                    writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
-                    echo "------------- configuration.yml is here: -------- "
-                    sh script: "pwd"
-                    sh "cat configuration.yml"
-                    sh "cat playbooks/ansible.cfg"
-                    echo "--- this is in dockerenv ^^^"
-
-                    // sh script: 'pip3 install ansible-lint'
-
-                    out = sh (script: "ansible-lint -v || true", returnStdout: true)
-                    echo out
-                    echo "--------------------------------------------------------"
-                }
-            }
-        } else {
-            echo "Skipping Ansible-Lint"
-        }
-    }
-
     if (! ANSIBLE_TEST_ONLY.toBoolean()){
         stage('Unit and Functional Tests') {
             // Build debian image containing all requirements for test cases
@@ -738,7 +694,7 @@ node('master') {
                         writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                     }
                     writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
-                    echo "------------- configuration.yml is here: -------- "
+                    echo "configuration.yml is here: "
                     sh script: "pwd"
                     sh "cat configuration.yml"
                     sh "cat playbooks/ansible.cfg"
@@ -783,6 +739,8 @@ node('master') {
                         echo '-------------------------- skipped tests --------------------------------'
                         echo skip_tests
                         echo '-------------------------------------------------------------------------'
+                        echo "next: dependencyfinder switch"
+                        echo '-------------------------------------------------------------------------'
 
                         def tests = ""
 
@@ -791,7 +749,7 @@ node('master') {
                             tests = sh (script: "./dependencyfinder.py -p .. -a -s \"${skip_tests}\" || true", returnStdout: true)
                             echo tests
                             echo '-------------------------------------------------------------------------'
-                        } else{
+                        }else{
                             echo '--------------------------- Tests Found ---------------------------------'
                             tests = sh (script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s \"${skip_tests}\" -m || true", returnStdout: true)
                             echo tests
