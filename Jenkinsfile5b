@@ -26,7 +26,7 @@ properties (
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
                     string(name: 'USERNAME', defaultValue: 'omvsadm'),
-                string(name: 'PYTHON_PATH', defaultValue: '{PYTHONDIR}/bin/python3', required: true),
+                string(name: 'PYTHON_PATH', defaultValue: '[PYTHONDIR]/bin/python3', required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
@@ -36,15 +36,15 @@ properties (
                         _TAG_REDIR_IN: txt
                         _TAG_REDIR_OUT: txt
                         LANG: C
-                        ZOAU_HOME: "{ZOAUDIR}"
-                        ZOAU: "{ZOAUDIR}/bin"
-                        ZOAU_ROOT: "{ZOAUDIR}"
-                        LIBPATH: "{ZOAUDIR}/lib:{PYTHONDIR}/lib:/lib:/usr/lib:."
-                        ZOAUTIL_DIR: "{ZOAUDIR}"
-                        PYTHONPATH: "{ZOAUDIR}/lib"
-                        PYTHON_HOME: "{PYTHONDIR}"
-                        PYTHON: "{PYTHONDIR}/bin"
-                        PATH: "{ZOAUDIR}/bin:{PYTHONDIR}/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin"
+                        ZOAU_HOME: "[ZOAUDIR]"
+                        ZOAU: "[ZOAUDIR]/bin"
+                        ZOAU_ROOT: "[ZOAUDIR]"
+                        LIBPATH: "[ZOAUDIR]/lib:[PYTHONDIR]/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "[ZOAUDIR]"
+                        PYTHONPATH: "[ZOAUDIR]/lib"
+                        PYTHON_HOME: "[PYTHONDIR]"
+                        PYTHON: "[PYTHONDIR]/bin"
+                        PATH: "[ZOAUDIR]/bin:[PYTHONDIR]/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin"
                         PYTHONSTDINENCODING: "cp1047" """.stripIndent(),
                     required: true
                     ),
@@ -176,7 +176,7 @@ zochoices.each {
 // is consumed by functional testing pytest fixtures
 def generateYmlConfig = { hostName, username, pythonPath, environment ->
     def indent = '    '
-    def localenv = environment.replaceAll("{PYTHONDIR}",PythonPaths[0]).replaceAll("{ZOAUDIR}",ZoPaths[0])
+    def localenv = environment.replaceAll("[PYTHONDIR]",PythonPaths[0]).replaceAll("[ZOAUDIR]",ZoPaths[0])
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     return """host: ${hostName}
 user: ${username}
