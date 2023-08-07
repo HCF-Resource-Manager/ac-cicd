@@ -169,6 +169,13 @@ zochoices.each {
     ZoTitles << "${it}"
 }
 
+// HERE
+PYTHON_PATH, ENVIRONMENT
+
+PYTHON_PATH = PYTHON_PATH.replaceAll("[ZOAUDIR]", ZoPaths)
+ENVIRONMENT = ENVIRONMENT.replaceAll("[ZOAUDIR]", ZoPaths).replaceAll("[PYTHONDIR]", PythonPaths)
+
+
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
 /* -------------------------------------------------------------------------- */
@@ -178,7 +185,6 @@ zochoices.each {
 // is consumed by functional testing pytest fixtures
 def generateYmlConfig = { hostName, username, pythonPath, environment ->
     def indent = '    '
-    def localenv = environment.replaceAll("[PYTHONDIR]",PythonPaths[0]).replaceAll("[ZOAUDIR]",ZoPaths[0])
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     return """host: ${hostName}
 user: ${username}
@@ -281,7 +287,6 @@ def checkForBanditErrors(output) {
 /*                           helper functions                                 */
 /* -------------------------------------------------------------------------- */
 
-@NonCPS
 def getPythonScriptsInDir(dirToScan) {
     def pythonScripts = []
     new File(dirToScan).eachFile(FileType.FILES) { def f ->
