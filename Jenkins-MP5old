@@ -1,0 +1,769 @@
+#!groovy
+/*
+This is a multipath-capable script with active choice plugins, and a few other niceties.
+A copy of the front-ends is in /home/richp/dataark/jenjobs/multipath2
+... as well as /var/lib/jenkins/jobs/zos-multipath-3/
+
+Versioning 4: (tweaking python localization
+** Note: removals were removed
+*/
+
+import java.util.regex.*
+import java.io.File
+import groovy.io.FileType
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import org.apache.commons.io.FilenameUtils
+
+/*
+    for file-driven selectors, I'm using the first character as a decimal digit index
+    Need to adapt for multi-select
+    pypaths is the list of all known paths
+    pychoices is the list[] of selected entries (as text)
+    PythonAllPaths is a map of all possible [title]=path
+    PythonPaths is a list[] of paths as selected
+    PythonTitles is a list of titles selected
+
+    v3 now puts titles and paths in same file in
+    /var/lib/jenkins/multipath-data/pythonlist.txt
+*/
+
+File file = new File('/var/lib/jenkins/multipath-data/pythonlist.txt')
+pylist = file.readLines()
+PythonAllPaths = [:]
+PythonPaths = []
+PythonTitles = []
+
+pylist.each {
+    (title,path) = "${it}".trim().split(',')
+    rtitle = title.split(':')[0]
+    PythonAllPaths[rtitle] = path
+}
+
+pychoices = params.PythonSelection.split(',')
+pychoices.each {
+    PythonPaths << PythonAllPaths["${it}"]
+    PythonTitles << "${it}"
+}
+
+/*
+    zopaths is the list of all known paths
+    zochoices is the list[] of selected entries (as text)
+    ZoAllPaths is a map of [title]=>path
+    ZoPaths is a list[] of paths as selected
+    ZoTitles is a list of titles selected
+*/
+
+File file2 = new File('/var/lib/jenkins/multipath-data/zoaulist.txt')
+zopaths = file2.readLines()
+ZoAllPaths = [:]
+ZoTitles = []
+ZoPaths = []
+
+zopaths.each {
+    (title,path) = "${it}".trim().split(',')
+    rtitle = title.split(':')[0]
+    ZoAllPaths[rtitle] = path
+}
+
+zochoices = params.ZOAUSelection.split(',')
+zochoices.each {
+    ZoPaths << ZoAllPaths["${it}"]
+    ZoTitles << "${it}"
+}
+
+/*
+    badcombos is a list of known-incompatible pairs
+    These will have python first, zoau second, matching titles
+*/
+
+File file3 = new File('/var/lib/jenkins/multipath-data/badcombos.txt')
+badcombolist = file3.readLines()
+BadCombos = []
+
+badcombolist.each {
+    BadCombos << "${it}"
+}
+
+File file4 = new File('/var/lib/jenkins/multipath-data/ansibleversions.txt')
+anvpaths = file4.readLines()
+AnAllPaths = [:]
+AnTitles = []
+AnPaths = []
+
+anvpaths.each {
+    (title,path) = "${it}".trim().split(',')
+    rtitle = title.split(':')[0]
+    AnAllPaths[rtitle] = path
+}
+
+anchoices = params.AnsibleVersions.split(',')
+anchoices.each {
+    AnPaths << AnAllPaths["${it}"]
+    AnTitles << "${it}"
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Variables                                   */
+/* -------------------------------------------------------------------------- */
+
+// new variable: AnsibleVersions
+
+tmp_repo_name = 'ibm_zos_core'
+TARGET_HOST = params.TargetAccount.split(' ')[0] + '.vmec.svl.ibm.com'
+USERNAME = 'omvsadm'
+// this is the path within the container - no, not really - this is a default on the EC's
+// PYTHON_PATH = '/usr/lpp/izoda/v110/anaconda/bin/python3.6'
+// local folder reference
+env.WORKSPACE = '/var/lib/jenkins/workspace/zos-multipath-4'
+
+File file5 = new File('/var/lib/jenkins/multipath-data/dockerfile_basic.txt')
+DOCKERFILE_CONTENTS = file5.text.replaceAll('-env.WORKSPACE-', env.WORKSPACE)
+DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS.replaceAll('-tmp_repo_name-', tmp_repo_name)
+
+//.replaceAll('${env.WORKSPACE}',env.WORKSPACE).replaceAll('${tmp_repo_name}',tmp_repo_name)
+
+File file6 = new File('/var/lib/jenkins/multipath-data/ansible_config.txt')
+ANSIBLE_CONFIG_CONTENTS = file6.text
+
+docker_object_name = "multipath-test-image:${env.BUILD_ID}"
+
+/* -------------------------------------------------------------------------- */
+/*                                Evaluation Routines                         */
+/* -------------------------------------------------------------------------- */
+
+// Determine if ansible-test raised any errors
+// expects output of ansible-test sanity
+checkForAnsibleTestErrors = { output ->
+    if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
+        error('ansible-test encountered an internal error!')
+    }
+    errorString = ''
+    errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
+    while (errors.find()) {
+        errorString = errorString + errors.group(1) + '\n'
+    }
+    if (errorString != '') {
+        error("------> ansible-test detected errors! \n ${errorString} \n ${output}")
+        return 1
+    }
+    else {
+        print("\n+++++ ansible-test did not return any errors +++++\n ${output}")
+        return 0
+    }
+}
+
+// expects output of bandit run
+checkForBanditErrors = { output ->
+    if (Pattern.compile(/>>\s+Issue:\s\[/).matcher(output).find()) {
+        error("Bandit returned errors! \n ${output}")
+        return 1
+    }
+    else {
+        print('\n+++++ Bandit scan did not return any errors +++++\n')
+        return 0
+    }
+}
+
+// Determine if any of the testcases failed
+// expects pytest output formatting
+checkForPytestFails = { output ->
+    if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serrors\sin)/).matcher(output).find()) {
+        def slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
+        error("One or more pytest testcases failed! \n ${slim_output}")
+        return 1
+    }
+    else {
+        print('\n+++++ Python tests did not return any errors +++++\n')
+        return 0
+    }
+}
+
+// Determines if functional tests failed due to connection errors
+// I'm seeing a loop of retries, so I'm duplicating that first
+def checkForConnectionErrors(output) {
+    return Pattern.compile(/(?:pytest\_ansible.errors.AnsibleConnectionFailure\:\sHost\sunreachable)/).matcher(output).find()
+}
+
+// Determine if any tasks failed in a playbook
+// expects output of ansible-playbook
+checkForAnsiblePlaybookFailure = { output ->
+    if (!Pattern.compile(/^[^\s]+\s+\:\sok=[0-9]+\s+changed=[0-9]+\s+unreachable=0\s+failed=0\s+skipped=0\s+rescued=[0-9]+\s+ignored=0/, Pattern.MULTILINE).matcher(output).find()) {
+        error("one or more steps failed during playbook execution, or host was unreachable! \n ${output}")
+        return 1
+    }
+    else {
+        print('\n+++++ Ansible playbook tests did not return any errors +++++\n')
+        return 0
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                File builders                               */
+/* -------------------------------------------------------------------------- */
+
+// Build and return a string for the docker file creation
+// Currently, this is to control the version of ansible loaded at creation time
+generateDockerConfig = { ansVersion, dfcontent ->
+    fixedCont = dfcontent.replaceAll('-AVERSION-', ansVersion )
+    return fixedCont
+}
+
+// Buld and returns a string to be used as the contents of
+// a YAML-formatted configuration file. The configuration file
+// is consumed by functional testing pytest fixtures
+generateYmlConfig = { hostName, username, pythonPath, zoauPath, environment ->
+    indent = '    '
+    indentedEnv = indent +
+       environment.replaceAll('-PYTHON-', pythonPath).replaceAll('-ZOAU-', zoauPath).split('\n').join('\n' + indent)
+    return """host: ${hostName}
+user: ${username}
+python_path: ${pythonPath}/bin/python3
+environment:
+${indentedEnv}
+"""
+}
+
+// previously:
+//user: ${username}
+//password: all1sdun
+//python_path: ${pythonPath}
+//zoau: ${zoauPath}
+//environment:
+//${indentedEnv}
+
+// Build and return a string to use as contents for
+// a YAML-formatted Ansible vars file for consumption by Ansible playbook
+generateGroupVars = { pythonPath, zoauPath, environment ->
+    indent = '    '
+    //    indentedEnv = indent + environment.split("\\n").join("\n" + indent)
+    indentedEnv = indent +
+         environment.replaceAll('-PYTHON-', pythonPath).replaceAll('-ZOAU-', zoauPath).split('\n').join('\n' + indent)
+    return """environment_vars:
+${indentedEnv}
+"""
+}
+
+// Build and return a string to use as contents for an Ansible inventory file
+// setting password for integration testing (assuming username='omvsadm')
+generateInventory = { hostName, username, pythonPath ->
+    return "${hostName} ansible_user=${username} ansible_password=all1sdun ansible_ssh_pass=all1sdun ansible_python_interpreter=${pythonPath}\n"
+}
+
+/* generateFlag( width, text )  echoes notification to log */
+generateFlag = { width, text ->
+    str = '*' * width
+    swd = (width - text.length() - 13) / 2
+    if ( swd < 5 ) {
+        swd = 5
+    }
+    pad = ' ' * swd
+    sstr = str + '\n****** ' + pad + text + pad + '******\n' + str + '\n'
+
+    return sstr
+}
+
+/*
+    checkForBadCombo: make sure the zoau + python are not exactly in the bad list
+    return True for bad combo file should be in python,zoau version
+*/
+checkForBadCombo = { pythonname, zoaname ->
+    ret = false
+
+    String pname = ''
+    String tpname = ''
+    String zname = ''
+    String tzname = ''
+
+    pname = pythonname.trim()
+    if ( pname.length() > 10 ) {
+        pname = pname.substring(0, 10).trim()
+    }
+    zname = zoaname.trim()
+    if ( zname.length() > 10 ) {
+        zname = zname.substring(0, 10).trim()
+    }
+
+    BadCombos.each {
+        (tpname, tzname) = "$it".split(',')
+
+        if ( tpname.length() > 10 ) {
+            tpname = tpname.substring(0, 10).trim()
+        }
+
+        if ( tzname.length() > 10 ) {
+            tzname = tzname.substring(0, 10).trim()
+        }
+
+        if ( pname == tpname ) {
+            if ( zname == tzname ) {
+                ret = true
+            }
+        }
+    }
+
+    return ret
+}
+
+/* generateTestList( pytsel, zoasel ) text listing test combinations selected */
+generateTestList = { pytsel, zoasel ->
+    pychoices = pytsel.split(',')
+    zochoices = zoasel.split(',')
+
+    String fulltmp = generateFlag( 80, 'The following test combinations were chosen' )
+
+    ZoTitles.each {
+        String zname = "${it}"
+        String tmp = 'ZOAU ' + zname
+        String tmp2 = ''
+        String tmp3 = ''
+        tmp = tmp.padRight(26) + ': '
+
+        PythonTitles.each {
+            String pname = "${it}"
+            tmp2 = 'Python ' + pname
+            tmp2 = tmp2.padRight(26) + ': '
+            tmp3 = ' testable'
+
+            if ( checkForBadCombo( pname, zname ) == true ) {
+                tmp3 = ' skipped (bad combo)'
+            }
+            fulltmp = fulltmp + tmp + tmp2 + tmp3 + '\n'
+        }
+    }
+    return fulltmp
+}
+
+/* playbookTestRun: 1 playbook run, based on ati, python and zoau paths */
+playbookTestRun = { testingImage, pypath, zopath ->
+//    echo generateFlag( 60, pypath + ' ' + zopath)
+
+    testingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+        dir("${tmp_repo_name}") {
+            // Attempt to build the collection
+            out = sh script: 'ansible-galaxy collection build . --force', returnStdout: true
+            out = sh script: 'ansible-galaxy collection install ibm-* --force', returnStdout: true
+            writeFile(file: 'configuration.yml',
+                text: generateYmlConfig(TARGET_HOST, USERNAME, pypath, zopath, PREEVT))
+
+            dir('playbooks') {
+                if ( params.PlayBookText.length() > 4 ) {
+                    writeFile( file: params.PLAYBOOK, text: params.PlayBookText )
+                }
+
+                // make sure the host key checking is off
+                writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
+                // write group_vars/all.yml file containing necessary environment
+                // variables to be used with the regression testing playbook
+                dir('group_vars') {
+                    writeFile(file: 'all.yml', text: generateGroupVars(pypath, zopath, PREEVT))
+                }
+
+                // Write hosts/inventory file with host information
+                // to be used with the regression testing playbook
+                writeFile(file: 'hosts', text: generateInventory(TARGET_HOST, USERNAME, pypath + '/bin/python3'))
+
+                // Run the playbook and check for errors
+                out = sh script: 'ansible --version || true', returnStdout: true
+                echo out
+
+                out = sh script: 'ansible-playbook -i hosts ' + PLAYBOOK + ' || true', returnStdout: true
+                echo out
+                checkForAnsiblePlaybookFailure(out)
+            }
+        }
+    }
+}
+
+/* playbookTestLoop: loop through all python and zoau combos and run ati's with each  */
+playbookTestLoop = { testingImage, pytsel, zoasel ->
+    pychoices = pytsel.split(',')
+    zochoices = zoasel.split(',')
+
+    echo generateFlag( 70, 'Playbook test iterations' )
+
+    ZoTitles.each {
+        String zname = "${it}".split(':')[0]
+        String tmp = 'ZOAU ' + zname
+        String tmp2 = ''
+        String tmp3 = ''
+        tmp = tmp.padRight(26) + ': '
+        String zpath = ZoAllPaths[zname]
+        zpath
+        String ppath = ''
+
+        PythonTitles.each {
+            String pname = "${it}".split(':')[0]
+            tmp2 = 'Python ' + pname
+            tmp2 = tmp2.padRight(26) + ': '
+            ppath = PythonAllPaths[pname]
+
+            if ( checkForBadCombo( pname, zname ) == true ) {
+                echo = '>>>> skipped ' + zname + ' / ' + pname
+            }
+            else {
+                echo generateFlag( 70, 'Testing: ZO ' + zname + ' + PY ' + pname)
+                playbookTestRun( testingImage, ppath, zpath)
+            }
+        }
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                                Notification Functions                      */
+/* -------------------------------------------------------------------------- */
+
+/* slackComment: Add a comment to the slack channel (is it good, comment) */
+slackComment = { good, comment = "" ->
+    message = ''
+    color = ''
+    if (good) {
+        message = "Multpath4 Build for branch ${params.InitialBranchSelector} passed. ${comment}"
+        color = '#00b830'
+    } else {
+        message = "Multipath4 Build for branch ${params.InitialBranchSelector} FAILED! Console log: ${BUILD_URL} console. ${comment}"
+        color = '"#d83030'
+    }
+    slackSend(channel: 'ansible-zos-collections-pipeline', message: message, color: color)
+    return 0
+}
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Initialize') {
+            steps {
+                echo generateFlag( 78, 'Multi Branch test run starting')
+                script {
+                    mstr = ' Branch: ' + params.InitialBranchSelector +
+                        '\n Target: ' + params.TargetAccount +
+                        '\nAnsible:' + params.AnsibleVersions +
+                        '\n Python: ' + params.PythonSelection +
+                        '\n   ZOAU: ' + params.ZOAUSelection +
+                        '\n  Tests: ' + params.TestsToRun +
+                        '\n  RepoN: ' + "${tmp_repo_name}" +
+                        '\n  Playb: ' + params.PLAYBOOK
+
+                    if ( params.PlayBookText.length() > 4 ) {
+                        mstr = mstr + '\nCustom: Yes' +
+                        '\n Writing custom playbook to ' + params.PLAYBOOK
+
+                        writeFile( file: params.PLAYBOOK, text: params.PlayBookText )
+                    }
+                    else {
+                        mstr = mstr + '\nCustom: No'
+                    }
+                    mstr = mstr + '\n'
+                    echo mstr
+                    dir("${tmp_repo_name}") {
+                        echo 'pulling'
+                        git branch: params.InitialBranchSelector,
+                            url: 'https://github.com/ansible-collections/ibm_zos_core'
+                        out = sh script: 'mv tests/requirements.txt tests/requirements.old'
+                        out = sh script: "sed 's/2.9.6/" + AnPaths.first() +
+                            "/g' tests/requirements.old > tests/requirements.txt"
+                        out = sh script: 'cat tests/requirements.txt'
+                    //                        echo out
+                    }
+                    echo generateTestList( params.PythonSelection, params.ZOAUSelection )
+                }
+                echo '\n\n'
+            }
+        }
+        stage('Create Test Container') {
+// TODO: Need potential loop here?!
+
+            steps {
+                echo generateFlag(78, 'Create Test Container')
+                script {
+                    writeFile(file: 'Dockerfile',
+                        text: generateDockerConfig( AnPaths.first(), DOCKERFILE_CONTENTS))
+
+                    echo generateFlag(60, 'Docker File')
+                    sh 'cat Dockerfile'
+
+                    // Create YAML config file for use by pytest fixtures
+
+                    writeFile(file: './configuration.yml',
+                        text: generateYmlConfig(TARGET_HOST, USERNAME, PythonPaths.first(), ZoPaths.first(), PREEVT))
+
+                    echo generateFlag(60, 'configuration.yml')
+                    sh 'cat configuration.yml'
+                    withCredentials([string(credentialsId: 'cicd-public-key', variable: 'pubKey')]) {
+                        sh 'set +x ; echo $pubKey > pub.key'
+                    }
+
+                    withCredentials([sshUserPrivateKey(credentialsId: 'cicd-key', keyFileVariable: 'privKey')]) {
+                        sh "set +x ; cat ${privKey} > sshkey"
+                        testingImage = docker.build(docker_object_name,
+                            "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY=\'sshkey\' .")
+//                        sh 'rm sshkey'
+                    }
+                //                    sh 'chmod -R 775 .'
+                }
+            }
+        }
+        stage('Test Collection Build') {
+            steps {
+                echo generateFlag( 78, 'Test Collection Build and Install')
+                script {
+                    testingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+                        dir("${tmp_repo_name}") {
+                            out = sh script: 'ansible-galaxy collection build . --force'
+                            out = sh script: 'ansible-galaxy collection install ibm-*  --force'
+                            generateFlag(60, 'Check test area')
+                        }
+                    }
+                }
+            }
+        }
+        stage('Ansible-Test') {
+            steps {
+                echo generateFlag( 78, 'Ansible-Test Sanity')
+                script {
+                    if ( params.TestsToRun.contains('Ansible-Test') ) {
+                        echo 'running'
+                        testingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+                            dir("${tmp_repo_name}") {
+                                out = sh script: 'ansible-galaxy collection build . --force'
+                                out = sh script: 'ansible-galaxy collection install ibm-* --force -p .', returnStdout: true
+
+                                echo generateFlag(60, 'requirements')
+                                out = sh script: 'cat tests/requirements.txt', returnStdout: true
+                                echo out
+
+                                out = sh script: 'ansible --version', returnStdout: true
+                                echo out
+
+                                dir("ansible_collections/ibm/${tmp_repo_name}") {
+                                    out = sh script:'ansible-test sanity 2>&1', returnStdout: true
+                                    checkForAnsibleTestErrors(out)
+                                }
+                            }
+                        // there is an option of "ansible-test units --python 3.5, but it needs hacking/env-setup
+                        // I'm guessing that's why pytest is broken out separately
+                        }
+                    }
+                    else {
+                        echo 'skipped'
+                    }
+                }
+            }
+        }
+        stage('Bandit') {
+            steps {
+                echo generateFlag( 78, 'Bandit Security Scan')
+                script {
+                    if ( params.TestsToRun.contains('Bandit') ) {
+                        echo 'running'
+                        // Ensure workspace has clean copy of collection
+                        dir("${tmp_repo_name}") {
+                            git branch: params.InitialBranchSelector, url: 'https://github.com/ansible-collections/ibm_zos_core'
+                        }
+                        testingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+                            dir("${tmp_repo_name}/plugins") {
+                                out = sh script: 'bandit -r -ll -ii . || true', returnStdout: true
+                                checkForBanditErrors(out)
+                            }
+                        }
+                    }
+                    else {
+                        echo 'skipped'
+                    }
+                }
+            }
+        }
+        stage('Pytest') {
+            steps {
+                echo generateFlag( 78, 'Pytest run')
+                script {
+                    if ( params.TestsToRun.contains('Pytest')) {
+                        echo 'running'
+                        String workpath = ''
+                        workpath = sh script: 'pwd', returnStdout: true
+                        workpath = workpath.trim()
+
+                        dir("${tmp_repo_name}") {
+                            dir('playbooks') {
+                                writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
+                                out = sh script: 'cat ansible.cfg', returnStdout: true
+                                echo out
+
+                                //                                writeFile(file: "hosts", text: generateInventory(TARGET_HOST, USERNAME, '/usr/lpp/izoda/v110/anaconda/bin/python3.6'))
+                                writeFile(file: 'hosts', text: generateInventory(TARGET_HOST, USERNAME, PythonPaths.first() + '/bin/python3'))
+
+                                out = sh script: 'cat hosts', returnStdout: true
+                                echo out
+                            }
+                            writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PythonPaths.first(), ZoPaths.first(), PREEVT))
+                        }
+
+                        testingImage.inside("-u jenkins\
+                        -e TARGET_HOST=${TARGET_HOST}\
+                        -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${tmp_repo_name}/plugins/modules\
+                        -e ANSIBLE_ACTION_PLUGINS=${env.WORKSPACE}/${tmp_repo_name}/plugins/action\
+                        -e ANSIBLE_CONFIG=${env.WORKSPACE}/${tmp_repo_name}/playbooks/ansible.cfg\
+                        -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${tmp_repo_name}/plugins/connection\
+                        -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${tmp_repo_name}/plugins/module_utils") {
+                            dir("${tmp_repo_name}") {
+                                // Install collection so module_utils imports will be valid in modules
+                                sh script: 'ansible-galaxy collection build . --force'
+                                sh script: 'ansible-galaxy collection install ibm-* --force'
+                                dir('tests') {
+                                    def out = ''
+                                    for (int i = 0; i < 3; i++) {
+                                        out = sh script: "python3 -m pytest --ignore=functional/modules/test_module_security.py -x --durations=0 --inventory ${workpath}/${tmp_repo_name}/playbooks/hosts --host-pattern=all -Z=${workpath}/${tmp_repo_name}/configuration.yml 2>&1 || true", returnStdout: true
+                                        if (checkForConnectionErrors(out)) {
+                                            echo generateFlag( 58, 'Possible Timeout...retrying...')
+                                            sleep(20)
+                                        } else {
+                                            break
+                                        }
+                                    }
+                                    echo out
+                                    checkForPytestFails(out)
+                                }
+                            }
+                        }
+                    }
+                    else {
+                        echo 'skipped'
+                    }
+                }
+            }
+        }
+        stage('Playbook') {
+            steps {
+                echo generateFlag( 78, 'Playbook: ' + params.PLAYBOOK)
+                script {
+                    if ( params.TestsToRun.contains('Sample Playbook')) {
+                        echo 'running'
+
+                        playbookTestLoop( testingImage, params.PythonSelection, params.ZOAUSelection )
+                    }
+                    else {
+                        echo 'skipped'
+                    }
+                }
+            }
+        }
+        stage('Artifactory') {
+            steps {
+                echo generateFlag(78, 'Artifactory')
+                script {
+                    if ( params.TestsToRun.contains('Artifactory')) {
+                        echo 'run'
+
+                        // Ensure workspace has clean copy of collection
+                        dir("${tmp_repo_name}") {
+                            git branch: params.InitialBranchSelector, url: 'https://github.com/ansible-collections/ibm_zos_core'
+                        }
+                        testingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+                            dir("${tmp_repo_name}") {
+                                // Get clean copy of repo
+                                // Attempt to build the collection
+                                def out = sh script: 'ansible-galaxy collection build . --force', returnStdout: true
+                                echo out
+                                def currentDate = new Date()
+                                def currentTimeStamp = currentDate.getTime().toString()
+                                def collectionBuildName = "ibm-${tmp_repo_name}-MultiPathTest-${currentTimeStamp}.tar.gz"
+                                sh "mv ibm-${tmp_repo_name}* ${collectionBuildName}"
+
+                                def server = Artifactory.server 'taas-artifactory'
+
+                                def uploadSpec = """{
+                                "files": [
+                                    {
+                                    "pattern": "${collectionBuildName}",
+                                    "target": "sys-ims-cloudnative-team-ansible-zos-core-generic-local/"
+                                    }
+                                ]
+                                }"""
+                                server.upload spec: uploadSpec, failNoOp: true
+                                echo "Latest collection build: https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-core-generic-local/${collectionBuildName}"
+                            }
+                        }
+                    }
+                    else {
+                        echo 'skipped'
+                    }
+                }
+            }
+        }
+        stage('Notify In Slack') {
+            steps {
+                echo generateFlag(78, 'Notify In Slack')
+                script {
+                    if ( params.TestsToRun.contains('Notify In Slack')) {
+                        echo 'run'
+                        tmptxt = generateTestList( params.PythonSelection, params.ZOAUSelection ) + mstr
+                        slackComment( true, tmptxt)
+                        echo 'Note: may need new slack channel or permissions for slack to send correctly'
+                    }
+                    else {
+                        echo 'skipped'
+                    }
+                }
+            }
+        }
+    }
+    post {
+        always {
+            echo generateFlag( 78, 'Multi Branch test run completed')
+
+            script {
+                fulltmp = generateTestList( params.PythonSelection, params.ZOAUSelection )
+                echo fulltmp
+
+                if ( params.TestsToRun.contains('Archive Artifacts')) {
+                    echo generateFlag(78, 'Archive Artifacts - done in post')
+
+                    // Load variables so we can log them
+                    def currentDate = new Date()
+                    def currentDateTimeStamp = currentDate.getDateTimeString()
+                    def currentTimeStamp = currentDate.getTime().toString()
+                    def collectionBuildName = "ibm-${tmp_repo_name}-MultiPath-${currentTimeStamp}.FullResults.zip"
+
+                    // Build artifact entries
+
+                    sh script: "cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log > rawlog.txt"
+                    sh script: "cat ${JENKINS_HOME}/jobs/${JOB_NAME}/builds/${BUILD_NUMBER}/log | sed 's;ha:////[[:print:]]*AAAA[=]*;;g' > log.txt"
+
+                    sh script: "echo '\n\nFinal Result: ${currentBuild.result}' >> log.txt"
+                    sh script: "echo 'System wrapped up at ${currentDateTimeStamp}' >> log.txt"
+                    if ( "${currentBuild.result}".contains('SUCCESS')) {
+                        sh script: "echo 'Latest collection build: https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-core-generic-local/${collectionBuildName}' >> log.txt"
+
+                        sh script: "zip -ur source.zip ${tmp_repo_name}/*"
+                        archiveArtifacts artifacts: '*', followSymlinks: false, onlyIfSuccessful: true
+
+                        // Zip artifact entries into single zip
+                        sh script: 'zip -u FullResults.zip *'
+                        sh "mv FullResults.zip ${collectionBuildName}"
+
+                        def server = Artifactory.server 'taas-artifactory'
+
+                        def uploadSpec = """{
+                        "files": [
+                            {
+                            "pattern": "${collectionBuildName}",
+                            "target": "sys-ims-cloudnative-team-ansible-zos-core-generic-local/"
+                            }
+                        ]
+                        }"""
+                        server.upload spec: uploadSpec, failNoOp: true
+                        echo "Latest collection build: https://na.artifactory.swg-devops.com/artifactory/sys-ims-cloudnative-team-ansible-zos-core-generic-local/${collectionBuildName}"
+                    }
+                    else {
+                        sh script: "echo 'This build did not succeed, so it will not be core-archived' >> log.txt"
+                    }
+                }
+                def out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
+                echo out
+            }
+
+            cleanWs()
+        }
+    }
+}

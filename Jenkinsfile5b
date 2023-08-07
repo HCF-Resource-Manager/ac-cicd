@@ -18,17 +18,15 @@ properties (
         disableConcurrentBuilds(),
         parameters(
             [
-                // ? change host from string to choices once consistent environments?
+                // commenting these because they use groovy to populate picklists
                 // string(name: 'BRANCH', defaultValue: 'dev'),
                 // string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
-                booleanParam(name: 'RUN_ALL_TESTS', defaultValue: false,
-                     description: 'Specifies all test suites be run, honors the any values in SKIP_FUNCTIONAL_TESTS, disables PULL_REQUEST_BASE_BRANCH'),
+                // commentint target_host so it keeps previous value
                 // string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
                 // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
-                // credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'cicd-key', credentialType: 'SSH Username with private key' ),
                 credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
                     string(name: 'USERNAME', defaultValue: 'omvsadm'),
-                string(name: 'PYTHON_PATH', defaultValue: '/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin/python3.9', required: true),
+                string(name: 'PYTHON_PATH', defaultValue: '{PYTHONDIR}/bin/python3', required: true),
                 text(
                     name: 'ENVIRONMENT',
                     defaultValue: """\
@@ -38,15 +36,15 @@ properties (
                         _TAG_REDIR_IN: txt
                         _TAG_REDIR_OUT: txt
                         LANG: C
-                        ZOAU_HOME: "/zoau/v1.2.3"
-                        ZOAU: "/zoau/v1.2.3/bin"
-                        ZOAU_ROOT: "/zoau/v1.2.3"
-                        LIBPATH: "/zoau/v1.2.3/lib:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/lib:/lib:/usr/lib:."
-                        ZOAUTIL_DIR: "/zoau/v1.2.3"
-                        PYTHONPATH: "/zoau/v1.2.3/lib"
-                        PYTHON_HOME: "/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz"
-                        PYTHON: "/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin"
-                        PATH: "/zoau/v1.2.3/bin:/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin"
+                        ZOAU_HOME: "{ZOAUDIR}"
+                        ZOAU: "{ZOAUDIR}/bin"
+                        ZOAU_ROOT: "{ZOAUDIR}"
+                        LIBPATH: "{ZOAUDIR}/lib:{PYTHONDIR}/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "{ZOAUDIR}"
+                        PYTHONPATH: "{ZOAUDIR}/lib"
+                        PYTHON_HOME: "{PYTHONDIR}"
+                        PYTHON: "{PYTHONDIR}/bin"
+                        PATH: "{ZOAUDIR}/bin:{PYTHONDIR}/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin"
                         PYTHONSTDINENCODING: "cp1047" """.stripIndent(),
                     required: true
                     ),
@@ -71,6 +69,8 @@ properties (
                     description: 'Set the ansible.cfg options if you have others.',
                     required: true
                     ),
+                booleanParam(name: 'RUN_ALL_TESTS', defaultValue: false,
+                     description: 'Specifies all test suites be run, honors the any values in SKIP_FUNCTIONAL_TESTS, disables PULL_REQUEST_BASE_BRANCH'),
                 booleanParam(name: 'VERBOSITY', defaultValue: false,
                      description: 'Specifies additional verbosity such as python version, pip version, pip freeze, dependency tree, ansible version, build installation .'),
                 booleanParam(name: 'ANSIBLE_TEST_ONLY', defaultValue: false,
@@ -108,17 +108,64 @@ rules:
   truthy: disable
 '''
 
-// Disable this as its coming from the defaults in the options.
-//ANSIBLE_CONFIG_CONTENTS = '''#######
-//[defaults]
-//forks = 25
-//timeout = 30
-//
-//[ssh_connection]
-//pipelining = True
-//'''
 
 GITHUB_URL = 'api.github.com'
+
+/* -------------------------------------------------------------------------- */
+/*                                Data organizers                             */
+/* -------------------------------------------------------------------------- */
+
+/*
+    pypaths is the list of all known paths
+    pychoices is the list[] of selected entries (as text)
+    PythonAllPaths is a map of all possible [title]=path
+    PythonPaths is a list[] of paths as selected
+    PythonTitles is a list of titles selected
+*/
+
+File file = new File('/var/lib/jenkins/multipath-data/alt-pythonlist.txt')
+pylist = file.readLines()
+PythonAllPaths = [:]
+PythonPaths = []
+PythonTitles = []
+
+pylist.each {
+    (title,path) = "${it}".trim().split(',')
+    rtitle = title.split(':')[0]
+    PythonAllPaths[rtitle] = path
+}
+
+pychoices = params.PYTHON_PICKER.split(',')
+pychoices.each {
+    PythonPaths << PythonAllPaths["${it}"]
+    PythonTitles << "${it}"
+}
+
+/*
+    zopaths is the list of all known paths
+    zochoices is the list[] of selected entries (as text)
+    ZoAllPaths is a map of [title]=>path
+    ZoPaths is a list[] of paths as selected
+    ZoTitles is a list of titles selected
+*/
+
+File file2 = new File('/var/lib/jenkins/multipath-data/alt-zoaulist.txt')
+zopaths = file2.readLines()
+ZoAllPaths = [:]
+ZoTitles = []
+ZoPaths = []
+
+zopaths.each {
+    (title,path) = "${it}".trim().split(',')
+    rtitle = title.split(':')[0]
+    ZoAllPaths[rtitle] = path
+}
+
+zochoices = params.ZOAU_PICKER.split(',')
+zochoices.each {
+    ZoPaths << ZoAllPaths["${it}"]
+    ZoTitles << "${it}"
+}
 
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
@@ -129,6 +176,7 @@ GITHUB_URL = 'api.github.com'
 // is consumed by functional testing pytest fixtures
 def generateYmlConfig = { hostName, username, pythonPath, environment ->
     def indent = '    '
+    def localenv = environment.replaceAll("{PYTHONDIR}",PythonPaths[0]).replaceAll("{ZOAUDIR}",ZoPaths[0])
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     return """host: ${hostName}
 user: ${username}

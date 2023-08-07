@@ -1,0 +1,13 @@
+Zoau 1.0,/zoau/v1.0.0-ga
+Zoau 1.0.1,/zoau/v1.0.1-ga
+Zoau 1.0.2,/zoau/v1.0.2-ga
+Zoau 1.0.3-ga5,/zoau/v1.0.3-ga5
+Zoau 1.0.3-p2,/zoau/v1.0.3-ptf2
+Zoau 1.1.0,/zoau/v1.1.0-ga
+Zoau 1.1.1-p1,/zoau/v1.1.1-ptf1
+Zoau 1.2.0,/zoau/v1.2.0
+Zoau 1.2.1,/zoau/v1.2.1
+Zoau 1.2.2,/zoau/v1.2.2
+Zoau 1.2.3:selected,/zoau/v1.2.3
+Zoau 1.2.4.0,/zoau/v1.2.4
+Zoau Latest,/zoau/latest
