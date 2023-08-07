@@ -175,7 +175,7 @@ MyEnvironment3 = "${params.ENVIRONMENT}"
 MyEnvironment2 = MyEnvironment3.replaceAll("ZOAUDIR", ZoPaths[0])
 MyEnvironment = MyEnvironment2.replaceAll("PYTHONDIR", PythonPaths[0])
 
-echo "\r\n\r\n------MPP: " + MyPythonPath + \r\n\r\n-------M3: " + MyEnvironment3 + "\r\n\r\n------M2: " + MyEnvironment2 + "\r\n\r\n------M: " + MyEnvironment + "\r\n"
+echo "\r\n\r\n------MPP: " + MyPythonPath + "\r\n\r\n-------M3: " + MyEnvironment3 + "\r\n\r\n------M2: " + MyEnvironment2 + "\r\n\r\n------M: " + MyEnvironment + "\r\n"
 
 
 /* -------------------------------------------------------------------------- */
