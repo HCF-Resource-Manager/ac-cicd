@@ -549,6 +549,8 @@ node('master') {
     stage('Checkout') {
         echo '------------------------ checkout start -------------------------------'
         checkout()
+        echo '--- My python path: ' + MyPythonPath + ' ------------------------------'
+        echo '--- target: ' + "${params.TARGET_HOST}" + ' ------------------------------'
         echo '------------------------ script start   -------------------------------'
         script {
             python_ver = MyPythonPath   // "${params.PYTHON_PATH}"
