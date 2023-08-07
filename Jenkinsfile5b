@@ -170,8 +170,8 @@ zochoices.each {
 }
 
 // HERE
-PYTHON_PATH = PYTHON_PATH.replaceAll("[ZOAUDIR]", ZoPaths)
-ENVIRONMENT = ENVIRONMENT.replaceAll("[ZOAUDIR]", ZoPaths).replaceAll("[PYTHONDIR]", PythonPaths)
+MyPythonPath = String("${params.PYTHON_PATH}").replaceAll("[ZOAUDIR]", ZoPaths)
+MyEnvironment = String("${params.ENVIRONMENT}").replaceAll("[ZOAUDIR]", ZoPaths).replaceAll("[PYTHONDIR]", PythonPaths)
 
 
 /* -------------------------------------------------------------------------- */
@@ -549,7 +549,7 @@ node('master') {
     stage('Checkout') {
         checkout()
         script {
-            python_ver = "${params.PYTHON_PATH}"
+            python_ver = MyPythonPath   // "${params.PYTHON_PATH}"
             python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
             target_pre = "${params.TARGET_HOST}"
             target_pre = target_pre.substring(0,9)
@@ -593,7 +593,7 @@ node('master') {
          *                  Create YAML config file for use by pytest fixtures
          * ----------------------------------------------------------------------------
         */
-        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
         sh "cat ${REPO}/configuration.yml"
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
@@ -732,7 +732,7 @@ node('master') {
                 dir('playbooks') {
                     writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                 }
-                writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+                writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
             }
 
             ansibleTestingImage.inside("-u jenkins\
@@ -748,7 +748,7 @@ node('master') {
                     dir('playbooks') {
                         writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                     }
-                    writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+                    writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
                     echo "configuration.yml is here: "
                     sh script: "pwd"
                     sh "cat configuration.yml"
