@@ -537,7 +537,9 @@ COPY ${REPO} ./${REPO}/
 /* -------------------------------------------------------------------------- */
 
 // docker_object_name = "ansible-test-image:${env.BUILD_ID}"
-docker_object_name="ati-${env.JOB_BASE_NAME}-${env.BUILD_ID}"
+// docker_object_name="ati-${env.JOB_BASE_NAME}-${env.BUILD_ID}"
+jobset = "${env.JOB_BASE_NAME}".toLowerCase()
+docker_object_name = "ati-" + jobset.substring(jobset.length()-8) + "${env.BUILD_ID}"
 
 /* -------------------------------------------------------------------------- */
 /*                           Stages                                           */
@@ -547,11 +549,7 @@ node('master') {
     currentBuild.result = 'SUCCESS'
 
     stage('Checkout') {
-        echo '------------------------ checkout start -------------------------------'
         checkout()
-        echo '--- My python path: ' + MyPythonPath + ' ------------------------------'
-        echo '--- target: ' + "${params.TARGET_HOST}" + ' ------------------------------'
-        echo '------------------------ script start   -------------------------------'
         script {
             python_ver = MyPythonPath   // "${params.PYTHON_PATH}"
             python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
@@ -605,7 +603,6 @@ node('master') {
             ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
             sh 'rm sshkey'
         }
-        exit(0)
         //  sh 'chmod -R 777 .' <<-- for a test
     }
     stage ('Build Collection and Install') {
