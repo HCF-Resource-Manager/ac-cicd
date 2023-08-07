@@ -547,7 +547,9 @@ node('master') {
     currentBuild.result = 'SUCCESS'
 
     stage('Checkout') {
+        echo '------------------------ checkout start -------------------------------'
         checkout()
+        echo '------------------------ script start   -------------------------------'
         script {
             python_ver = MyPythonPath   // "${params.PYTHON_PATH}"
             python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
@@ -561,6 +563,7 @@ node('master') {
         }
     }
     stage('Build Docker Image') {
+        echo '------------------------ build image start -------------------------------'
 
         /* ----------------------------------------------------------------------------
          *            Logically select and concat vars to create docker file
