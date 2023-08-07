@@ -589,11 +589,13 @@ node('master') {
          * ----------------------------------------------------------------------------
         */
         writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, PYTHON_PATH, ENVIRONMENT))
+        sh 'cat "${REPO}/configuration.yml'
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
             ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
             sh 'rm sshkey'
         }
+        exit(0)
         //  sh 'chmod -R 777 .' <<-- for a test
     }
     stage ('Build Collection and Install') {
