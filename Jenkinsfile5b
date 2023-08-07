@@ -170,8 +170,8 @@ zochoices.each {
 }
 
 // HERE
-MyPythonPath = "${params.PYTHON_PATH}".replaceAll("[ZOAUDIR]", ZoPaths)
-MyEnvironment = "${params.ENVIRONMENT}".replaceAll("[ZOAUDIR]", ZoPaths).replaceAll("[PYTHONDIR]", PythonPaths)
+MyPythonPath = "${params.PYTHON_PATH}".replaceAll("[ZOAUDIR]", ZoPaths[0])
+MyEnvironment = "${params.ENVIRONMENT}".replaceAll("[ZOAUDIR]", ZoPaths[0]).replaceAll("[PYTHONDIR]", PythonPaths[0])
 
 
 /* -------------------------------------------------------------------------- */
