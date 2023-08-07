@@ -171,7 +171,11 @@ zochoices.each {
 
 // HERE
 MyPythonPath = "${params.PYTHON_PATH}".replaceAll("[ZOAUDIR]", ZoPaths[0])
-MyEnvironment = "${params.ENVIRONMENT}".replaceAll("[ZOAUDIR]", ZoPaths[0]).replaceAll("[PYTHONDIR]", PythonPaths[0])
+MyEnvironment3 = "${params.ENVIRONMENT}"
+MyEnvironment2 = MyEnvironment3.replaceAll("[ZOAUDIR]", ZoPaths[0])
+MyEnvironment = MyEnvironment2.replaceAll("[PYTHONDIR]", PythonPaths[0])
+
+echo "\r\n\r\n-------M3: " + MyEnvironment3 + "\r\n\r\n------M2: " + MyEnvironment2 + "\r\n\r\n------M: " + MyEnvironment + "\r\n"
 
 
 /* -------------------------------------------------------------------------- */
@@ -539,7 +543,7 @@ COPY ${REPO} ./${REPO}/
 // docker_object_name = "ansible-test-image:${env.BUILD_ID}"
 // docker_object_name="ati-${env.JOB_BASE_NAME}-${env.BUILD_ID}"
 jobset = "${env.JOB_BASE_NAME}".toLowerCase()
-docker_object_name = "ati-" + jobset.substring(jobset.length()-8) + "${env.BUILD_ID}"
+docker_object_name = "ati-" + jobset.substring(jobset.length()-8) + "-${env.BUILD_ID}"
 
 /* -------------------------------------------------------------------------- */
 /*                           Stages                                           */
