@@ -237,11 +237,12 @@ def checkForYamlLintErrors(output) {
 
 // Determine if any Ansible playbook formatting errors
 // expects ansible-lint output formatting using default rules
-def checkForAnsibleLintErrors(output) {
+// commented to try new routine mirrored from cfATestErrors
+/* def checkForAnsibleLintErrors(output) {
     if (Pattern.compile(/^[1-9][0-9]{2,}\s/, Pattern.MULTILINE).matcher(output).find()) {
         throw new Exception("ansible-lint detected errors! \n ${output}")
     }
-}
+}*/
 
 // Determine if any tasks failed in a playbook
 // expects output of ansible-playbook
@@ -281,7 +282,7 @@ def checkForAnsibleTestErrors(output) {
 // expects output of ansible-lint
 def checkForAnsibleLintErrors(output) {
     if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
-        error('ansible-test encountered an internal error!')
+        error('ansible-lint encountered an internal error!')
     }
     def header = "==============================================================================\n"
     def errorString = ''
@@ -736,7 +737,7 @@ node('master') {
                             echo out
                             echo '--------------------------------------------------------------------------'
                         }
-
+                        checkForAnsibleLintErrors(out)
                     }
                 }
             }
