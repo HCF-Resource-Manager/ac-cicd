@@ -273,7 +273,24 @@ def checkForAnsibleTestErrors(output) {
         errorString = errorString + errors.group(1) + '\n'
     }
     if (errorString != '') {
-        error(header + "ERROR: ansible-test detected errors\n ${errorString}" + header + "\n" + header + "Full output: ${output}\n"+ header)
+        error(header + "\n---------ERROR: ansible-test detected errors\n ${errorString}" + header + "\n\n" + header + "Full output: ${output}\n"+ header)
+    }
+}
+
+// Determine if ansible-lint raised any errors
+// expects output of ansible-lint
+def checkForAnsibleLintErrors(output) {
+    if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
+        error('ansible-test encountered an internal error!')
+    }
+    def header = "==============================================================================\n"
+    def errorString = ''
+    def errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
+    while (errors.find()) {
+        errorString = errorString + errors.group(1) + '\n'
+    }
+    if (errorString != '') {
+        error(header + "\n---------ERROR: ansible-lint detected errors\n ${errorString}" + header + "\n\n" + header + "Full output: ${output}\n"+ header)
     }
 }
 
@@ -705,12 +722,22 @@ node('master') {
 
                     out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
 
-                    if (VERBOSITY.toBoolean()){
+                    if (VERBOSITY.toBoolean()) {
                         echo '----------------------------- Sanity output ------------------------------'
                         echo out
                         echo '--------------------------------------------------------------------------'
                     }
                     checkForAnsibleTestErrors(out)
+
+                    if (RUN_ANSIBLE_LINT.toBoolean()) {
+                        out = sh (script: 'ansible-lint 2>&1 || true', returnStdout: true)
+                        if (VERBOSITY.toBoolean()) {
+                            echo '-------------------------- Ansible lint output ---------------------------'
+                            echo out
+                            echo '--------------------------------------------------------------------------'
+                        }
+
+                    }
                 }
             }
         }
@@ -731,7 +758,6 @@ node('master') {
             // then run our testcases in the image
             checkout()
             // write our own ansible.cfg to ensure correctness
-            // ***** ERROR?!?!  This is on build box, so docker can't see these?!?!
             dir("${REPO}") {
                 dir('playbooks') {
                     writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
