@@ -733,7 +733,7 @@ node('master') {
                     if (RUN_ANSIBLE_LINT.toBoolean()) {
                         inout = sh (script: 'pip3 install ansible-lint || true', returnStdout: true)
 
-                        out = sh (script: 'ansible-lint 2>&1 || true', returnStdout: true)
+                        out = sh (script: 'ansible-lint --profile production -c .ansible-lint 2>&1 || true', returnStdout: true)
                         if (VERBOSITY.toBoolean()) {
                             echo '-------------------------- Ansible lint output ---------------------------'
                             echo 'install: ' + inout
