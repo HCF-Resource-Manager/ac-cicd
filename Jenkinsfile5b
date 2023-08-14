@@ -291,9 +291,9 @@ def checkForAnsibleLintErrors(output) {
         errorString = errorString + errors.group(1) + '\n'
     }
 
-    def errors = Pattern.compile(/.*(Failed:\s.+)/).matcher(output)
-    while (errors.find()) {
-        errorString = errorString + errors.group(1) + '\n'
+    def fails = Pattern.compile(/.*(Failed:\s.+)/).matcher(output)
+    while (fails.find()) {
+        errorString = errorString + fails.group(1) + '\n'
     }
 
     if (errorString != '') {
