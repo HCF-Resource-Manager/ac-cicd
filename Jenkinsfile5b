@@ -575,18 +575,19 @@ node('master') {
     currentBuild.result = 'SUCCESS'
 
     stage('Checkout') {
-        echo "\n-------------------- Starting pipeline -------------------\n" +
-        "Target: " + env.TARGET_HOST + "\n" +
-        "Python: " + PythonTitles[0] + "\n" +
-        "zoau: " + ZoTitles[0] + "\n" +
-        "Ansible: " + params.ANSIBLE_VERSION + "\n" +
-        "Branch: " + env.BRANCH + "\n" +
-        "Base Br: " + PULL_REQUEST_BASE_BRANCH + "\n" +
-        "All tests: " + RUN_ALL_TESTS.toBoolean() + "\n" +
-        "Verbosity: " + VERBOSITY.toBoolean() + "\n" +
-        "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean() + "\n" +
-        "Ansible Lint: " + RUN_ANSIBLE_LINT.toBoolean() + "\n" +
-        "Bandit Sev: " + BANDIT_SEVERITY + "\n\n"
+        echo "\n-------------------- Starting pipeline -------------------"
+        echo "Target: " + TARGET_HOST
+        echo "Python: " + PythonTitles[0]
+        echo "zoau ver: " + ZoTitles[0]
+        echo "Ansible: " + ANSIBLE_VERSION
+        echo "Branch: " + BRANCH
+        echo "Base Branch: " + PULL_REQUEST_BASE_BRANCH
+        echo "Run All tests: " + RUN_ALL_TESTS.toBoolean()
+        echo "Verbosity: " + VERBOSITY.toBoolean()
+        echo "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean()
+        echo "Ansible-Lint: " + RUN_ANSIBLE_LINT.toBoolean()
+        echo "Bandit Sev: " + BANDIT_SEVERITY
+        echo "\n----------------------------------------------------------"
 
         checkout()
         script {
@@ -772,7 +773,7 @@ node('master') {
             echo "\nBANDIT SCAN: Low / all\n"
             sev = "l"
         }
-        if (env.BANDIT_SEVERITY == "medium") {
+        else if (env.BANDIT_SEVERITY == "medium") {
             echo "\nBANDIT SCAN: Medium and above\n"
             sev = "ll"
         }
