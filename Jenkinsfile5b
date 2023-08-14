@@ -754,11 +754,17 @@ node('master') {
         }
     }
     stage('Bandit Security Scan') {
+        def sev = "lll"
+        if (env.BANDIT_SEVERITY == "low") {
+            sev = "l"
+        }
+        if (env.BANDIT_SEVERITY == "medium") {
+            sev = "ll"
+        }
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}/plugins") {
-                // keeping copy of prior bandit call - didn't make a difference
-                //out = sh script: 'bandit -v -r -ll -ii . || true', returnStdout: true
-                out = sh script: 'python3 -u -m bandit -v -r -ll -ii .', returnStdout: true
+                // out = sh script: 'python3 -u -m bandit -v -r -ll -ii .', returnStdout: true
+                out = sh script: 'python3 -u -m bandit -v -r -' + sev + ' -ii .', returnStdout: true
                 checkForBanditErrors(out)
             }
         }
