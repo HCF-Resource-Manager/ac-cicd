@@ -575,6 +575,19 @@ node('master') {
     currentBuild.result = 'SUCCESS'
 
     stage('Checkout') {
+        echo "\n-------------------- Starting pipeline -------------------\n" +
+        "Target: " + env.TARGET_HOST + "\n" +
+        "Python: " + PythonTitles[0] + "\n" +
+        "zoau: " + ZoTitles[0] + "\n" +
+        "Ansible: " + params.ANSIBLE_VERSION + "\n" +
+        "Branch: " + env.BRANCH + "\n" +
+        "Base Br: " + PULL_REQUEST_BASE_BRANCH + "\n" +
+        "All tests: " + RUN_ALL_TESTS.toBoolean() + "\n" +
+        "Verbosity: " + VERBOSITY.toBoolean() + "\n" +
+        "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean() + "\n" +
+        "Ansible Lint: " + RUN_ANSIBLE_LINT.toBoolean() + "\n" +
+        "Bandit Sev: " + BANDIT_SEVERITY + "\n\n"
+
         checkout()
         script {
             python_ver = MyPythonPath   // "${params.PYTHON_PATH}"
@@ -756,11 +769,17 @@ node('master') {
     stage('Bandit Security Scan') {
         def sev = "lll"
         if (env.BANDIT_SEVERITY == "low") {
+            echo "\nBANDIT SCAN: Low / all\n"
             sev = "l"
         }
         if (env.BANDIT_SEVERITY == "medium") {
+            echo "\nBANDIT SCAN: Medium and above\n"
             sev = "ll"
         }
+        else {
+            echo "\nBANDIT SCAN: High only\n"
+        }
+
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
             dir("${REPO}/plugins") {
                 // out = sh script: 'python3 -u -m bandit -v -r -ll -ii .', returnStdout: true
