@@ -267,7 +267,7 @@ def checkForAnsibleTestErrors(output) {
     if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
         error('ansible-test encountered an internal error!')
     }
-    def header = "==============================================================================\n"
+    def header = "Ans Test ==============================================================================\n"
     def errorString = ''
     def errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
     while (errors.find()) {
@@ -284,12 +284,18 @@ def checkForAnsibleLintErrors(output) {
     if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
         error('ansible-lint encountered an internal error!')
     }
-    def header = "==============================================================================\n"
+    def header = "Ans Lint ==============================================================================\n"
     def errorString = ''
     def errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
     while (errors.find()) {
         errorString = errorString + errors.group(1) + '\n'
     }
+
+    def errors = Pattern.compile(/.*(Failed:\s.+)/).matcher(output)
+    while (errors.find()) {
+        errorString = errorString + errors.group(1) + '\n'
+    }
+
     if (errorString != '') {
         error(header + "\n---------ERROR: ansible-lint detected errors\n ${errorString}" + header + "\n\n" + header + "Full output: ${output}\n"+ header)
     }
@@ -733,13 +739,13 @@ node('master') {
                     if (RUN_ANSIBLE_LINT.toBoolean()) {
                         inout = sh (script: 'pip3 install ansible-lint || true', returnStdout: true)
 
-                        out = sh (script: 'ansible-lint --profile production -c ./ansible-lint 2>&1 || true', returnStdout: true)
+                        out = sh (script: 'ansible-lint --profile production -c .ansible-lint 2>&1 || true', returnStdout: true)
                         if (VERBOSITY.toBoolean()) {
-                            echo '-------------------------- Ansible lint output ---------------------------'
+                            echo '\n-------------------------- Ansible lint output ---------------------------'
                             echo 'install: ' + inout
-                            echo '-----------'
-                            echo out
-                            echo '--------------------------------------------------------------------------'
+                            echo '\n-----------'
+                            echo 'output: ' + out
+                            echo '\n--------------------------------------------------------------------------'
                         }
                         checkForAnsibleLintErrors(out)
                     }
