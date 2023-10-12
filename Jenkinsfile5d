@@ -556,8 +556,7 @@ python-pip \
 bandit \
 pipdeptree \
 pip install ansible-base \
-pip3 install --force 'ansible==${ANSIBLE_VERSION}'
-
+ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
