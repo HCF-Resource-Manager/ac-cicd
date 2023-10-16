@@ -557,7 +557,8 @@ bandit \
 pipdeptree \
 pip install ansible \
 pip install ansible-base \
-ansible-core==${ANSIBLE_VERSION}
+ansible-core==${ANSIBLE_VERSION} \
+ansible-galaxy collection install ansible.builtin
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
