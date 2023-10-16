@@ -555,6 +555,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
+python -m pip install --upgrade pip \
 pip install --force 'ansible-base==2.10.12rc1'\
 ansible-core==${ANSIBLE_VERSION} \
 
