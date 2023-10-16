@@ -555,10 +555,8 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-pip install ansible \
-pip install ansible-base \
+pip install --force 'ansible-base==2.10.17'\
 ansible-core==${ANSIBLE_VERSION} \
-ansible-galaxy collection install ansible.builtin
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
