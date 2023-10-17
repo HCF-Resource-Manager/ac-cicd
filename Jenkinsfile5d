@@ -555,7 +555,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
---force ansible-base \
+ansible-base== 2.10.16\
 ansible-core==${ANSIBLE_VERSION} \
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
