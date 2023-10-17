@@ -541,7 +541,7 @@ COPY ${REPO} ./${REPO}/
  * 'DOCKERFILE_CONTENTS_2_DOT_15' supports ansible-core versiuons
  * '2.15.2'.
 */
-DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_10 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
 && apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -550,7 +550,6 @@ git \
 python3-pip \
 openssh-client \
 python2.7 \
-python3.11 \
 python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
