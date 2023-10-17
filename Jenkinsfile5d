@@ -550,6 +550,7 @@ git \
 python3-pip \
 openssh-client \
 python2.7 \
+python3.11 \  
 python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
