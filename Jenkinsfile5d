@@ -612,6 +612,7 @@ userpath==1.9.1 \
 Werkzeug==2.3.6 \
 wrapt==1.15.0 \
 WTForms==3.0.1
+RUN pip install ansible-base
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
