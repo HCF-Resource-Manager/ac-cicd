@@ -561,6 +561,7 @@ bandit \
 pipdeptree \
 ansible-core==${ANSIBLE_VERSION} \
 ansible \
+ansible-base
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
