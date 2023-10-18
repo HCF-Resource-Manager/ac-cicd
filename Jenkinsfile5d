@@ -862,7 +862,8 @@ node('master') {
                     // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
                     sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
                     // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
-                    sh script: "xcopy /home/jenkins/.ansible/collections/ansible_collections/ibm/ /usr/local/lib/python3.11/site-packages/ansible_collections/ibm/"
+                    sh script: "cd /usr/local/lib/python3.11/site-packages/ansible_collections/ibm"
+                    sh script: "mkdir ibm_zos_core"
 
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
