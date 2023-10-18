@@ -561,7 +561,6 @@ bandit \
 pipdeptree \
 ansible-core==${ANSIBLE_VERSION} \
 ansible \
-pytest-ansible
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
