@@ -855,9 +855,7 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    sh script: 'virtualenv venv'
-                    sh script: 'virtualenv venv --system-site-packages'
-                    sh script: 'source venv/bin/activate'
+                    sh script: 'virtualenv venv && virtualenv venv --system-site-packages && cd venv && source bin/activate'
                     sh script: "pip install ansible-core==${ANSIBLE_VERSION}"
                     sh script: 'pip3 install oyaml pytest-ansible pytest shellescape pytest_mock mock pycodestyle'
 
