@@ -856,8 +856,8 @@ node('master') {
                     sh script: 'pip3 install oyaml pytest-ansible pytest shellescape pytest_mock mock pycodestyle'
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
-                    sh script: "su cd /usr/local/lib/python3.11/site-packages/ansible_collections/ibm"
-                    sh script: "su mkdir ibm_zos_ansible"
+                    sh script: "sudo cd /usr/local/lib/python3.11/site-packages/ansible_collections/ibm"
+                    sh script: "sudo mkdir ibm_zos_ansible"
                     sh script: 'ansible-galaxy collection build . --force'
                     // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
                     sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
