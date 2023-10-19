@@ -559,9 +559,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-ansible-core==${ANSIBLE_VERSION} \
-ansible \
-ansible-collections
+ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -864,6 +862,7 @@ node('master') {
                     sh script: 'ansible-galaxy collection build . --force'
                     // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
                     sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                    sh script: "ansible-galaxy collection install ansible.builtin"
 
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
