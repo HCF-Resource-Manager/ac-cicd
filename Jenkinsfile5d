@@ -561,8 +561,8 @@ bandit \
 pipdeptree \
 ansible-core==${ANSIBLE_VERSION} \
 virtualenv
-RUN mkdir ansible \
-cd ansible \
+RUN mkdir ansible_2_1516 \
+cd ansible_2_1516 \
 virtualenv venv \
 source venv/bin/activate
 
