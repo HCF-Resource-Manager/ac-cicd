@@ -559,8 +559,10 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-ansible-core==${ANSIBLE_VERSION} \
-virtualenv
+virtualenv \
+RUN virtualenv -p python3.11 virtual
+RUN /bin/bash -c "source /virtual/bin/activate" \
+pip install ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -855,8 +857,6 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    sh script: 'virtualenv venv && virtualenv venv --system-site-packages && cd venv && source bin/activate'
-                    sh script: "pip install ansible-core==${ANSIBLE_VERSION}"
                     sh script: 'pip3 install oyaml pytest-ansible pytest shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
