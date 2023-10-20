@@ -560,7 +560,7 @@ python-pip \
 bandit \
 pipdeptree \
 virtualenv \
-RUN virtualenv -p python3 virtual
+RUN virtualenv -p python virtual
 RUN /bin/bash -c "source /virtual/bin/activate" \
 pip install ansible-core==${ANSIBLE_VERSION}
 
