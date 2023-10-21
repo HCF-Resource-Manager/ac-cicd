@@ -559,7 +559,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-virtualenv \
+virtualenv
 RUN virtualenv -p python virtual
 RUN /bin/bash -c "source /virtual/bin/activate" \
 pip install ansible-core==${ANSIBLE_VERSION}
