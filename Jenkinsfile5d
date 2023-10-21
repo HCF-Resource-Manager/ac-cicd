@@ -559,10 +559,10 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-virtualenv
-RUN virtualenv -p python virtual
+virtualenv;
+RUN virtualenv -p python virtual;
 RUN /bin/bash -c "source /virtual/bin/activate" \
-pip install ansible-core==${ANSIBLE_VERSION}
+pip install ansible-core==${ANSIBLE_VERSION};
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
