@@ -560,9 +560,9 @@ python-pip \
 bandit \
 pipdeptree \
 virtualenv
-RUN virtualenv -p python virtual
-RUN /bin/bash -c "source /virtual/bin/activate"
-RUN pip install ansible-core==${ANSIBLE_VERSION}
+virtualenv -p python virtual
+/bin/bash -c "source /virtual/bin/activate"
+pip install ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
