@@ -564,7 +564,7 @@ virtualenv;
 # --------------------------- Set up virtual enviroment Stage 2 ------------------- #
 RUN virtualenv -p python3.11 virtual;
 # --------------------------- Set up virtual enviroment Stage 3 ------------------- #
-RUN /bin/bash -c "source /virtual/bin/activate";
+RUN source /virtual/bin/activate;
 # --------------------------- Set up virtual enviroment Stage 4 ------------------- #
 RUN pip install ansible-core==${ANSIBLE_VERSION}
 
