@@ -563,12 +563,9 @@ virtualenv;
 # --------------------------- Set up virtual enviroment Stage 2 ------------------- #
 RUN python3 -m venv /opt/venv;
 # --------------------------- Set up virtual enviroment Stage 3 ------------------- #
-RUN virtualenv venv --system-site-packages
-# --------------------------- Set up virtual enviroment Stage 4 ------------------- #
 RUN . /opt/venv/bin/activate
-# --------------------------- Set up virtual enviroment Stage 45------------------- #
-RUN pip install ansible-core==${ANSIBLE_VERSION} \
-&& pip install ansible
+# --------------------------- Set up virtual enviroment Stage 4------------------- #
+RUN pip install ansible-core==${ANSIBLE_VERSION} 
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -870,7 +867,6 @@ node('master') {
                     sh script: 'ansible-galaxy collection build . --force'
                     // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
                     sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
-                    sh script: "ansible-galaxy collection install ansible.builtin --force"
 
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
