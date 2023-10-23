@@ -560,14 +560,16 @@ python-pip \
 bandit \
 pipdeptree \
 virtualenv;
-# --------------------------- Set up virtual enviroment Stage 2 ------------------- #
+# --------------------------- Set up virtual enviroment Stage 1 ------------------- #
 RUN python3 -m venv /opt/venv;
-# --------------------------- Set up virtual enviroment Stage 3 ------------------- #
+# --------------------------- Set up virtual enviroment Stage 2 ------------------- #
 RUN . /opt/venv/bin/activate
-# --------------------------- Set up virtual enviroment Stage 4------------------- #
+# --------------------------- Set up virtual enviroment Stage 3------------------- #
 RUN pip3 install ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-core==${ANSIBLE_VERSION} \
-ansible 
+ansible \
+pytest-ansible \
+pytest
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -862,7 +864,7 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    sh script: 'pip3 install oyaml pytest-ansible pytest shellescape pytest_mock mock pycodestyle'
+                    // sh script: 'pip3 install oyaml  shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
