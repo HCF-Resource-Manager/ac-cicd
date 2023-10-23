@@ -569,7 +569,11 @@ RUN pip3 install ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-core==${ANSIBLE_VERSION} \
 ansible \
 pytest-ansible \
-pytest
+oyaml \
+pytest \
+shellescape \
+pytest_mock \
+mock pycodestyle
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
