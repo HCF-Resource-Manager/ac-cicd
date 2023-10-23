@@ -559,7 +559,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-python3.11-venv \
+python-venv \
 virtualenv;
 # --------------------------- Set up virtual enviroment Stage 2 ------------------- #
 RUN virtualenv -p python3 virtual;
