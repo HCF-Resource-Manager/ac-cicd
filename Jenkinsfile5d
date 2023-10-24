@@ -563,9 +563,8 @@ virtualenv;
 # --------------------------- Set up virtual enviroment Stage 1 ------------------- #
 RUN python3 -m venv /opt/venv;
 # --------------------------- Set up virtual enviroment Stage 2 ------------------- #
-RUN . /opt/venv/bin/activate
-# --------------------------- Set up virtual enviroment Stage 3------------------- #
-RUN pip3 install ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+RUN . /opt/venv/bin/activate \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-core==${ANSIBLE_VERSION} \
 ansible \
 pytest-ansible \
