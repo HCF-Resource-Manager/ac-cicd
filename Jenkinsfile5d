@@ -731,7 +731,7 @@ node('master') {
                     echo '--------------------------------------------------------------------------'
 
                     echo '------------------- ansible-core version output -------------------------'
-                    out = sh (script: 'ansible --version', returnStdout: true)
+                    out = sh (script: '. /opt/venv/bin/activate && ansible --version', returnStdout: true)
                     echo out
                     echo '-------------------------------------------------------------------------'
 
@@ -780,7 +780,7 @@ node('master') {
             dir("${REPO}") {
                 dir("ansible_collections/ibm/${REPO}") {
 
-                    out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
+                    out = sh (script: '. /opt/venv/bin/activate && ansible-test sanity 2>&1 || true', returnStdout: true)
 
                     if (VERBOSITY.toBoolean()) {
                         echo '----------------------------- Sanity output ------------------------------'
@@ -790,9 +790,9 @@ node('master') {
                     checkForAnsibleTestErrors(out)
 
                     if (RUN_ANSIBLE_LINT.toBoolean()) {
-                        inout = sh (script: 'pip3 install ansible-lint || true', returnStdout: true)
+                        inout = sh (script: '. /opt/venv/bin/activate && pip3 install ansible-lint || true', returnStdout: true)
 
-                        out = sh (script: 'ansible-lint --profile production -c .ansible-lint 2>&1 || true', returnStdout: true)
+                        out = sh (script: '. /opt/venv/bin/activate && ansible-lint --profile production -c .ansible-lint 2>&1 || true', returnStdout: true)
                         if (VERBOSITY.toBoolean()) {
                             echo '\n-------------------------- Ansible lint output ---------------------------'
                             echo 'install: ' + inout
@@ -861,13 +861,13 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    sh script: 'pip3 install oyaml pytest-ansible pytest pycodestyle shellescape pytest_mock mock pycodestyle'
+                    sh script: '. /opt/venv/bin/activate && pip3 install oyaml pytest-ansible pytest pycodestyle shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
-                    sh script: 'ansible-galaxy collection build . --force'
+                    sh script: '. /opt/venv/bin/activate && ansible-galaxy collection build . --force'
                     // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
-                    sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                    sh script: ". /opt/venv/bin/activate && ansible-galaxy collection install ibm-${REPO}* --force"
 
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
@@ -906,12 +906,12 @@ node('master') {
 
                         if (RUN_ALL_TESTS.toBoolean()){
                             echo '--------------------------- Tests Found ---------------------------------'
-                            tests = sh (script: "./dependencyfinder.py -p .. -a -s \"${skip_tests}\" || true", returnStdout: true)
+                            tests = sh (script: ". /opt/venv/bin/activate && ./dependencyfinder.py -p .. -a -s \"${skip_tests}\" || true", returnStdout: true)
                             echo tests
                             echo '-------------------------------------------------------------------------'
                         }else{
                             echo '--------------------------- Tests Found ---------------------------------'
-                            tests = sh (script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s \"${skip_tests}\" -m || true", returnStdout: true)
+                            tests = sh (script: ". /opt/venv/bin/activate && ./dependencyfinder.py -p .. -b ${branchToCompare} -s \"${skip_tests}\" -m || true", returnStdout: true)
                             echo tests
                             echo '-------------------------------------------------------------------------'
                         }
@@ -920,29 +920,29 @@ node('master') {
                             // temporary output to show configuration
                             def out = ''
                             if (VERBOSITY.toBoolean()){
-                                out = sh (script: "set | grep -i ansib || true", returnStdout: true)
+                                out = sh (script: ". /opt/venv/bin/activate && set | grep -i ansib || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "ansible-config dump 2>&1 || true", returnStdout: true)
+                                out = sh (script: ". /opt/venv/bin/activate && ansible-config dump 2>&1 || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "ansible-galaxy --version 2>&1 || true", returnStdout: true)
+                                out = sh (script: ". /opt/venv/bin/activate && ansible-galaxy --version 2>&1 || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "ansible-galaxy collection list -v 2>&1 || true", returnStdout: true)
+                                out = sh (script: ". /opt/venv/bin/activate && ansible-galaxy collection list -v 2>&1 || true", returnStdout: true)
                                 echo out
-                                out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
+                                out = sh (script: ". /opt/venv/bin/activate && ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
                                 echo out
                                 out = sh (script: "cat ${env.WORKSPACE}/${REPO}/configuration.yml || true", returnStdout: true)
                                 echo "on build box: "
                                 echo out
                                 out = "${env.WORKSPACE}/${REPO}"
                                 echo out
-                                out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
+                                out = sh (script: ". /opt/venv/bin/activate && python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                 echo out
                                 out = ''
                             }
 
                             for (int i = 0; i < 10; i++) {
                                 // Changing -s to -v
-                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                out = sh (script: ". /opt/venv/bin/activate && python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
