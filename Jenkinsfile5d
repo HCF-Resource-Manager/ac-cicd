@@ -700,10 +700,10 @@ node('master') {
                 }
 
                 /*  Build the collection */
-                out_galaxy_build = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
+                out_galaxy_build = sh (script: '. /opt/venv/bin/activate && ansible-galaxy collection build . --force', returnStdout: true)
 
                 /* Install the collection */
-                out_galaxy_install = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
+                out_galaxy_install = sh (script: ". /opt/venv/bin/activate && ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
 
                 if (VERBOSITY.toBoolean()){
                     echo '------------------------ workspace output -------------------------------'
