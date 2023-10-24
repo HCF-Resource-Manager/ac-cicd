@@ -566,8 +566,7 @@ RUN python3 -m venv /opt/venv \
 # --------------------------- Set up virtual enviroment Stage 2 ------------------- #
 RUN . /opt/venv/bin/activate \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --include-deps ansible \
-&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install ansible-core==${ANSIBLE_VERSION} \
-ansible
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
