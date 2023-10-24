@@ -561,9 +561,9 @@ bandit \
 pipdeptree \
 virtualenv;
 # --------------------------- Set up virtual enviroment Stage 1 ------------------- #
-RUN python3 -m venv /opt/venv;
-# --------------------------- Set up virtual enviroment Stage 2 ------------------- #
-RUN . /opt/venv/bin/activate \
+RUN python3 -m venv /opt/venv \
+&& virtualenv /opt/venv --system-site-packages \
+&& . /opt/venv/bin/activate \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-core==${ANSIBLE_VERSION} \
 ansible \
