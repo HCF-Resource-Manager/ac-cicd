@@ -507,6 +507,7 @@ voluptuous \
 yamllint \
 bandit \
 pipdeptree \
+ansible \
 ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
