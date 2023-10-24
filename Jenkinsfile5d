@@ -442,7 +442,8 @@ https://docs.ansible.com/ansible/latest/dev_guide/testing_running_locally.html#p
 **/
 ANSIBLE_TEST_INSTALL_DEPENDENCIES = """
 # --------------- Use ansible-test to install dependencies ------------------- #
-RUN cd ${REPO} \
+RUN . /opt/venv/bin/activate \
+&& cd ${REPO} \
 && ansible-galaxy collection build . --force \
 && ansible-galaxy collection install ibm-${REPO}* --force -p . \
 && cd ansible_collections/ibm/${REPO}/ \
