@@ -566,14 +566,9 @@ RUN python3 -m venv /opt/venv \
 # --------------------------- Set up virtual enviroment Stage 2 ------------------- #
 RUN . /opt/venv/bin/activate \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+--include-deps ansible \
 ansible-core==${ANSIBLE_VERSION} \
-ansible \
-pytest-ansible \
-oyaml \
-pytest \
-shellescape \
-pytest_mock \
-mock pycodestyle
+ansible 
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -868,7 +863,7 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    // sh script: 'pip3 install oyaml  shellescape pytest_mock mock pycodestyle'
+                    sh script: 'pip3 install oyaml pytest-ansible pytest pycodestyle shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
