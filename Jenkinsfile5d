@@ -937,7 +937,8 @@ node('master') {
                             for (int i = 0; i < 10; i++) {
                                 // Changing -s to -v
                                 sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
-                                out = sh (script: "cd /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests && python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                out = sh (script: "ansible-galaxy collection list -v", returnStdout: true)
+                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
