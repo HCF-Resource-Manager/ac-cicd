@@ -544,7 +544,7 @@ COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 /*
  * 'DOCKERFILE_CONTENTS_2_DOT_15' supports ansible-core versiuons
- * '2.15.2'.
+ * '2.15.2'
 */
 DOCKERFILE_CONTENTS_2_DOT_15_16 = SLIM_BUSTER_3_11 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
@@ -855,7 +855,7 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    sh script: 'pip3 install oyaml pyyaml pytest-ansible pytest-ansible-units pytest pycodestyle shellescape pytest_mock mock pycodestyle'
+                    sh script: 'pip3 install oyaml pytest-ansible pytest pycodestyle shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
