@@ -967,7 +967,6 @@ node('master') {
                                 out = sh (script: "pip freeze", returnStdout: true)
                                 echo out
                                 dir("tests") {
-                                    sh (script: "chmod +x run.sh")
                                     def dbdgen = sh script: "./run.sh test_config.yml ./functional/modules/test_zos_copy_func || true", returnStdout: true
                                     echo dbdgen
                                     out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} || true", returnStdout: true)
