@@ -582,8 +582,7 @@ ruamel.yaml==0.18.2 \
 six==1.16.0 \
 tomlkit==0.12.1 \
 typing_extensions==4.8.0 \
-voluptuous==0.12.1 \
-oyaml
+voluptuous==0.12.1
 
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
@@ -879,7 +878,7 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    //sh script: 'pip3 install oyaml pytest==7.4.2 pycodestyle shellescape pytest_mock==1.12.1 mock pycodestyle'
+                    sh script: 'pip3 install oyaml '
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
@@ -967,6 +966,9 @@ node('master') {
                                 sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/galaxy.yml ")
                                 out = sh (script: "pip freeze", returnStdout: true)
                                 echo out
+                                sh (script: "chmod +x run.sh")
+                                def dbdgen = sh script: "./run.sh test_config.yml ./functional/modules/test_zos_copy_func || true", returnStdout: true
+                                echo dbdgen
                                 out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
