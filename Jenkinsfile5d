@@ -562,7 +562,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-lint==5.4.0 \
-pylint==2.5 \
+pylint==3.0.2\
 bandit \
 pipdeptree \
 && pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
@@ -570,12 +570,20 @@ ansible-core==${ANSIBLE_VERSION} \
 ansible==8.5.0 \
 pytest==7.4.2 \
 pytest-ansible==4.1.1 \
-oyaml \
-pycodestyle \
 shellescape \
-mock \
 pytest_mock==1.12.1 \
-pycodestyle
+platformdirs==3.11.0 \
+astroid==3.0.1 \
+dill==0.3.7 \
+mock==3.0.5 \
+pycodestyle==2.7.0 \
+PyYAML==5.4 \
+ruamel.yaml==0.18.2 \
+six==1.16.0 \
+tomlkit==0.12.1 \
+typing_extensions==4.8.0 \
+voluptuous==0.12.1
+
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
