@@ -567,7 +567,15 @@ bandit \
 pipdeptree \
 && pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-core==${ANSIBLE_VERSION} \
-ansible==8.5.0
+ansible==8.5.0 \
+pytest==7.4.2 \
+pytest-ansible==4.1.1 \
+oyaml \
+pycodestyle \
+shellescape \
+mock \
+pytest_mock==1.12.1 \
+pycodestyle
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -862,7 +870,7 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    sh script: 'pip3 install oyaml pytest-ansible==4.1.1 pytest==7.4.2 pycodestyle shellescape pytest_mock==1.12.1 mock pycodestyle'
+                    //sh script: 'pip3 install oyaml pytest==7.4.2 pycodestyle shellescape pytest_mock==1.12.1 mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
