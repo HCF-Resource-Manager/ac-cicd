@@ -561,8 +561,8 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-ansible==8.5.0 \
-ansible-core==${ANSIBLE_VERSION} 
+&& pip ${VERBOSITY.toBoolean() ? '' : '-q'} install ansible==8.5.0 \
+ansible-core==${ANSIBLE_VERSION}
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
