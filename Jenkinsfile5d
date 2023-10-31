@@ -954,9 +954,8 @@ node('master') {
                                 sh (script: "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ")
                                 out = sh (script: "cd ${REPO} && ansible-galaxy collection build . --force", returnStdout: true)
                                 // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
-                                sh (script: "cd ibm_zos_core && ansible-galaxy collection install ibm-${REPO}*.tar.gz --force")
-                                sh (script: "ansible-galaxy collection list -v")
-                                sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
+                                sh (script: "cd ibm_zos_core && ansible-galaxy collection install ibm-${REPO}*.tar.gz --force /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests")
+                                sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/galaxy.yml ")
                                 out = sh (script: "pip freeze", returnStdout: true)
                                 echo out
                                 out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} || true", returnStdout: true)
