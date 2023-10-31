@@ -562,7 +562,7 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-lint==5.4.0 \
-pylint==3.0.2\
+pylint==3.0.2 \
 bandit \
 pipdeptree \
 && pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
