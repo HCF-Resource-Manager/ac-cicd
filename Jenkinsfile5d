@@ -966,9 +966,13 @@ node('master') {
                                 sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/galaxy.yml ")
                                 out = sh (script: "pip freeze", returnStdout: true)
                                 echo out
-                                sh (script: "chmod +x run.sh")
-                                def dbdgen = sh script: "./run.sh test_config.yml ./functional/modules/test_zos_copy_func || true", returnStdout: true
-                                echo dbdgen
+                                dir("tests") {
+                                    sh (script: "chmod +x run.sh")
+                                    def dbdgen = sh script: "./run.sh test_config.yml ./functional/modules/test_zos_copy_func || true", returnStdout: true
+                                    echo dbdgen
+                                    out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} || true", returnStdout: true)
+                                    echo out
+                                }
                                 out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
