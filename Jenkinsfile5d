@@ -856,7 +856,7 @@ node('master') {
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-                    sh script: 'pip3 install oyaml pytest-ansible==4.1.1 pytest pycodestyle shellescape pytest_mock mock pycodestyle'
+                    sh script: 'pip3 install oyaml pytest-ansible pytest pycodestyle shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
