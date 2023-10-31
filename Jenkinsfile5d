@@ -674,7 +674,7 @@ node('master') {
         } else if (ANSIBLE_VERSION == '2.16.2'){
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15_16
         }else if (ANSIBLE_VERSION == 'LATEST') {
-             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
 
         /* ----------------------------------------------------------------------------
@@ -952,13 +952,6 @@ node('master') {
                                 out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                 echo out
                                 out = ''
-                            }
-                            dir("${REPO}}") {
-                                // Attempt to build the collection
-                                def out = sh script: "ansible-galaxy collection build . --force", returnStdout: true
-                                // Install the built collection
-                                // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
-                                out = sh script: "ansible-galaxy collection install ibm-ibm_zos_core*.tar.gz --force"
                             }
                             for (int i = 0; i < 10; i++) {
                                 // Changing -s to -v
