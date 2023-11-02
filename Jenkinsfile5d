@@ -582,7 +582,6 @@ ruamel.yaml==0.18.2 \
 six==1.16.0 \
 tomlkit==0.12.1 \
 typing_extensions==4.8.0 \
-oyaml \
 voluptuous==0.12.1
 
 
@@ -850,6 +849,7 @@ node('master') {
         stage('Unit and Functional Tests') {
             // Build debian image containing all requirements for test cases
             // then run our testcases in the image
+            sh (script: "pip install oyaml")
             checkout()
             // write our own ansible.cfg to ensure correctness
             dir("${REPO}") {
