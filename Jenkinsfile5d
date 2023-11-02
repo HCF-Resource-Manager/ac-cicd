@@ -960,7 +960,7 @@ node('master') {
                                 sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
                                 out = sh (script: "pip freeze", returnStdout: true)
                                 echo out
-                                out = sh (script: "cd tests && python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
+                                out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
