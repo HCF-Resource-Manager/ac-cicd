@@ -849,15 +849,6 @@ node('master') {
         stage('Unit and Functional Tests') {
             // Build debian image containing all requirements for test cases
             // then run our testcases in the image
-            checkout()
-            // write our own ansible.cfg to ensure correctness
-            dir("${REPO}") {
-                dir('playbooks') {
-                    writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
-                }
-                writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
-            }
-
             ansibleTestingImage.inside("-u jenkins\
             -e TARGET_HOST=${TARGET_HOST}\
             -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
@@ -867,10 +858,10 @@ node('master') {
             -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
             -e ANSIBLE_TIMEOUT=30") {
                 dir("${REPO}") {
-                    // next 2 writes are added so they are visible within docker repo
                     dir('playbooks') {
                         writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                     }
+                    // next 2 writes are added so they are visible within docker repo
                     dir("tests"){
                         writeFile(file: "test_config.yml", text: generateTestConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
                         echo "test_config.yml is here: "
@@ -954,22 +945,22 @@ node('master') {
                                 echo out
                                 out = ''
                             }
-                            for (int i = 0; i < 10; i++) {
-                                // Changing -s to -v
-                                // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
-                                sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
-                                out = sh (script: "pip freeze", returnStdout: true)
-                                echo out
-                                out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
-                                if (checkForConnectionErrors(out)) {
-                                    sleep(20)
-                                } else {
-                                    break
-                                }
-                            }
-                            echo out
-                            checkForPytestFails(out)
                         }
+                        out = ''
+                        for (int i = 0; i < 10; i++) {
+                            // Changing -s to -v
+                            // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
+                            sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
+                            echo ${tests}
+                            out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
+                            if (checkForConnectionErrors(out)) {
+                                sleep(20)
+                            } else {
+                                break
+                            }
+                        }
+                        echo out
+                        checkForPytestFails(out)
                     }
                 }
             }
