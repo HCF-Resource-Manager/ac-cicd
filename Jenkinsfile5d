@@ -946,22 +946,22 @@ node('master') {
                                 out = ''
                             }
                         }
-                        out = ''
-                        for (int i = 0; i < 10; i++) {
-                            // Changing -s to -v
-                            // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
-                            sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
-                            echo tests
-                            out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml tests/functional/modules/test_zos_copy_func || true", returnStdout: true)
-                            if (checkForConnectionErrors(out)) {
-                                sleep(20)
-                            } else {
-                                break
-                            }
-                        }
-                        echo out
-                        checkForPytestFails(out)
                     }
+                    out = ''
+                    for (int i = 0; i < 10; i++) {
+                        // Changing -s to -v
+                        // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
+                        sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
+                        echo tests
+                        out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml tests/functional/modules/test_zos_copy_func || true", returnStdout: true)
+                        if (checkForConnectionErrors(out)) {
+                            sleep(20)
+                        } else {
+                            break
+                        }
+                    }
+                    echo out
+                    checkForPytestFails(out)
                 }
             }
         }
