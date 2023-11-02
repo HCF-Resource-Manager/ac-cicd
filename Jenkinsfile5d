@@ -582,6 +582,7 @@ ruamel.yaml==0.18.2 \
 six==1.16.0 \
 tomlkit==0.12.1 \
 typing_extensions==4.8.0 \
+oyaml \
 voluptuous==0.12.1
 
 
