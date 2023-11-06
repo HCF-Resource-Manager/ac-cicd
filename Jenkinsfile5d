@@ -553,7 +553,7 @@ COPY ${REPO} ./${REPO}/
  * 'DOCKERFILE_CONTENTS_2_DOT_15' supports ansible-core versiuons
  * '2.15.2'
 */
-DOCKERFILE_CONTENTS_2_DOT_15_16 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+DOCKERFILE_CONTENTS_2_DOT_15_16 = SLIM_BUSTER_3_11 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
 && apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
