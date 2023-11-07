@@ -961,6 +961,8 @@ node('master') {
                             }
                         }
                     }
+                    out = (script: "echo ${tests} | tr '..' ''")
+                    echo out
                     out = sh (script: "echo ${tests}")
                     echo out
                     out = ''
