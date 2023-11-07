@@ -961,11 +961,9 @@ node('master') {
                             }
                         }
                     }
-                    out = sh "echo ${tests} | sed -E 's/../+//g'"
+                    sh (script:"echo ${tests} > temp.txt")
+                    out = sh (script:"sed -E 's/../+//g' temp.txt")
                     echo out
-                    out = sh (script: "echo ${tests}")
-                    echo out
-                    out = ''
                     for (int i = 0; i < 10; i++) {
                         // Changing -s to -v
                         // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
