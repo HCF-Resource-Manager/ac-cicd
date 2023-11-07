@@ -509,7 +509,6 @@ voluptuous \
 yamllint \
 bandit \
 pipdeptree \
-ansible \
 ansible-core==${ANSIBLE_VERSION} \
 pytest-ansible==3.0.0 \
 pytest
@@ -542,7 +541,6 @@ python-pip \
 bandit \
 pipdeptree \
 ansible-core==${ANSIBLE_VERSION} \
-ansible == 8.5.0 \
 pytest-ansible==3.0.0 \
 pytest
 
