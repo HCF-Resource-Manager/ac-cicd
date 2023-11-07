@@ -890,6 +890,7 @@ node('master') {
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
+                    def tests = ""
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
                         if ( "${BRANCH}" == 'dev') {
@@ -922,8 +923,6 @@ node('master') {
                         echo '-------------------------------------------------------------------------'
                         echo "next: dependencyfinder switch"
                         echo '-------------------------------------------------------------------------'
-
-                        def tests = ""
 
                         if (RUN_ALL_TESTS.toBoolean()){
                             echo '--------------------------- Tests Found ---------------------------------'
@@ -962,6 +961,7 @@ node('master') {
                             }
                         }
                     }
+                    sh (script: "echo ${tests}")
                     out = ''
                     for (int i = 0; i < 10; i++) {
                         // Changing -s to -v
