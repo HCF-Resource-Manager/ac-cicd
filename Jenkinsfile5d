@@ -959,10 +959,13 @@ node('master') {
                                 echo out
                                 out = ''
                             }
+                            //if(ANSIBLE_VERSION < 2.15){
+                            //}
                         }
                     }
+                    //if(ANSIBLE_VERSION > 2.14)
                     sh (script:"echo ${tests} > temp.txt")
-                    out = sh (script:"sed -E 's/../+//g' temp.txt")
+                    out = sh (script:'sed -E "s/../+//g" temp.txt')
                     echo out
                     for (int i = 0; i < 10; i++) {
                         // Changing -s to -v
