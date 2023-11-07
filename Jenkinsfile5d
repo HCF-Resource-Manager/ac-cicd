@@ -964,7 +964,7 @@ node('master') {
                         }
                     }
                     //if(ANSIBLE_VERSION > 2.14)
-                    out = tests.replaceAll('../','')
+                    out = tests.replace('..\/','')
                     echo out
                     for (int i = 0; i < 10; i++) {
                         // Changing -s to -v
