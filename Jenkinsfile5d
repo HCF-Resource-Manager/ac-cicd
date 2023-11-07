@@ -961,7 +961,7 @@ node('master') {
                             }
                         }
                     }
-                    out = sh (script: "echo ${tests}")
+                    out = sh (script: "echo ${tests//../}")
                     echo out
                     out = ''
                     for (int i = 0; i < 10; i++) {
