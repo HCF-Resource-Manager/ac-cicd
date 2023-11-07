@@ -961,7 +961,7 @@ node('master') {
                             }
                         }
                     }
-                    tests=(script: "echo ${tests//[..]/}")
+                    tests = (script: "echo ${tests//[..]/}")
                     out = sh (script: "echo ${tests}")
                     echo out
                     out = ''
