@@ -553,7 +553,7 @@ COPY ${REPO} ./${REPO}/
  * 'DOCKERFILE_CONTENTS_2_DOT_15' supports ansible-core versiuons
  * '2.15.2'
 */
-DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_11 + ENV_VARS +  """
+DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
 && apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -890,6 +890,11 @@ node('master') {
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
+                    if(ANSIBLE_VERSION < 2.15){
+                        sh script: 'ansible-galaxy collection build . --force'
+                        // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
+                        sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                    }
                     def tests = ""
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
@@ -959,26 +964,36 @@ node('master') {
                                 echo out
                                 out = ''
                             }
-                            //if(ANSIBLE_VERSION < 2.15){
-                            //}
+                            if(ANSIBLE_VERSION < 2.15){
+                                for (int i = 0; i < 10; i++) {
+                                    // Changing -s to -v
+                                    out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                    if (checkForConnectionErrors(out)) {
+                                        sleep(20)
+                                    } else {
+                                        break
+                                    }
+                                }
+                                echo out
+                                checkForPytestFails(out)
+                            }
                         }
                     }
-                    //if(ANSIBLE_VERSION > 2.14)
-                    tests = tests.replace("../",'')
-                    echo tests
-                    for (int i = 0; i < 10; i++) {
-                        // Changing -s to -v
-                        // out = sh script: "ansible-galaxy collection install ibm-${git_repo_name}* --force"
-                        sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
-                        out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
-                        if (checkForConnectionErrors(out)) {
-                            sleep(20)
-                        } else {
-                            break
+                    if(ANSIBLE_VERSION >= 2.15){
+                        tests = tests.replace("../",'')
+                        echo tests
+                        for (int i = 0; i < 10; i++) {
+                            sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
+                            out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
+                            if (checkForConnectionErrors(out)) {
+                                sleep(20)
+                            } else {
+                                break
+                            }
                         }
+                        echo out
+                        checkForPytestFails(out)
                     }
-                    echo out
-                    checkForPytestFails(out)
                 }
             }
         }
