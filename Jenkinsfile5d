@@ -961,7 +961,7 @@ node('master') {
                             }
                         }
                     }
-                    out = sh (script: "echo ${tests} \| sed -E \'s/../+//g\'")
+                    out = sh (script: "echo ${tests} | sed -E 's/../+//g'")
                     echo out
                     out = sh (script: "echo ${tests}")
                     echo out
