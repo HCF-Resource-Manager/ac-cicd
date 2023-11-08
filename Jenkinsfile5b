@@ -981,9 +981,8 @@ node('master') {
                         tests = tests.replace("../",'')
                         echo tests
                         for (int i = 0; i < 10; i++) {
-                            echo pwd
-                            sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Marcel/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Marcel/ibm_zos_core/tests/")
-                            out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
+                            sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}tests/")
+                            out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
                             if (checkForConnectionErrors(out)) {
                                 sleep(20)
                             } else {
