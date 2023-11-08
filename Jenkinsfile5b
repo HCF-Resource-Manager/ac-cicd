@@ -981,7 +981,7 @@ node('master') {
                         tests = tests.replace("../",'')
                         echo tests
                         for (int i = 0; i < 10; i++) {
-                            sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}tests/")
+                            sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
                             out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
                             if (checkForConnectionErrors(out)) {
                                 sleep(20)
