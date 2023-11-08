@@ -50,7 +50,7 @@ properties (
                     required: true
                     ),
                 string(name: 'REPO', defaultValue: 'ibm_zos_core'),
-                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
+                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.15.2', '2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
                 text(
                     name: 'ANSIBLE_CONFIG_CONTENTS',
                     defaultValue: """\
@@ -414,6 +414,10 @@ SLIM_BUSTER_3_9 = """
 FROM python:3.9-slim-buster
 WORKDIR /usr/src/app"""
 
+SLIM_BUSTER_3_11 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.11-slim-buster
+WORKDIR /usr/src/app"""
 /*  Paths for ansible module and config persist after the volume mount by Jenkins */
 ENV_VARS = """
 # ---------------------------- Environment Variables ------------------------- #
@@ -478,7 +482,9 @@ pylint==2.3.1 \
 bandit \
 pipdeptree \
 ansible==${ANSIBLE_VERSION} \
-rstcheck==3.3.1
+rstcheck==3.3.1 \
+pytest-ansible==3.0.0 \
+pytest
 
 # ----------------------------- Copy dependencies ---------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -503,7 +509,9 @@ voluptuous \
 yamllint \
 bandit \
 pipdeptree \
-ansible-core==${ANSIBLE_VERSION}
+ansible-core==${ANSIBLE_VERSION} \
+pytest-ansible==3.0.0 \
+pytest
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
@@ -532,12 +540,69 @@ python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
-ansible-core==${ANSIBLE_VERSION}
+ansible-core==${ANSIBLE_VERSION} \
+pytest-ansible==3.0.0 \
+pytest
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+/*
+ * 'DOCKERFILE_CONTENTS_2_DOT_15' supports ansible-core versiuons
+ * '2.15.2'
+*/
+DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+&& apt-get update \
+&& apt-get install -y \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+&& pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+ansible-core==${ANSIBLE_VERSION} \
+ansible==8.5.0 \
+pytest==7.4.2 \
+pytest-ansible==4.1.1
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
+DOCKERFILE_CONTENTS_2_DOT_16 = SLIM_BUSTER_3_11 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+&& apt-get update \
+&& apt-get install -y \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+&& pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+ansible-core==${ANSIBLE_VERSION} \
+pytest==7.4.2 \
+pytest-ansible==4.1.1
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+/* Lastest */
 DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
@@ -620,8 +685,12 @@ node('master') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == '2.14.1') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == 'LATEST') {
-             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
+        } else if (ANSIBLE_VERSION == '2.15.5'){
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
+        } else if (ANSIBLE_VERSION == '2.16.0'){
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+        }else if (ANSIBLE_VERSION == 'LATEST') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
 
         /* ----------------------------------------------------------------------------
@@ -793,15 +862,6 @@ node('master') {
         stage('Unit and Functional Tests') {
             // Build debian image containing all requirements for test cases
             // then run our testcases in the image
-            checkout()
-            // write our own ansible.cfg to ensure correctness
-            dir("${REPO}") {
-                dir('playbooks') {
-                    writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
-                }
-                writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
-            }
-
             ansibleTestingImage.inside("-u jenkins\
             -e TARGET_HOST=${TARGET_HOST}\
             -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
@@ -811,26 +871,29 @@ node('master') {
             -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
             -e ANSIBLE_TIMEOUT=30") {
                 dir("${REPO}") {
-                    // next 2 writes are added so they are visible within docker repo
                     dir('playbooks') {
                         writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
                     }
-                    writeFile(file: 'configuration.yml', text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
-                    echo "configuration.yml is here: "
-                    sh script: "pwd"
-                    sh "cat configuration.yml"
+                    // next 2 writes are added so they are visible within docker repo
+                    dir("tests"){
+                        writeFile(file: "test_config.yml", text: generateTestConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
+                        echo "test_config.yml is here: "
+                        sh script: "pwd"
+                        sh "cat test_config.yml"
+                    }
                     sh "cat playbooks/ansible.cfg"
                     echo "--- this is in dockerenv ^^^"
 
-
-                    sh script: 'pip3 install oyaml pytest-ansible==3.0.0 pytest shellescape pytest_mock mock pycodestyle'
+                    sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle'
 
                     // Install collection so module_utils imports will be valid in modules
                     // Attempt to build the collection
-                    sh script: 'ansible-galaxy collection build . --force'
-                    // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
-                    sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
-
+                    if(ANSIBLE_VERSION < '2.15'){
+                        sh script: 'ansible-galaxy collection build . --force'
+                        // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
+                        sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                    }
+                    def tests = ""
                     dir('tests') {
                         def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
                         if ( "${BRANCH}" == 'dev') {
@@ -863,8 +926,6 @@ node('master') {
                         echo '-------------------------------------------------------------------------'
                         echo "next: dependencyfinder switch"
                         echo '-------------------------------------------------------------------------'
-
-                        def tests = ""
 
                         if (RUN_ALL_TESTS.toBoolean()){
                             echo '--------------------------- Tests Found ---------------------------------'
@@ -901,19 +962,35 @@ node('master') {
                                 echo out
                                 out = ''
                             }
-
-                            for (int i = 0; i < 10; i++) {
-                                // Changing -s to -v
-                                out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
-                                if (checkForConnectionErrors(out)) {
-                                    sleep(20)
-                                } else {
-                                    break
+                            if(ANSIBLE_VERSION < '2.15'){
+                                for (int i = 0; i < 10; i++) {
+                                    // Changing -s to -v
+                                    out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                    if (checkForConnectionErrors(out)) {
+                                        sleep(20)
+                                    } else {
+                                        break
+                                    }
                                 }
+                                echo out
+                                checkForPytestFails(out)
                             }
-                            echo out
-                            checkForPytestFails(out)
                         }
+                    }
+                    if(ANSIBLE_VERSION >= '2.15'){
+                        tests = tests.replace("../",'')
+                        echo tests
+                        for (int i = 0; i < 10; i++) {
+                            sh (script: "cp /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/galaxy.yml /var/lib/jenkins/workspace/zosAnsible-Experimental/ibm_zos_core/tests/")
+                            out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests} || true", returnStdout: true)
+                            if (checkForConnectionErrors(out)) {
+                                sleep(20)
+                            } else {
+                                break
+                            }
+                        }
+                        echo out
+                        checkForPytestFails(out)
                     }
                 }
             }
