@@ -12,7 +12,7 @@ pipeline {
     }
 
     environment {
-        RELEASE_WORKING_DIR = "${params.RELEASE_BRANCH}${env.BUILD_NUMBER}"
+        RELEASE_WORKING_DIR = "release${env.BUILD_NUMBER}"
     }
 
     stages {
