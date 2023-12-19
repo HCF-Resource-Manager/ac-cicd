@@ -5,6 +5,7 @@ pipeline {
         string(name: 'RELEASE_REPO', defaultValue: 'ibm_zos_core', description: '')
         string(name: 'RELEASE_BRANCH', defaultValue: 'dev', description: 'Branch on which to base a new branch for release tasks.')
         string(name: 'RELEASE_VERSION', defaultValue: '', description: 'Semantic version to be used in the release. Matches M.m.p e.g. 1.4.0 do NOT use v1.4.0')
+        string(name: 'LAST_RELEASE_VERSION', defaultValue: '', description: 'Last released version before this one. Is used to compare file changes.')
         string(name: 'DOCS_REPO', defaultValue: 'https://github.com/IBM/z_ansible_collections_doc', description: 'Docs repository on which module docs are generated.')
         string(name: 'DOCS_BRANCH', defaultValue: 'main', description: 'Branch on which docs will be generated.')
         choice(name: 'ANSIBLE_VERSION', choices: ['2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST'])
@@ -26,19 +27,17 @@ pipeline {
             - Copy the pipeline log from Jenkins into the release folder
             - Copy the Galaxy import log in the release folder
             - Copy the git log into the release folder
-        
+
         If we use the make commands we need to setup a py venv
         */
         stage('Checkout repos') {
             steps {
                 sh "mkdir $RELEASE_WORKING_DIR"
-                dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
+                dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
                     git branch: "${params.RELEASE_BRANCH}", credentialsId: '47a1fbb8-e3af-4333-8a78-b60394690540', url: "https://github.com/ansible-collections/${RELEASE_REPO}.git"
-                    // sh "git clone https://github.com/ansible-collections/${RELEASE_REPO}.git ; cd ${RELEASE_REPO}; git checkout ${params.RELEASE_BRANCH}; git pull origin ${params.RELEASE_BRANCH}"
                 }
-                dir("$RELEASE_WORKING_DIR\\docs") {
+                dir("$RELEASE_WORKING_DIR/docs") {
                     git branch: "${params.DOCS_BRANCH}", credentialsId: '47a1fbb8-e3af-4333-8a78-b60394690540', url: "${DOCS_REPO}"
-                    // sh "git clone ${DOCS_REPO} ; cd z_ansible_collections_doc; git checkout ${params.DOCS_BRANCH}; git pull origin ${params.DOCS_BRANCH}"
                 }
             }
         }
@@ -46,7 +45,7 @@ pipeline {
             steps {
                 dir("$RELEASE_WORKING_DIR") {
                     writeFile file: "./venv${params.ANSIBLE_VERSION}/requirements.txt", text: getAnsibleRequirements("${params.ANSIBLE_VERSION}")
-                    
+
                     sh """
                     python3 -m venv venv${params.ANSIBLE_VERSION}
                     . ./venv${params.ANSIBLE_VERSION}/bin/activate
@@ -81,7 +80,7 @@ pipeline {
         */
         stage('Update collection version') {
             steps {
-                dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
+                dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
                     // update galaxy.yml with $collection_version
                     sh "sed -i -e 's/version: .*/version: ${params.RELEASE_VERSION}/g' galaxy.yml"
                     sh "cat galaxy.yml"
@@ -93,14 +92,14 @@ pipeline {
             }
         }
         // stage('Update Copyrights'){
-        //     // Detect which modules, module_utils had changes in this release and update te copyright
+        //     // Detect which modules, module_utils had changes in this release and update the copyright
         // }
         stage('Update build changelog'){
             steps {
-                dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
+                dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
                 sh """
                 . ./../venv${ANSIBLE_VERSION}/bin/activate
-                antsibull-changelog release
+                antsibull-changelog release -v
                 cat ./changelogs/changelog.yaml
                 """
                 }
@@ -109,6 +108,15 @@ pipeline {
         // stage('Update release notes') {
         //     // This will mainly be excracting the content from the changelog built in the previous step
         // }
+        stage('Generate module docs'){
+            steps {
+                dir("$RELEASE_WORKING_DIR/docs") {
+                sh """
+                make module-doc
+                """
+                }
+            }
+        }
         /*
         ********* End Collection tasks *****************
         */
@@ -126,7 +134,7 @@ pipeline {
         // */
         stage('Test galaxy importer') {
             steps {
-                dir("$RELEASE_WORKING_DIR\\${RELEASE_REPO}") {
+                dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
                     sh """
                     . ./../venv${ANSIBLE_VERSION}/bin/activate
                     rm -rf ibm-ibm_zos_core-*.tar.gz
@@ -136,8 +144,17 @@ pipeline {
                 }
             }
         }
-        // stage('Upload to Ansible development Galaxy Server') {
 
+        // /*
+        // These steps can be done manually, since adding a new version into the
+        // servers is not reversible.
+        // */
+        // stage('Upload to Ansible development Galaxy Server') {
+        //     dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
+        //             sh """
+        //             . ./../venv${ANSIBLE_VERSION}/bin/activate
+        //             """
+        //         }
         // }
         // stage('Upload to IBM development Galaxy Server') {
 
@@ -165,6 +182,7 @@ static String getAnsibleRequirements(String version) {
             antsibull-changelog
             bandit
             galaxy-importer
+            ansible-doc-extractor==0.1.2
             """
         case '2.11.12':
             return """
@@ -177,6 +195,7 @@ static String getAnsibleRequirements(String version) {
             antsibull-changelog
             bandit
             galaxy-importer
+            ansible-doc-extractor==0.1.2
             """
         case '2.12.10':
             return """
@@ -186,6 +205,7 @@ static String getAnsibleRequirements(String version) {
             antsibull-changelog
             bandit
             galaxy-importer
+            ansible-doc-extractor==0.1.2
             """
         case '2.13.7':
             return """
@@ -194,6 +214,7 @@ static String getAnsibleRequirements(String version) {
             rstcheck
             bandit
             galaxy-importer
+            ansible-doc-extractor==0.1.2
             """
         case '2.14.1':
             return """
@@ -203,6 +224,7 @@ static String getAnsibleRequirements(String version) {
             antsibull-changelog
             bandit
             galaxy-importer
+            ansible-doc-extractor==0.1.2
             """
         break
     }
