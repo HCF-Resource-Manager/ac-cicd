@@ -94,24 +94,25 @@ pipeline {
         // stage('Update Copyrights'){
         //     // Detect which modules, module_utils had changes in this release and update the copyright
         // }
-        stage('Update build changelog'){
-            steps {
-                dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
-                sh """
-                . ./../venv${ANSIBLE_VERSION}/bin/activate
-                antsibull-changelog release -v
-                cat ./changelogs/changelog.yaml
-                """
-                }
-            }
-        }
+        // stage('Update build changelog'){
+        //     steps {
+        //         dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
+        //         sh """
+        //         . ./../venv${ANSIBLE_VERSION}/bin/activate
+        //         antsibull-changelog release -v
+        //         cat ./changelogs/changelog.yaml
+        //         """
+        //         }
+        //     }
+        // }
         // stage('Update release notes') {
         //     // This will mainly be excracting the content from the changelog built in the previous step
         // }
         stage('Generate module docs'){
             steps {
-                dir("$RELEASE_WORKING_DIR/docs") {
+                dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}/docs") {
                 sh """
+                . ./../../venv${ANSIBLE_VERSION}/bin/activate
                 make module-doc
                 """
                 }
