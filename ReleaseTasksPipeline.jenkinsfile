@@ -113,6 +113,7 @@ pipeline {
                 dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
                 sh """
                 . ./../venv${ANSIBLE_VERSION}/bin/activate
+                export ANISBLE_LIBRARY=$RELEASE_WORKING_DIR/${RELEASE_REPO}/plugins/modules/
                 rm -rf ibm-ibm_zos_core-*.tar.gz && \
                 ansible-galaxy collection build && \
                 ansible-galaxy collection install -f ibm-ibm_zos_core-*
