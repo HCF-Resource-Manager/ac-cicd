@@ -112,7 +112,10 @@ pipeline {
             steps {
                 dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}") {
                 sh """
-                ./ac --ac-build
+                . ./../../venv${ANSIBLE_VERSION}/bin/activate
+                rm -rf ibm-ibm_zos_core-*.tar.gz && \
+                ansible-galaxy collection build && \
+                ansible-galaxy collection install -f ibm-ibm_zos_core-*
                 """
                 }
                 dir("$RELEASE_WORKING_DIR/${RELEASE_REPO}/docs") {
