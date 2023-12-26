@@ -929,7 +929,7 @@ node('master') {
 
                         if (RUN_ALL_TESTS.toBoolean()){
                             echo '--------------------------- Tests Found ---------------------------------'
-                            tests = sh (script: "./dependencyfinder.py -p .. -a -s \"${skip_tests}\" || true", returnStdout: true)
+                            tests = sh (script: "./dependencyfinder.py -p .. -a -s \"${skip_tests}\" ", returnStdout: true)
                             echo tests
                             echo '-------------------------------------------------------------------------'
                         }else{
