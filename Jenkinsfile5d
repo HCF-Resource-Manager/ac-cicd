@@ -1009,21 +1009,22 @@ node('master') {
             }
         }
     }
+    post{
+        always{
+            script{
+                BUILD_USER = getBuildUser()
+                echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${BUILD_USER}"
+            }
+            slackSend botUser: true,
+                      channel: 'ansible_core_pipeline',
+                      color: COLOR_MAP[currentBuild.currentResult],
+                      message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${BUILD_USER}",
+                      tokenCredentialId: 'fBCBij4HTF8yZrrezHmd4adX'
+        }
+    }
 
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo 'NOT attempting cleanup\n\n'
     echo out
 
-    post{
-        always{
-            script{
-                BUILD_USER = getBuildUser()
-            }
-            slackSend botUser: true,
-                      channel: 'ansible_core_pipeline',
-                      color: COLOR_MAP[currentBuild.currentResult],
-                      message: "Build ${currentBuild.currentResult}  - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${BUILD_USER}",
-                      tokenCredentialId: 'fBCBij4HTF8yZrrezHmd4adX'
-        }
-    }
 }
