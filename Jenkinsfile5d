@@ -1007,7 +1007,7 @@ node('master') {
                   color: COLOR_MAP[currentBuild.currentResult],
                   message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}",
                   notifyCommitters : true,
-                  tokenCredentialId: "khHdIxFQQGwogXiweiexn4RO"
+                  token: "khHdIxFQQGwogXiweiexn4RO"
     }
 
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
