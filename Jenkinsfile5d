@@ -1002,10 +1002,10 @@ node('master') {
     }
     stage('Post-build') {
         BUILD_USER = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
-        echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${BUILD_USER}"
+        echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}"
         slackSend channel: 'ansible_core_pipeline',
                   color: COLOR_MAP[currentBuild.currentResult],
-                  message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${BUILD_USER}",
+                  message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}",
                   notifyCommitters : true,
                   tokenCredentialId: "khHdIxFQQGwogXiweiexn4RO"
     }
