@@ -644,6 +644,7 @@ docker_object_name = "ati-" + jobset.substring(jobset.length()-8) + "-${env.BUIL
 
 node('master') {
     currentBuild.result = 'SUCCESS'
+    build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
         echo "Target: " + TARGET_HOST
@@ -722,6 +723,7 @@ node('master') {
         }
     }catch(e){
         echo e.toString()
+        build_ok = false
     }
     stage ('Build Collection and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
@@ -848,6 +850,7 @@ node('master') {
         }
     }catch(e){
         echo e.toString()
+        build_ok = false
     }
     stage('Bandit Security Scan') {
         def sev = "lll"
@@ -1011,7 +1014,13 @@ node('master') {
             }
         }catch(e){
             echo e.toString()
+            build_ok = false
         }
+    }
+    if (build_ok) {
+        currentBuild.result = "SUCCESS"
+    } else {
+        currentBuild.result = "FAILURE"
     }
     stage('Notify Post-build') {
         BUILD_USER = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
