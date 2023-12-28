@@ -643,9 +643,6 @@ docker_object_name = "ati-" + jobset.substring(jobset.length()-8) + "-${env.BUIL
 
 node('master') {
     currentBuild.result = 'SUCCESS'
-    environment{
-        BUILD_USER = ''
-    }
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
         echo "Target: " + TARGET_HOST
@@ -1009,7 +1006,7 @@ node('master') {
                   channel: 'ansible_core_pipeline',
                   color: COLOR_MAP[currentBuild.currentResult],
                   message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${env.BUILD_USER}",
-                  tokenCredentialId: 'fBCBij4HTF8yZrrezHmd4adX'
+                  tokenCredentialId: 'khHdIxFQQGwogXiweiexn4RO'
     }
 
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
