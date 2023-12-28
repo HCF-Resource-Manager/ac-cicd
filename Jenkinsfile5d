@@ -376,12 +376,6 @@ def COLOR_MAP = [
     'FAILURE': 'danger',
 ]
 
-
-def getBuildUser(){
-    return currentBuild.rawBuild.getCause(Cause.UserIdCause).getUserId()
-}
-
-
 /* -------------------------------------------------------------------------- */
 /*         Pipeline Docker Configuration and related configs                  */
 /* -------------------------------------------------------------------------- */
@@ -1011,10 +1005,7 @@ node('master') {
     }
     post{
         always{
-            script{
-                BUILD_USER = getBuildUser()
-                echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${BUILD_USER}"
-            }
+            echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${env.BUILD_USER}"
             slackSend botUser: true,
                       channel: 'ansible_core_pipeline',
                       color: COLOR_MAP[currentBuild.currentResult],
