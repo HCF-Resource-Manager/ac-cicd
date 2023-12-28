@@ -1019,7 +1019,8 @@ node('master') {
             script{
                 BUILD_USER = getBuildUser()
             }
-            slackSend channel: 'ansible_core_pipeline',
+            slackSend botUser: true,
+                      channel: 'ansible_core_pipeline',
                       color: COLOR_MAP[currentBuild.currentResult],
                       message: "Build ${currentBuild.currentResult}  - ${env.JOB_NAME} ${env.BUILD_NUMBER} by ${BUILD_USER}",
                       tokenCredentialId: 'fBCBij4HTF8yZrrezHmd4adX'
