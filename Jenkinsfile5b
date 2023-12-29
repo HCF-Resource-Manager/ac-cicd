@@ -673,57 +673,52 @@ node('master') {
                                         "Branch: ${BRANCH}"
         }
     }
-    try{
-        stage('Build Docker Image') {
-            echo '------------------------ build image start -------------------------------'
+    stage('Build Docker Image') {
+        echo '------------------------ build image start -------------------------------'
 
-            /* ----------------------------------------------------------------------------
-            *            Logically select and concat vars to create docker file
-            * ----------------------------------------------------------------------------
-            */
+        /* ----------------------------------------------------------------------------
+        *            Logically select and concat vars to create docker file
+        * ----------------------------------------------------------------------------
+        */
 
-            if (ANSIBLE_VERSION == '2.9.27') {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
-            } else if (ANSIBLE_VERSION == '2.11.12') {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
-            } else if (ANSIBLE_VERSION == '2.12.10') {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-            } else if (ANSIBLE_VERSION == '2.13.7') {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-            } else if (ANSIBLE_VERSION == '2.14.1') {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-            } else if (ANSIBLE_VERSION == '2.15.5'){
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
-            } else if (ANSIBLE_VERSION == '2.16.0'){
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
-            }else if (ANSIBLE_VERSION == 'LATEST') {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
-            }
-
-            /* ----------------------------------------------------------------------------
-            *                  Write Docker Image for Testing Environment
-            * ----------------------------------------------------------------------------
-            */
-            writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
-            sh 'cat Dockerfile'
-            sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
-
-            /* ----------------------------------------------------------------------------
-            *                  Create YAML config file for use by pytest fixtures
-            * ----------------------------------------------------------------------------
-            */
-            writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
-            sh "cat ${REPO}/configuration.yml"
-            withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
-                sh "set +x ; cat ${privKey} > sshkey"
-                ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
-                sh 'rm sshkey'
-            }
-            //  sh 'chmod -R 777 .' <<-- for a test
+        if (ANSIBLE_VERSION == '2.9.27') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
+        } else if (ANSIBLE_VERSION == '2.11.12') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
+        } else if (ANSIBLE_VERSION == '2.12.10') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+        } else if (ANSIBLE_VERSION == '2.13.7') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+        } else if (ANSIBLE_VERSION == '2.14.1') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+        } else if (ANSIBLE_VERSION == '2.15.5'){
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
+        } else if (ANSIBLE_VERSION == '2.16.0'){
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+        }else if (ANSIBLE_VERSION == 'LATEST') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
-    }catch(e){
-        echo e.toString()
-        build_ok = false
+
+        /* ----------------------------------------------------------------------------
+        *                  Write Docker Image for Testing Environment
+        * ----------------------------------------------------------------------------
+        */
+        writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
+        sh 'cat Dockerfile'
+        sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
+
+        /* ----------------------------------------------------------------------------
+        *                  Create YAML config file for use by pytest fixtures
+        * ----------------------------------------------------------------------------
+        */
+        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
+        sh "cat ${REPO}/configuration.yml"
+        withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
+            sh "set +x ; cat ${privKey} > sshkey"
+            ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
+            sh 'rm sshkey'
+        }
+        //  sh 'chmod -R 777 .' <<-- for a test
     }
     stage ('Build Collection and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
