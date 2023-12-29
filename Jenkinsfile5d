@@ -992,24 +992,26 @@ node('master') {
                                 }
                             }
                         }
-                        if(ANSIBLE_VERSION >= '2.15'){
-                            verbosity = '-v'
-                            if(VERBOSITY.toBoolean()){
-                                verbosity = '-vvv -s'
-                            }
-                            tests = tests.replace("../",'')
-                            echo tests
-                            for (int i = 0; i < 10; i++) {
-                                sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                out = sh (script: "python3 -m pytest ${verbosity} -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
-                                if (checkForConnectionErrors(out)) {
-                                    sleep(20)
-                                } else {
-                                    break
+                        if (tests) {
+                            if(ANSIBLE_VERSION >= '2.15'){
+                                verbosity = '-v'
+                                if(VERBOSITY.toBoolean()){
+                                    verbosity = '-vvv -s'
                                 }
+                                tests = tests.replace("../",'')
+                                echo tests
+                                for (int i = 0; i < 10; i++) {
+                                    sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
+                                    out = sh (script: "python3 -m pytest ${verbosity} -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                    if (checkForConnectionErrors(out)) {
+                                        sleep(20)
+                                    } else {
+                                        break
+                                    }
+                                }
+                                echo out
+                                checkForPytestFails(out)
                             }
-                            echo out
-                            checkForPytestFails(out)
                         }
                     }
                 }
@@ -1029,7 +1031,7 @@ node('master') {
         echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}"
         slackSend channel: 'ansible_core_pipeline',
                   color: COLOR_MAP[currentBuild.currentResult],
-                  message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}.\n (<${env.BUILD_URL}|Open>)",
+                  message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}.\n",
                   notifyCommitters : true,
                   token: "khHdIxFQQGwogXiweiexn4RO"
     }
