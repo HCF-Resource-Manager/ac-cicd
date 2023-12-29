@@ -975,9 +975,12 @@ node('master') {
                                     out = ''
                                 }
                                 if(ANSIBLE_VERSION < '2.15'){
+                                    verbosity = '-v'
+                                    if(VERBOSITY.toBoolean()){
+                                        verbosity = '-vvv -s'
+                                    }
                                     for (int i = 0; i < 10; i++) {
-                                        // Changing -s to -v
-                                        out = sh (script: "python3 -m pytest -vvv -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                        out = sh (script: "python3 -m pytest ${verbosity} -x --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                         if (checkForConnectionErrors(out)) {
                                             sleep(20)
                                         } else {
@@ -990,11 +993,15 @@ node('master') {
                             }
                         }
                         if(ANSIBLE_VERSION >= '2.15'){
+                            verbosity = '-v'
+                            if(VERBOSITY.toBoolean()){
+                                verbosity = '-vvv -s'
+                            }
                             tests = tests.replace("../",'')
                             echo tests
                             for (int i = 0; i < 10; i++) {
                                 sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                out = sh (script: "python3 -m pytest -vvv -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                out = sh (script: "python3 -m pytest ${verbosity} -x -rA --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
                                 if (checkForConnectionErrors(out)) {
                                     sleep(20)
                                 } else {
