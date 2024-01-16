@@ -177,7 +177,7 @@ zochoices.each {
 ZoVersions = ZoTitles[0].split()
 ZoVersion = ZoVersions[1]
 if (ZoVersion > "1.2.9") {
-    ZoLibPath = ZoPaths[0] + "lib/" + PythonVer + "/"
+    ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
 }
 else {
     ZoLibPath = ZoPaths[0]
