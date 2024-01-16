@@ -144,7 +144,10 @@ pychoices.each {
 }
 
 PythonVers = PythonPaths[0].split()
-PythonVer = PythonVers.substring(0,3)
+echo '\r\npvs: ' + PythonVers + '\r\n'
+
+/* PythonVer = PythonVers.substring(0,3)
+ echo '\r\npv: ' + PythonVer + '\r\n' */
 
 /*
     zopaths is the list of all known paths
