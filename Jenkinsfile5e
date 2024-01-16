@@ -182,14 +182,14 @@ else {
 }
 
 // HERE
-MyPythonPath = "${params.PYTHON_PATH}".replaceAll("PYTHONDIR", PythonPaths[0]).trim()
+MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
-MyEnvironment = "${params.ENVIRONMENT}".replaceAll("ZOAUDIR/lib", ZoLibPath).replaceAll("ZOAUDIR", /
-ZoPaths[0]).replaceAll("PYTHONDIR", PythonPaths[0]).trim()
+MyEnvironment = "${params.ENVIRONMENT}".replaceAll('ZOAUDIR/lib', ZoLibPath).
+replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
-echo "\r\n\r\n------MPP:\r\n" + MyPythonPath +
-"\r\n\r\n: PYV: " + PythonVer + "\r\nZv: " + ZoVersion +
-"\r\n\r\n------MEnv:\r\n" + MyEnvironment + "\r\n"
+echo '\r\n\r\n------MPP:\r\n' + MyPythonPath +
+'\r\n\r\n: PYV: ' + PythonVer + '\r\nZv: ' + ZoVersion +
+'\r\n\r\n------MEnv:\r\n' + MyEnvironment + '\r\n'
 
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
