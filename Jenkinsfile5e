@@ -144,7 +144,7 @@ pychoices.each {
 }
 
 PythonVers = PythonTitles[0].split()
-echo '\r\npvs: ' + PythonVers + '\r\n'
+/* echo '\r\npvs: ' + PythonVers + '\r\n' */
 
 PythonVer = PythonVers[1].substring(0,4)
 
