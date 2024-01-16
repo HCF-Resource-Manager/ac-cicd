@@ -143,6 +143,9 @@ pychoices.each {
     PythonTitles << "${it}"
 }
 
+PythonVers = PythonPaths[0].split()
+PythonVer = PythonVers[1].trim()[0:2]
+
 /*
     zopaths is the list of all known paths
     zochoices is the list[] of selected entries (as text)
@@ -169,11 +172,24 @@ zochoices.each {
     ZoTitles << "${it}"
 }
 
+ZoVersions = ZoTitles[0].split()
+ZoVersion = ZoVersions[1]
+if( ZoVersion > "1.2.9") {
+    ZoLibPath = ZoPaths[0]
+}
+else {
+    ZoLibPath = ZoPaths[0] + "lib/" + PythonVer + "/"
+}
+
 // HERE
 MyPythonPath = "${params.PYTHON_PATH}".replaceAll("PYTHONDIR", PythonPaths[0]).trim()
-MyEnvironment = "${params.ENVIRONMENT}".replaceAll("ZOAUDIR", ZoPaths[0]).replaceAll("PYTHONDIR", PythonPaths[0]).trim()
 
-echo "\r\n\r\n------MPP:\r\n" + MyPythonPath + "\r\n\r\n------MEnv:\r\n" + MyEnvironment + "\r\n"
+MyEnvironment = "${params.ENVIRONMENT}".replaceAll("ZOAUDIR/lib", ZoLibPath).replaceAll("ZOAUDIR", /
+ZoPaths[0]).replaceAll("PYTHONDIR", PythonPaths[0]).trim()
+
+echo "\r\n\r\n------MPP:\r\n" + MyPythonPath + /
+"\r\n\r\n: PYV: " + PythonVer + "\r\nZv: " + ZoVersion + /
+"\r\n\r\n------MEnv:\r\n" + MyEnvironment + "\r\n"
 
 
 /* -------------------------------------------------------------------------- */
