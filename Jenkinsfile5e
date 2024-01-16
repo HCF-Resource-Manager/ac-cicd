@@ -147,7 +147,6 @@ PythonVers = PythonTitles[0].split()
 echo '\r\npvs: ' + PythonVers + '\r\n'
 
 PythonVer = PythonVers[1].substring(0,4)
-echo '\r\npv: ' + PythonVer + '\r\n'
 
 /*
     zopaths is the list of all known paths
@@ -177,11 +176,11 @@ zochoices.each {
 
 ZoVersions = ZoTitles[0].split()
 ZoVersion = ZoVersions[1]
-if( ZoVersion > "1.2.9") {
-    ZoLibPath = ZoPaths[0]
+if (ZoVersion > "1.2.9") {
+    ZoLibPath = ZoPaths[0] + "lib/" + PythonVer + "/"
 }
 else {
-    ZoLibPath = ZoPaths[0] + "lib/" + PythonVer + "/"
+    ZoLibPath = ZoPaths[0]
 }
 
 // HERE
