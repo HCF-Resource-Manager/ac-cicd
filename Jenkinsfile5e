@@ -144,7 +144,7 @@ pychoices.each {
 }
 
 PythonVers = PythonPaths[0].split()
-PythonVer = PythonVers.trim().substrimg(0,3)
+PythonVer = PythonVers.substrimg(0,3)
 
 /*
     zopaths is the list of all known paths
