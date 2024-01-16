@@ -143,11 +143,11 @@ pychoices.each {
     PythonTitles << "${it}"
 }
 
-PythonVers = PythonPaths[0].split()
+PythonVers = PythonTitles[0].split()
 echo '\r\npvs: ' + PythonVers + '\r\n'
 
-/* PythonVer = PythonVers.substring(0,3)
- echo '\r\npv: ' + PythonVer + '\r\n' */
+PythonVer = PythonVers[1].substring(0,3)
+echo '\r\npv: ' + PythonVer + '\r\n'
 
 /*
     zopaths is the list of all known paths
