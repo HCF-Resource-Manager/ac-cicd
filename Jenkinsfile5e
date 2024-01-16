@@ -189,9 +189,9 @@ MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).t
 MyEnvironment = "${params.ENVIRONMENT}".replaceAll('ZOAUDIR/lib', ZoLibPath).
 replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
-echo '\r\n\r\n------MPP:\r\n' + MyPythonPath +
+/* echo '\r\n\r\n------MPP:\r\n' + MyPythonPath +
 '\r\n\r\n: PYV: ' + PythonVer + '\r\nZv: ' + ZoVersion +
-'\r\n\r\n------MEnv:\r\n' + MyEnvironment + '\r\n'
+'\r\n\r\n------MEnv:\r\n' + MyEnvironment + '\r\n' */
 
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
@@ -664,6 +664,7 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
+        echo "Pipeline ID: J5e from 16 January, 2024"
         echo "Target: " + TARGET_HOST
         echo "Python: " + PythonTitles[0]
         echo "zoau ver: " + ZoTitles[0]
@@ -939,6 +940,14 @@ node('master') {
                                 echo '-------------------------- initial data skipped tests -------------------'
                                 echo "${params.SKIP_FUNCTIONAL_TESTS}"
                                 echo '-------------------------------------------------------------------------'
+                                /* echo '-------------------------- forced tests ---------------------------------'
+                                if ("${params.FORCE_TESTS}") {
+                                    echo "${params.FORCE_TESTS}"
+                                }
+                                else {
+                                    echo '..none..'
+                                }
+                                echo '-------------------------------------------------------------------------' */
                             }
 
                             // def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll(".py+",".py ").replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
@@ -952,8 +961,6 @@ node('master') {
 
                             echo '-------------------------- skipped tests --------------------------------'
                             echo skip_tests
-                            echo '-------------------------------------------------------------------------'
-                            echo "next: dependencyfinder switch"
                             echo '-------------------------------------------------------------------------'
 
                             if (RUN_ALL_TESTS.toBoolean()){
@@ -972,6 +979,7 @@ node('master') {
                                 // temporary output to show configuration
                                 def out = ''
                                 if (VERBOSITY.toBoolean()){
+                                    echo '\r\n Pre-test configuration data---------------------vvv'
                                     out = sh (script: "set | grep -i ansib || true", returnStdout: true)
                                     echo out
                                     out = sh (script: "ansible-config dump 2>&1 || true", returnStdout: true)
@@ -989,6 +997,7 @@ node('master') {
                                     echo out
                                     out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                     echo out
+                                    echo '\r\n Pre-test configuration data---------------------^^^'
                                     out = ''
                                 }
                                 if(ANSIBLE_VERSION < '2.15'){
@@ -1054,7 +1063,7 @@ node('master') {
     }
 
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
-    echo 'NOT attempting cleanup\n\n'
+    echo '\r\ncleanup run: \r\n' + out + '\r\n'
     echo out
 
 }
