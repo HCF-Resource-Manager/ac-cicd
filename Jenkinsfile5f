@@ -976,7 +976,7 @@ node('master') {
                                 }
                             }
                             else {
-                                tests = "${params.FORCE_TESTS}"
+                                tests = "${params.FORCE_TESTS}".stripIndent().replaceAll('\n'," ").replaceAll(","," ").replaceAll(" +"," ")
                             }
 
                             echo '--------------------------- Tests Found ---------------------------------'
