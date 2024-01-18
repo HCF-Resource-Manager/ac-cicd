@@ -186,7 +186,7 @@ if (ZoVersion > "1.2.9") {
     ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
 }
 else {
-    ZoLibPath = ZoPaths[0]
+    ZoLibPath = ZoPaths[0] + "/lib/"
 }
 
 // HERE
