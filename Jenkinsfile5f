@@ -182,13 +182,12 @@ zochoices.each {
 */
 ZoVersions = ZoTitles[0].split()
 ZoVersion = ZoVersions[1]
+ZoLibPath2 = ZoPaths[0] + "/lib/"
 if (ZoVersion > "1.2.9") {
     ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
-    ZoLibPath2 = ZoLibPath + ":" + ZoPaths[0] + "/lib/"
 }
 else {
     ZoLibPath = ZoPaths[0] + "/lib/"
-    ZoLibPath2 = ZoLibPath
 }
 
 // HERE
@@ -201,7 +200,7 @@ MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).t
     PYTHONPATH needs to point to the version-specific for includes
 */
 
-MyEnvironment = "${params.ENVIRONMENT}".replace('ZOAUDIR/lib', ZoLibPath2).
+MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
 replaceAll('ZOAUDIR/lib', ZoLibPath).
 replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
