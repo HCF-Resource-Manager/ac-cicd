@@ -184,15 +184,25 @@ ZoVersions = ZoTitles[0].split()
 ZoVersion = ZoVersions[1]
 if (ZoVersion > "1.2.9") {
     ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
+    ZoLibPath2 = ZoLibPath + ":" + ZoPaths[0] + "/lib/"
 }
 else {
     ZoLibPath = ZoPaths[0] + "/lib/"
+    ZoLibPath2 = ZoLibPath
 }
 
 // HERE
 MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
-MyEnvironment = "${params.ENVIRONMENT}".replaceAll('ZOAUDIR/lib', ZoLibPath).
+/*
+    Not pretty: the FIRST zoaudir/lib is for LIBPATH
+    subsequent entries are for pythonpath
+    LIBPATH needs to point to the main /lib folder for the .so file
+    PYTHONPATH needs to point to the version-specific for includes
+*/
+
+MyEnvironment = "${params.ENVIRONMENT}".replace('ZOAUDIR/lib', ZoLibPath2).
+replaceAll('ZOAUDIR/lib', ZoLibPath).
 replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
 
@@ -667,7 +677,7 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
-        echo "Pipeline Code: J5f patched on 18 January, 2024"
+        echo "Pipeline Code: J5f patch 2 on 23 January, 2024"
         echo "Target: " + TARGET_HOST
         echo "Python: " + PythonTitles[0]
         echo "zoau ver: " + ZoTitles[0]
