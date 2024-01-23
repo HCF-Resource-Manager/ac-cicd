@@ -689,11 +689,11 @@ node('master') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
         } else if (ANSIBLE_VERSION == '2.13.7') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.14.1') {
+        } else if (ANSIBLE_VERSION == '2.14.13') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.15.5'){
+        } else if (ANSIBLE_VERSION == '2.15.8'){
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
-        } else if (ANSIBLE_VERSION == '2.16.0'){
+        } else if (ANSIBLE_VERSION == '2.16.2'){
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
         }else if (ANSIBLE_VERSION == 'LATEST') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
