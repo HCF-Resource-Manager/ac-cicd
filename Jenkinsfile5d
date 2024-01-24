@@ -144,6 +144,13 @@ pychoices.each {
 }
 
 /*
+    Get version of first selected python
+    This is needed for zoau pathing when zoau >= 1.3
+*/
+PythonVers = PythonTitles[0].split()
+PythonVer = PythonVers[1].substring(0,4)
+
+/*
     zopaths is the list of all known paths
     zochoices is the list[] of selected entries (as text)
     ZoAllPaths is a map of [title]=>path
@@ -169,11 +176,33 @@ zochoices.each {
     ZoTitles << "${it}"
 }
 
-// HERE
-MyPythonPath = "${params.PYTHON_PATH}".replaceAll("PYTHONDIR", PythonPaths[0]).trim()
-MyEnvironment = "${params.ENVIRONMENT}".replaceAll("ZOAUDIR", ZoPaths[0]).replaceAll("PYTHONDIR", PythonPaths[0]).trim()
+/*
+    Check zoa version of first selected zoau
+    if appropriate, use newer zoLibPath
+*/
+ZoVersions = ZoTitles[0].split()
+ZoVersion = ZoVersions[1]
+ZoLibPath2 = ZoPaths[0] + "/lib/"
+if (ZoVersion > "1.2.9") {
+    ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
+}
+else {
+    ZoLibPath = ZoPaths[0] + "/lib/"
+}
 
-echo "\r\n\r\n------MPP:\r\n" + MyPythonPath + "\r\n\r\n------MEnv:\r\n" + MyEnvironment + "\r\n"
+// HERE
+MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).trim()
+
+/*
+    Not pretty: the FIRST zoaudir/lib is for LIBPATH
+    subsequent entries are for pythonpath
+    LIBPATH needs to point to the main /lib folder for the .so file
+    PYTHONPATH needs to point to the version-specific for includes
+*/
+
+MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
+replaceAll('ZOAUDIR/lib', ZoLibPath).
+replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
 
 /* -------------------------------------------------------------------------- */
@@ -383,7 +412,7 @@ def COLOR_MAP = [
 
 /* --------------------------- Notes ---------------------------------------- */
 /* We no longer rely on the requirements.txt in our ansible-core repo under
-/* tests because dependebot will keep falgging us as 2.9.x is out of community
+/* tests because dependebot will keep flagging us as 2.9.x is out of community
 /* support but not enterprise support. We still support it through Sept 2023.
 /*
 /* Removed:
@@ -647,6 +676,7 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
+        echo "Pipeline Code: J5f patch 2 on 23 January, 2024"
         echo "Target: " + TARGET_HOST
         echo "Python: " + PythonTitles[0]
         echo "zoau ver: " + ZoTitles[0]
@@ -919,8 +949,17 @@ node('master') {
                             * ----------------------------------------------------------------------------
                             */
                             if (VERBOSITY.toBoolean()){
-                                echo '-------------------------- initial data skipped tests -------------------'
-                                echo "${params.SKIP_FUNCTIONAL_TESTS}"
+                                echo '-------------------------- forced tests ---------------------------------'
+                                if ("${params.FORCE_TESTS}") {
+                                    echo 'FORCE TESTS found - skip tests will be ignored'
+                                    echo 'FORCE TESTS found - run_all_tests will be ignored'
+                                    echo "${params.FORCE_TESTS}"
+                                }
+                                else {
+                                    echo '..no force tests found..'
+                                    echo '-------------------------- initial data skipped tests -------------------'
+                                    echo "${params.SKIP_FUNCTIONAL_TESTS}"
+                                }
                                 echo '-------------------------------------------------------------------------'
                             }
 
@@ -929,32 +968,35 @@ node('master') {
                             /* If skip_tests  is empty, hard code this to be skipped till it can be evaluated
                             * functional/modules/test_module_security.py
                             */
+
                             if (!skip_tests) {
                                 skip_tests = "functional/modules/test_module_security.py"
                             }
 
-                            echo '-------------------------- skipped tests --------------------------------'
-                            echo skip_tests
-                            echo '-------------------------------------------------------------------------'
-                            echo "next: dependencyfinder switch"
-                            echo '-------------------------------------------------------------------------'
-
-                            if (RUN_ALL_TESTS.toBoolean()){
-                                echo '--------------------------- Tests Found ---------------------------------'
-                                tests = sh (script: "./dependencyfinder.py -p .. -a -s \"${skip_tests}\" ", returnStdout: true)
-                                echo tests
+                            if (!"${params.FORCE_TESTS}") {
+                                echo '-------------------------- skipped tests --------------------------------'
+                                echo skip_tests
                                 echo '-------------------------------------------------------------------------'
-                            }else{
-                                echo '--------------------------- Tests Found ---------------------------------'
-                                tests = sh (script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s \"${skip_tests}\" -m || true", returnStdout: true)
-                                echo tests
-                                echo '-------------------------------------------------------------------------'
+                                if (RUN_ALL_TESTS.toBoolean()){
+                                    tests = sh (script: "./dependencyfinder.py -p .. -a -s \"${skip_tests}\" ", returnStdout: true)
+                                }else{
+                                    echo '--------------------------- Tests Found ---------------------------------'
+                                    tests = sh (script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s \"${skip_tests}\" -m || true", returnStdout: true)
+                                }
                             }
+                            else {
+                                tests = "${params.FORCE_TESTS}".stripIndent().replaceAll('\n'," ").replaceAll(","," ").replaceAll(" +"," ")
+                            }
+
+                            echo '--------------------------- Tests Found ---------------------------------'
+                            echo tests
+                            echo '-------------------------------------------------------------------------'
 
                             if (tests) {
                                 // temporary output to show configuration
                                 def out = ''
                                 if (VERBOSITY.toBoolean()){
+                                    echo '\r\n Pre-test configuration data---------------------vvv'
                                     out = sh (script: "set | grep -i ansib || true", returnStdout: true)
                                     echo out
                                     out = sh (script: "ansible-config dump 2>&1 || true", returnStdout: true)
@@ -972,6 +1014,7 @@ node('master') {
                                     echo out
                                     out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                     echo out
+                                    echo '\r\n Pre-test configuration data---------------------^^^'
                                     out = ''
                                 }
                                 if(ANSIBLE_VERSION < '2.15'){
@@ -979,16 +1022,39 @@ node('master') {
                                     if(VERBOSITY.toBoolean()){
                                         verbosity = '-vvv -s'
                                     }
-                                    for (int i = 0; i < 10; i++) {
-                                        out = sh (script: "python3 -m pytest ${verbosity} -x -rf --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
-                                        if (checkForConnectionErrors(out)) {
-                                            sleep(20)
-                                        } else {
-                                            break
+                                    if(VERIFY_IS_NOT_LATENCY_PROBLEMS.toBoolean()){
+                                        for (int i = 0; i < 10; i++) {
+                                            out = sh (script: "python3 -m pytest ${verbosity} -rf --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                            if (checkForConnectionErrors(out)) {
+                                                sleep(20)
+                                            } else {
+                                                break
+                                            }
                                         }
+                                        echo out
+                                        echo "Check Last Failed Ones"
+                                        for (int i = 0; i < 10; i++) {
+                                            out = sh (script: "python3 -m pytest ${verbosity} -x --lf --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                            if (checkForConnectionErrors(out)) {
+                                                sleep(20)
+                                            } else {
+                                                break
+                                            }
+                                        }
+                                        echo out
+                                        checkForPytestFails(out)
+                                    }else{
+                                        for (int i = 0; i < 10; i++) {
+                                            out = sh (script: "python3 -m pytest ${verbosity} -x -rf --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                            if (checkForConnectionErrors(out)) {
+                                                sleep(20)
+                                            } else {
+                                                break
+                                            }
+                                        }
+                                        echo out
+                                        checkForPytestFails(out)
                                     }
-                                    echo out
-                                    checkForPytestFails(out)
                                 }
                             }
                         }
@@ -1000,17 +1066,42 @@ node('master') {
                                 }
                                 tests = tests.replace("../",'')
                                 echo tests
-                                for (int i = 0; i < 10; i++) {
-                                    sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                    out = sh (script: "python3 -m pytest ${verbosity} -x -rf --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
-                                    if (checkForConnectionErrors(out)) {
-                                        sleep(20)
-                                    } else {
-                                        break
+                                if(VERIFY_IS_NOT_LATENCY_PROBLEMS.toBoolean()){
+                                    for (int i = 0; i < 10; i++) {
+                                        sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
+                                        out = sh (script: "python3 -m pytest ${verbosity} -rf --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                        if (checkForConnectionErrors(out)) {
+                                            sleep(20)
+                                        } else {
+                                            break
+                                        }
                                     }
+                                    echo out
+                                    echo "Check Last Failed Ones"
+                                    for (int i = 0; i < 10; i++) {
+                                        sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
+                                        out = sh (script: "python3 -m pytest ${verbosity} -x --lf --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                        if (checkForConnectionErrors(out)) {
+                                            sleep(20)
+                                        } else {
+                                            break
+                                        }
+                                    }
+                                    echo out
+                                    checkForPytestFails(out)
+                                }else{
+                                    for (int i = 0; i < 10; i++) {
+                                        sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
+                                        out = sh (script: "python3 -m pytest ${verbosity} -x -rf --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                        if (checkForConnectionErrors(out)) {
+                                            sleep(20)
+                                        } else {
+                                            break
+                                        }
+                                    }
+                                    echo out
+                                    checkForPytestFails(out)
                                 }
-                                echo out
-                                checkForPytestFails(out)
                             }
                         }
                     }
@@ -1037,7 +1128,7 @@ node('master') {
     }
 
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
-    echo 'NOT attempting cleanup\n\n'
+    echo '\r\ncleanup run: \r\n' + out + '\r\n'
     echo out
 
 }
