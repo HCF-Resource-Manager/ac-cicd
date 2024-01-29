@@ -156,6 +156,7 @@ zochoices.each {
 MyPythonPath = "${params.PYTHON_PATH}".replaceAll("PYTHONDIR", PythonPaths[0]).trim()
 MyEnvironment = "${params.ENVIRONMENT}".replaceAll("ZOAUDIR", ZoPaths[0]).replaceAll("PYTHONDIR", PythonPaths[0]).trim()
 echo "\r\n\r\n------MPP:\r\n" + MyPythonPath + "\r\n\r\n------MEnv:\r\n" + MyEnvironment + "\r\n"
+MyVolumes = "${params.VOLUMES}".trim()
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
 /* -------------------------------------------------------------------------- */
@@ -790,7 +791,7 @@ node('master') {
                         }
                         // next 2 writes are added so they are visible within docker repo
                         dir("tests"){
-                            writeFile(file: "test_config.yml", text: generateTestConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
+                            writeFile(file: "test_config.yml", text: generateTestConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
                             echo "test_config.yml is here: "
                             sh script: "pwd"
                             sh "cat test_config.yml"
