@@ -163,14 +163,17 @@ MyVolumes = "${params.VOLUMES}".trim()
 // Buld and returns a string to be used as the contents of
 // a YAML-formatted configuration file. The configuration file
 // is consumed by functional testing pytest fixtures
-def generateYmlConfig = { hostName, username, pythonPath, environment ->
+def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def indent = '    '
+    def list_volumes = '  - ' + volumes.split("\\n").join('\n' + indent)
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     return """host: ${hostName}
 user: ${username}
 python_path: ${pythonPath}
 environment:
 ${indentedEnv}
+VOLUMES:
+${list_volumes}
 """
 }
 // Build and return a string to use as contents for an Ansible inventory file
@@ -636,7 +639,7 @@ node('master') {
         *                  Create YAML config file for use by pytest fixtures
         * ----------------------------------------------------------------------------
         */
-        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
+        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
         sh "cat ${REPO}/configuration.yml"
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
@@ -791,7 +794,7 @@ node('master') {
                         }
                         // next 2 writes are added so they are visible within docker repo
                         dir("tests"){
-                            writeFile(file: "test_config.yml", text: generateTestConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
+                            writeFile(file: "test_config.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
                             echo "test_config.yml is here: "
                             sh script: "pwd"
                             sh "cat test_config.yml"
