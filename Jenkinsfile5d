@@ -165,7 +165,7 @@ MyVolumes = "${params.VOLUMES}".trim()
 // is consumed by functional testing pytest fixtures
 def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def indent = '    '
-    def list_volumes = '  - ' + volumes.split("\\n").join('\n' + indent)
+    def listvolumes = '  - ' + volumes.split("\\n").join('\n' + indent)
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     return """host: ${hostName}
 user: ${username}
@@ -173,7 +173,7 @@ python_path: ${pythonPath}
 environment:
 ${indentedEnv}
 VOLUMES:
-${list_volumes}
+${listvolumes}
 """
 }
 // Build and return a string to use as contents for an Ansible inventory file
