@@ -797,8 +797,8 @@ node('master') {
                         dir("tests"){
                             writeFile(file: "test_config.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
                             echo "test_config.yml is here: "
-                            sh script: "pwd"
-                            sh "cat test_config.yml"
+                            sh script:"pwd"
+                            sh script: "cat test_config.yml"
                         }
                         sh "cat playbooks/ansible.cfg"
                         echo "--- this is in dockerenv ^^^"

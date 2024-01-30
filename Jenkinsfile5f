@@ -203,6 +203,7 @@ MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).t
 MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
 replaceAll('ZOAUDIR/lib', ZoLibPath).
 replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
+MyVolumes = "${params.VOLUMES}".trim()
 
 
 /* -------------------------------------------------------------------------- */
@@ -212,14 +213,18 @@ replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 // Buld and returns a string to be used as the contents of
 // a YAML-formatted configuration file. The configuration file
 // is consumed by functional testing pytest fixtures
-def generateYmlConfig = { hostName, username, pythonPath, environment ->
+def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def indent = '    '
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
+    def listmarker = '  - '
+    def listvolumes = listmarker + volumes.split("\\n").join('\n' + listmarker)
     return """host: ${hostName}
 user: ${username}
 python_path: ${pythonPath}
 environment:
 ${indentedEnv}
+VOLUMES:
+${listvolumes}
 """
 }
 
@@ -741,7 +746,7 @@ node('master') {
         *                  Create YAML config file for use by pytest fixtures
         * ----------------------------------------------------------------------------
         */
-        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
+        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
         sh "cat ${REPO}/configuration.yml"
         withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
             sh "set +x ; cat ${privKey} > sshkey"
@@ -918,10 +923,10 @@ node('master') {
                         }
                         // next 2 writes are added so they are visible within docker repo
                         dir("tests"){
-                            writeFile(file: "test_config.yml", text: generateTestConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment))
+                            writeFile(file: "test_config.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
                             echo "test_config.yml is here: "
                             sh script: "pwd"
-                            sh "cat test_config.yml"
+                            sh script: "cat test_config.yml"
                         }
                         sh "cat playbooks/ansible.cfg"
                         echo "--- this is in dockerenv ^^^"
