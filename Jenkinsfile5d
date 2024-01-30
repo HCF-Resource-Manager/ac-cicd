@@ -165,7 +165,8 @@ MyVolumes = "${params.VOLUMES}".trim()
 // is consumed by functional testing pytest fixtures
 def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def indent = '    '
-    def listvolumes = '  - ' + volumes.split("\\n").join('\n' + indent)
+    def listmarker = '  - '
+    def listvolumes = listmarker + volumes.split("\\n").join('\n' + listmarker)
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     return """host: ${hostName}
 user: ${username}
