@@ -156,7 +156,7 @@ zochoices.each {
 MyPythonPath = "${params.PYTHON_PATH}".replaceAll("PYTHONDIR", PythonPaths[0]).trim()
 MyEnvironment = "${params.ENVIRONMENT}".replaceAll("ZOAUDIR", ZoPaths[0]).replaceAll("PYTHONDIR", PythonPaths[0]).trim()
 echo "\r\n\r\n------MPP:\r\n" + MyPythonPath + "\r\n\r\n------MEnv:\r\n" + MyEnvironment + "\r\n"
-MyVolumes = "${params.VOLUMES}".trim()
+MyVolumes = "${params.VOLUMES}".toString().trim()
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
 /* -------------------------------------------------------------------------- */

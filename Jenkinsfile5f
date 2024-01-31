@@ -203,7 +203,7 @@ MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).t
 MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
 replaceAll('ZOAUDIR/lib', ZoLibPath).
 replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
-MyVolumes = "${params.VOLUMES}".trim()
+MyVolumes = "${params.VOLUMES}".toString().trim()
 
 
 /* -------------------------------------------------------------------------- */
