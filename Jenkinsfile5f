@@ -1027,8 +1027,18 @@ node('master') {
                                     if(VERBOSITY.toBoolean()){
                                         verbosity = '-vvv -s'
                                     }
+                                    markers = ""
+                                    if("${params.MARKER_NAME}"){
+                                        markers = "-m '${params.MARKER_NAME}' "
+                                    }
+
+                                    test = ""
+                                    if("${params.TEST_NAME}"){
+                                        test = "-k '${params.TEST_NAME}' "
+                                    }
+
                                     for (int i = 0; i < 10; i++) {
-                                        out = sh (script: "python3 -m pytest ${verbosity} -x -rf --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                        out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                         if (checkForConnectionErrors(out)) {
                                             sleep(20)
                                         } else {
@@ -1048,9 +1058,20 @@ node('master') {
                                 }
                                 tests = tests.replace("../",'')
                                 echo tests
+
+                                markers = ""
+                                if("${params.MARKER_NAME}"){
+                                    markers = "-m '${params.MARKER_NAME}' "
+                                }
+
+                                test = ""
+                                if("${params.TEST_NAME}"){
+                                    test = "-k '${params.TEST_NAME}' "
+                                }
+
                                 for (int i = 0; i < 10; i++) {
                                     sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                    out = sh (script: "python3 -m pytest ${verbosity} -x -rf --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                    out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
                                     if (checkForConnectionErrors(out)) {
                                         sleep(20)
                                     } else {
