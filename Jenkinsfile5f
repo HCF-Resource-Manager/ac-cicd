@@ -1100,7 +1100,7 @@ node('master') {
         echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}"
         slackSend channel: 'ansible_core_pipeline',
                   color: COLOR_MAP[currentBuild.currentResult],
-                  message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}.\n",
+                  message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER} and branch${BRANCH}.\n",
                   notifyCommitters : true,
                   token: "khHdIxFQQGwogXiweiexn4RO"
     }
