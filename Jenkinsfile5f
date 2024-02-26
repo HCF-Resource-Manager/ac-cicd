@@ -1052,6 +1052,8 @@ node('master') {
                         }
                         if (tests) {
                             if(ANSIBLE_VERSION >= '2.15'){
+                                out = sh (script: "pip freeze")
+                                echo out
                                 verbosity = '-v'
                                 if(VERBOSITY.toBoolean()){
                                     verbosity = '-vvv -s'
