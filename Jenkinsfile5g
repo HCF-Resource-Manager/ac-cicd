@@ -343,7 +343,7 @@ def checkForBanditErrors(output) {
 
 
 def checkForChangelogParsingErrors(output) {
-    if (Pattern.compile(/.*(parsing\serror)/).matcher(output).find()) {
+    if (Pattern.compile(/.*parsing\serror.*/).matcher(output).find()) {
         error("Changelog fragment error: \n ${output}")
     }
 }
