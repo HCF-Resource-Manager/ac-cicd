@@ -341,6 +341,13 @@ def checkForBanditErrors(output) {
     }
 }
 
+
+def checkForChangelogParsingErrors(output) {
+    if (Pattern.compile(/.*parsing\serror.*/).matcher(output).find()) {
+        error("Changelog fragment error: \n ${output}")
+    }
+}
+
 /* -------------------------------------------------------------------------- */
 /*                           helper functions                                 */
 /* -------------------------------------------------------------------------- */
@@ -849,6 +856,16 @@ node('master') {
     try{
         stage('Ansible Certification Tests') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+                dir("${REPO}") {
+                    inout = sh (script: 'pip3 install antsibull-changelog || true', returnStdout: true)
+                    out = sh (script: 'antsibull-changelog lint || true', returnStdout: true)
+                    if (VERBOSITY.toBoolean()) {
+                        echo '----------------------------- Changelog lint output ------------------------------'
+                        echo out
+                        echo '--------------------------------------------------------------------------'
+                    }
+                    checkForChangelogParsingErrors(out)
+                }
                 dir("${REPO}") {
                     dir("ansible_collections/ibm/${REPO}") {
 
