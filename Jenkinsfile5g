@@ -875,19 +875,17 @@ node('master') {
                 dir("${REPO}") {
                     dir("ansible_collections/ibm/${REPO}") {
                         if (CODE_COVERAGE.toBoolean()) {
-                            scr_cmd = 'ansible-test coverage sanity 2>&1 || true'
-                        }
-                        else {
-                            scr_cmd = 'ansible-test sanity 2>&1 || true'
-                        }
-                        out = sh(script: scr_cmd, returnStdout: true)
-
-                        if (VERBOSITY.toBoolean()) {
-                            echo '\n----------------------------- Sanity output ------------------------------'
+                            scr_cmd = 'ansible-test coverage report 2>&1 || true'
+                            out = sh(script: scr_cmd, returnStdout: true)
+                            echo '\n----------------------------- Coverage output ------------------------------'
                             echo out
                             echo '\n--------------------------------------------------------------------------'
                         }
-                        else if(CODE_COVERAGE.toBoolean()) {
+
+                        scr_cmd = 'ansible-test sanity 2>&1 || true'
+                        out = sh(script: scr_cmd, returnStdout: true)
+
+                        if (VERBOSITY.toBoolean()) {
                             echo '\n----------------------------- Sanity output ------------------------------'
                             echo out
                             echo '\n--------------------------------------------------------------------------'
