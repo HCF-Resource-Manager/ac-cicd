@@ -882,7 +882,12 @@ node('master') {
                         }
                         out = sh(script: scr_cmd, returnStdout: true)
 
-                        if ((VERBOSITY.toBoolean()) or (CODE_COVERAGE.toBoolean())) {
+                        if (VERBOSITY.toBoolean()) {
+                            echo '\n----------------------------- Sanity output ------------------------------'
+                            echo out
+                            echo '\n--------------------------------------------------------------------------'
+                        }
+                        else if(CODE_COVERAGE.toBoolean()) {
                             echo '\n----------------------------- Sanity output ------------------------------'
                             echo out
                             echo '\n--------------------------------------------------------------------------'
