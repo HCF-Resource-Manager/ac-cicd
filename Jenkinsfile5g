@@ -875,7 +875,7 @@ node('master') {
                 dir("${REPO}") {
                     dir("ansible_collections/ibm/${REPO}") {
                         if (CODE_COVERAGE.toBoolean()) {
-                            inout = sh(script: 'pip3 install coverage || true', returnStdout: true)
+                            inout = sh(script: 'pip3 install coverage == 6.5.0 || true', returnStdout: true)
 
                             scr_cmd = 'ansible-test coverage report 2>&1 || true'
                             out = sh(script: scr_cmd, returnStdout: true)
