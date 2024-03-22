@@ -929,16 +929,26 @@ node('master') {
     }
     try{
         stage('Check changelog lint') {
-            dir("${REPO}") {
-                inout = sh (script: 'pip3 install antsibull-changelog || true', returnStdout: true)
-                out = sh (script: 'antsibull-changelog lint-changelog-yaml || true', returnStdout: true)
-                echo '----------------------------- Changelog lint output ------------------------------'
-                    echo out
-                echo '--------------------------------------------------------------------------'
+            dir("${REPO}"){
+                echo '-------------------------- Set up virtualenv --------------------------------'
+                sh(script: 'pip install virtualenv', returnStdout: true)
+                sh(script: 'mkdir venv', returnStdout: true)
+                sh(script: 'virtualenv venv/venv-2.16', returnStdout: true)
+                echo '-------------------------- Run virtualenv --------------------------------'
+                sh(script: 'source venv/venv-2.16/bin/activate', returnStdout: true)
+                sh(script: 'pip install antsibull-changelog ansible-importer galaxy-importer', returnStdout: true)
+                echo '-------------------------- Run Changlog lint --------------------------------'
+                out = sh(script: './ac --ac-changelog --command lint', returnStdout: true)
+                echo out
                 checkForAnsibleLintErrors(out)
+                echo '-------------------------- Run Galaxy Importer --------------------------------'
+                out = sh(script: './ac --ac-galaxy-importer', returnStdout: true)
+                echo out
+                checkForAnsibleLintErrors(out)
+                sh(script: 'deactivate', returnStdout: true)
             }
         }
-    }catch(e){
+    }catch (e){
         echo e.toString()
         build_ok = false
     }
@@ -1076,7 +1086,7 @@ node('master') {
                                     }
 
                                     for (int i = 0; i < 10; i++) {
-                                        out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                        out = sh (script: "python3 -m pytest ${verbosity} -x -lf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
                                         if (checkForConnectionErrors(out)) {
                                             sleep(20)
                                         } else {
@@ -1109,7 +1119,7 @@ node('master') {
 
                                 for (int i = 0; i < 10; i++) {
                                     sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                    out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                    out = sh (script: "python3 -m pytest ${verbosity} -x -lf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
                                     if (checkForConnectionErrors(out)) {
                                         sleep(20)
                                     } else {
