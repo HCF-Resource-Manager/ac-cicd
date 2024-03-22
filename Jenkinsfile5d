@@ -936,7 +936,7 @@ node('master') {
                 sh(script: 'virtualenv venv/venv-2.16', returnStdout: true)
                 echo '-------------------------- Run virtualenv --------------------------------'
                 sh(script: 'source venv/venv-2.16/bin/activate', returnStdout: true)
-                sh(script: 'pip install antsibull-changelog ansible-importer galaxy-importer', returnStdout: true)
+                sh(script: 'pip install ansible antsibull-changelog ansible-importer galaxy-importer', returnStdout: true)
                 echo '-------------------------- Run Changlog lint --------------------------------'
                 out = sh(script: './ac --ac-changelog --command lint', returnStdout: true)
                 echo out
