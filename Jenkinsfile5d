@@ -874,6 +874,7 @@ node('master') {
                 }
                 dir("${REPO}") {
                     collection_name = sh(script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'")
+                    collection_name = toString(collection_name)
                     dir("ansible_collections/ibm/${REPO}") {
 
                         out = sh (script: 'ansible-test sanity >> sanity.txt || true', returnStdout: true)
