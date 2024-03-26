@@ -878,7 +878,7 @@ node('master') {
 
                         out = sh (script: 'ansible-test sanity >> sanity.txt || true', returnStdout: true)
                         out1 = sh (script: 'antsibull-changelog lint >> antsibull.txt || true', returnStdout: true)
-                        out2 = sh (script: 'python -m galaxy_importer.main ${collection_name}  >> galaxy.txt || true', returnStdout: true)
+                        out2 = sh (script: 'python3 -m galaxy_importer.main ${collection_name}  >> galaxy.txt || true', returnStdout: true)
 
                         echo '----------------------------- Sanity output ------------------------------'
                         sh 'cat sanity.txt'
