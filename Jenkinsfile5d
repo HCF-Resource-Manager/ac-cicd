@@ -876,21 +876,25 @@ node('master') {
                     collection_name = sh(script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'")
                     dir("ansible_collections/ibm/${REPO}") {
 
-                        out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
-                        out1 = sh (script: 'antsibull-changelog lint 2>&1 || true', returnStdout: true)
-                        out2 = sh (script: 'python -m galaxy_importer.main ${collection_name} || true', returnStdout: true)
+                        out = sh (script: 'ansible-test sanity >> sanity.txt || true', returnStdout: true)
+                        out1 = sh (script: 'antsibull-changelog lint >> antsibull.txt || true', returnStdout: true)
+                        out2 = sh (script: 'python -m galaxy_importer.main ${collection_name}  >> galaxy.txt || true', returnStdout: true)
 
                         echo '----------------------------- Sanity output ------------------------------'
-                        echo out
+                        sh 'cat sanity.txt'
                         echo '--------------------------------------------------------------------------'
 
                         echo '----------------------------- Changelog Lint ------------------------------'
-                        echo out1
+                        sh 'cat antsibull.txt'
                         echo '--------------------------------------------------------------------------'
 
                         echo '----------------------------- Galaxy Importer ------------------------------'
-                        echo out2
+                        sh 'cat galaxy.txt'
                         echo '--------------------------------------------------------------------------'
+
+                        sh 'rm galaxy.txt'
+                        sh 'rm antsibull.txt'
+                        sh 'rm sanity.txt'
 
                         if (VERBOSITY.toBoolean()) {
                             echo '----------------------------- Sanity output ------------------------------'
