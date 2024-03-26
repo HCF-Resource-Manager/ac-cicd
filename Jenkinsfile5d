@@ -863,25 +863,13 @@ node('master') {
         stage('Ansible Certification Tests') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
                 dir("${REPO}") {
-                    inout = sh (script: 'pip3 install antsibull-changelog ansible-importer galaxy-importer || true', returnStdout: true)
-                    out = sh (script: 'antsibull-changelog lint || true', returnStdout: true)
-                    if (VERBOSITY.toBoolean()) {
-                        echo '----------------------------- Changelog lint output ------------------------------'
-                        echo out
-                        echo '--------------------------------------------------------------------------'
-                    }
-                    checkForChangelogParsingErrors(out)
-                }
-                dir("${REPO}") {
                     dir("ansible_collections/ibm/${REPO}") {
 
-                        out = sh (script: 'ansible-test sanity >> sanity.txt || true', returnStdout: true)
+                        out = sh (script: 'ansible-test sanity || true', returnStdout: true)
 
                         echo '----------------------------- Sanity output ------------------------------'
-                        sh 'cat sanity.txt'
+                        echo out
                         echo '--------------------------------------------------------------------------'
-
-                        sh 'rm sanity.txt'
 
                         checkForAnsibleTestErrors(out)
 
@@ -908,13 +896,15 @@ node('master') {
     }
     try{
         stage('Ansible Lint in Fragments') {
-            dir("${REPO}"){
-                echo "-------------------------- Run command --------------------------------"
-                echo " #Note, if there is any fail is notify otherwise the output is empty"
-                out = sh (script: "antsibull-changelog lint >> changelog_lint.txt", returnStdout: true)
-                sh script: "cat changelog_lint.txt"
-                sh script: "rm changelog_lint.txt"
-                checkForAnsibleTestErrors(out)
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}") {
+                    inout = sh (script: 'pip3 install antsibull-changelog || true', returnStdout: true)
+                    out = sh (script: 'antsibull-changelog lint || true', returnStdout: true)
+                    echo '----------------------------- Changelog lint output ------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+                    checkForChangelogParsingErrors(out)
+                }
             }
         }
     }catch(e){
@@ -923,14 +913,18 @@ node('master') {
     }
     try{
         stage('Galaxy Importer') {
-            dir("${REPO}"){
-                collection_name = sh (script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'")
-                echo "Collection ${collection_name}"
-                echo "-------------------------- Run command --------------------------------"
-                out = sh (script: "python3 -m galaxy_importer.main ${collection_name} >> galaxy_importer.txt", returnStdout: true)
-                sh script: "cat galaxy_importer.txt"
-                sh script: "rm galaxy_importer.txt"
-                checkForAnsibleTestErrors(out)
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}"){
+                    inout = sh (script: 'pip3 install galaxy-importer ansible-importer || true', returnStdout: true)
+                    sh script: "ansible-galaxy collection build --force"
+                    collection_name = sh (script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'")
+                    echo "Collection ${collection_name}"
+                    echo "-------------------------- Run command --------------------------------"
+                    out = sh (script: "python3 -m galaxy_importer.main ${collection_name} >> galaxy_importer.txt", returnStdout: true)
+                    sh script: "cat galaxy_importer.txt"
+                    sh script: "rm galaxy_importer.txt"
+                    checkForAnsibleTestErrors(out)
+                }
             }
         }
     }catch(e){
