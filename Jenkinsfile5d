@@ -883,11 +883,6 @@ node('master') {
 
                         sh 'rm sanity.txt'
 
-                        if (VERBOSITY.toBoolean()) {
-                            echo '----------------------------- Sanity output ------------------------------'
-                            echo out
-                            echo '--------------------------------------------------------------------------'
-                        }
                         checkForAnsibleTestErrors(out)
 
                         if (RUN_ANSIBLE_LINT.toBoolean()) {
@@ -912,20 +907,30 @@ node('master') {
         build_ok = false
     }
     try{
-        stage('Run virtual enviroment for ansible test') {
+        stage('Ansible Lint in Fragments') {
             dir("${REPO}"){
-                echo "-------------------------- Set up virtualenv --------------------------------"
-                sh script: "pip install virtualenv"
-                sh script: "mkdir venv"
-                sh script: "virtualenv venv/venv-2.16"
-                echo "-------------------------- Run virtualenv --------------------------------"
-                sh script: "source venv/venv-2.16/bin/activate"
-                sh script: "pip install ansible-core antsibull-changelog ansible-importer galaxy-importer"
-                echo "-------------------------- Run Changlog lint --------------------------------"
-                sh script: "./ac --ac-changelog --command lint"
-                echo "-------------------------- Run Galaxy Importer --------------------------------"
-                sh script: "./ac --ac-galaxy-importer"
-                sh script: "deactivate"
+                echo "-------------------------- Run command --------------------------------"
+                echo " #Note, if there is any fail is notify otherwise the output is empty"
+                out = sh (script: "antsibull-changelog lint >> changelog_lint.txt", returnStdout: true)
+                sh script: "cat changelog_lint.txt"
+                sh script: "rm changelog_lint.txt"
+                checkForAnsibleTestErrors(out)
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
+        stage('Galaxy Importer') {
+            dir("${REPO}"){
+                collection_name = sh (script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'")
+                echo "Collection ${collection_name}"
+                echo "-------------------------- Run command --------------------------------"
+                out = sh (script: "python3 -m galaxy_importer.main ${collection_name} >> galaxy_importer.txt", returnStdout: true)
+                sh script: "cat galaxy_importer.txt"
+                sh script: "rm galaxy_importer.txt"
+                checkForAnsibleTestErrors(out)
             }
         }
     }catch(e){
