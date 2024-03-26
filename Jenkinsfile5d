@@ -917,7 +917,7 @@ node('master') {
                 dir("${REPO}"){
                     inout = sh (script: 'pip3 install galaxy-importer ansible-importer || true', returnStdout: true)
                     sh script: "ansible-galaxy collection build --force"
-                    collection_name = sh (script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'")
+                    collection_name = sh (script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'", returnStdout: true)
                     echo "Collection ${collection_name}"
                     echo "-------------------------- Run command --------------------------------"
                     out = sh (script: "python3 -m galaxy_importer.main ${collection_name} >> galaxy_importer.txt", returnStdout: true)
