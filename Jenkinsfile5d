@@ -930,22 +930,24 @@ node('master') {
     try{
         stage('Check changelog lint') {
             dir("${REPO}"){
-                echo '-------------------------- Set up virtualenv --------------------------------'
-                sh script: 'pip install virtualenv', returnStdout: true
-                sh script: 'mkdir venv', returnStdout: true
-                sh script: 'virtualenv venv/venv-2.16', returnStdout: true
-                echo '-------------------------- Run virtualenv --------------------------------'
-                sh script: 'source venv/venv-2.16/bin/activate', returnStdout: true
-                sh script: 'pip install ansible antsibull-changelog ansible-importer galaxy-importer', returnStdout: true
-                echo '-------------------------- Run Changlog lint --------------------------------'
-                out = sh script: './ac --ac-changelog --command lint 2>&1 || true', returnStdout: true
+                echo "-------------------------- Set up virtualenv --------------------------------"
+                sh script: "pip install virtualenv"
+                sh script: "mkdir venv"
+                out = sh script: "virtualenv venv/venv-2.16"
+                echo out
+                echo "-------------------------- Run virtualenv --------------------------------"
+                out = sh script: "source venv/venv-2.16/bin/activate"
+                echo out
+                sh script: "pip install ansible antsibull-changelog ansible-importer galaxy-importer"
+                echo "-------------------------- Run Changlog lint --------------------------------"
+                out = sh script: "./ac --ac-changelog --command lint 2>&1 || true"
                 echo out
                 checkForAnsibleLintErrors(out)
-                echo '-------------------------- Run Galaxy Importer --------------------------------'
-                out = sh script: './ac --ac-galaxy-importer 2>&1 || true', returnStdout: true
+                echo "-------------------------- Run Galaxy Importer --------------------------------"
+                out = sh script: "./ac --ac-galaxy-importer 2>&1 || true"
                 echo out
                 checkForAnsibleLintErrors(out)
-                sh(script: 'deactivate', returnStdout: true)
+                sh script: "deactivate"
             }
         }
     }catch (e){
