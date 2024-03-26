@@ -878,23 +878,11 @@ node('master') {
                     dir("ansible_collections/ibm/${REPO}") {
 
                         out = sh (script: 'ansible-test sanity >> sanity.txt || true', returnStdout: true)
-                        out1 = sh (script: 'antsibull-changelog lint >> antsibull.txt || true', returnStdout: true)
-                        out2 = sh (script: 'python3 -m galaxy_importer.main ${collection_name}  >> galaxy.txt || true', returnStdout: true)
 
                         echo '----------------------------- Sanity output ------------------------------'
                         sh 'cat sanity.txt'
                         echo '--------------------------------------------------------------------------'
 
-                        echo '----------------------------- Changelog Lint ------------------------------'
-                        sh 'cat antsibull.txt'
-                        echo '--------------------------------------------------------------------------'
-
-                        echo '----------------------------- Galaxy Importer ------------------------------'
-                        sh 'cat galaxy.txt'
-                        echo '--------------------------------------------------------------------------'
-
-                        sh 'rm galaxy.txt'
-                        sh 'rm antsibull.txt'
                         sh 'rm sanity.txt'
 
                         if (VERBOSITY.toBoolean()) {
@@ -919,6 +907,27 @@ node('master') {
                         }
                     }
                 }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
+        stage('Run virtual enviroment for ansible test') {
+            dir("${REPO}"){
+                echo "-------------------------- Set up virtualenv --------------------------------"
+                sh script: "pip install virtualenv"
+                sh script: "mkdir venv"
+                sh script: "virtualenv venv/venv-2.16"
+                echo "-------------------------- Run virtualenv --------------------------------"
+                sh script: "source venv/venv-2.16/bin/activate"
+                sh script: "pip install ansible-core antsibull-changelog ansible-importer galaxy-importer"
+                echo "-------------------------- Run Changlog lint --------------------------------"
+                sh script: "./ac --ac-changelog --command lint"
+                echo "-------------------------- Run Galaxy Importer --------------------------------"
+                sh script: "./ac --ac-galaxy-importer"
+                sh script: "deactivate"
             }
         }
     }catch(e){
