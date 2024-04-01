@@ -1138,7 +1138,6 @@ node('master') {
     } else {
         currentBuild.result = "FAILURE"
     }
-    /*
     stage('Notify Post-build') {
         BUILD_USER = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
         echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}"
@@ -1148,9 +1147,8 @@ node('master') {
                   notifyCommitters : true,
                   token: "khHdIxFQQGwogXiweiexn4RO"
     }
-    */
-    // out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
-    echo '\r\ncleanup NOT run: \r\n' + out + '\r\n'
+    out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
+    echo '\r\ncleanup run: \r\n' + out + '\r\n'
     echo out
 
 }
