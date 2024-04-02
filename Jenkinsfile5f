@@ -863,25 +863,14 @@ node('master') {
         stage('Ansible Certification Tests') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
                 dir("${REPO}") {
-                    inout = sh (script: 'pip3 install antsibull-changelog || true', returnStdout: true)
-                    out = sh (script: 'antsibull-changelog lint || true', returnStdout: true)
-                    if (VERBOSITY.toBoolean()) {
-                        echo '----------------------------- Changelog lint output ------------------------------'
-                        echo out
-                        echo '--------------------------------------------------------------------------'
-                    }
-                    checkForChangelogParsingErrors(out)
-                }
-                dir("${REPO}") {
                     dir("ansible_collections/ibm/${REPO}") {
 
-                        out = sh (script: 'ansible-test sanity 2>&1 || true', returnStdout: true)
+                        out = sh (script: 'ansible-test sanity || true', returnStdout: true)
 
-                        if (VERBOSITY.toBoolean()) {
-                            echo '----------------------------- Sanity output ------------------------------'
-                            echo out
-                            echo '--------------------------------------------------------------------------'
-                        }
+                        echo '----------------------------- Sanity output ------------------------------'
+                        echo out
+                        echo '--------------------------------------------------------------------------'
+
                         checkForAnsibleTestErrors(out)
 
                         if (RUN_ANSIBLE_LINT.toBoolean()) {
@@ -898,6 +887,43 @@ node('master') {
                             checkForAnsibleLintErrors(out)
                         }
                     }
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
+        stage('Ansible Lint in Fragments') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}") {
+                    inout = sh (script: 'pip3 install antsibull-changelog || true', returnStdout: true)
+                    out = sh (script: 'antsibull-changelog lint || true', returnStdout: true)
+                    echo '----------------------------- Changelog lint output ------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+                    checkForChangelogParsingErrors(out)
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
+        stage('Galaxy Importer') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}"){
+                    inout = sh (script: 'pip3 install galaxy-importer ansible-importer || true', returnStdout: true)
+                    sh script: "ansible-galaxy collection build --force"
+                    collection_name = sh (script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'", returnStdout: true)
+                    echo "Collection ${collection_name}"
+                    echo "-------------------------- Run command --------------------------------"
+                    out = sh (script: "python3 -m galaxy_importer.main ${collection_name} >> galaxy_importer.txt", returnStdout: true)
+                    sh script: "cat galaxy_importer.txt"
+                    sh script: "rm galaxy_importer.txt"
+                    checkForAnsibleTestErrors(out)
                 }
             }
         }
