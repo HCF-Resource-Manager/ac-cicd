@@ -1087,11 +1087,7 @@ node('master') {
                                     }
 
                                     for (int i = 0; i < 10; i++) {
-                                        out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
-                                        if (checkForConnectionErrors(out)) {
-                                            sleep(20)
-                                        } else {
-                                            break
+                                        sh (script: "python3 -m pytest ${verbosity} -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests})
                                         }
                                     }
                                     echo out
@@ -1120,12 +1116,7 @@ node('master') {
 
                                 for (int i = 0; i < 10; i++) {
                                     sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                    out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
-                                    if (checkForConnectionErrors(out)) {
-                                        sleep(20)
-                                    } else {
-                                        break
-                                    }
+                                    sh (script: "python3 -m pytest ${verbosity} -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}")
                                 }
                                 echo out
                                 checkForPytestFails(out)
