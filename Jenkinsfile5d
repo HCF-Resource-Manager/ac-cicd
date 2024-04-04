@@ -1074,7 +1074,7 @@ node('master') {
                                 if(ANSIBLE_VERSION < '2.15'){
                                     verbosity = '-v'
                                     if(VERBOSITY.toBoolean()){
-                                        verbosity = '-vvv -s'
+                                        verbosity = '-vvv -s --trace'
                                     }
                                     markers = ""
                                     if("${params.MARKER_NAME}"){
@@ -1086,11 +1086,8 @@ node('master') {
                                         test = "-k '${params.TEST_NAME}' "
                                     }
 
-                                    for (int i = 0; i < 10; i++) {
-                                        sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ")
-                                    }
-                                    echo out
-                                    checkForPytestFails(out)
+                                    sh (script: "python3 -m pytest ${verbosity} --maxfail=${Failures_accepted} --pdb  -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ")
+
                                 }
                             }
                         }
@@ -1098,7 +1095,7 @@ node('master') {
                             if(ANSIBLE_VERSION >= '2.15'){
                                 verbosity = '-v'
                                 if(VERBOSITY.toBoolean()){
-                                    verbosity = '-vvv -s'
+                                    verbosity = '-vvv -s --trace'
                                 }
                                 tests = tests.replace("../",'')
                                 echo tests
@@ -1113,12 +1110,9 @@ node('master') {
                                     test = "-k '${params.TEST_NAME}' "
                                 }
 
-                                for (int i = 0; i < 10; i++) {
-                                    sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                    sh (script: "python3 -m pytest ${verbosity} -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}")
-                                }
-                                echo out
-                                checkForPytestFails(out)
+                                sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
+                                sh (script: "python3 -m pytest ${verbosity} --maxfail=${Failures_accepted} --pdb  -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}")
+
                             }
                         }
                     }
