@@ -1086,7 +1086,7 @@ node('master') {
                                         test = "-k '${params.TEST_NAME}' "
                                     }
 
-                                    sh (script: "python3 -m pytest ${verbosity} --maxfail=${Failures_accepted} --pdb  -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ")
+                                    sh (script: "python3 -m pytest ${verbosity} --pdb --maxfail=${Failures_accepted} -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ")
 
                                 }
                             }
@@ -1111,7 +1111,7 @@ node('master') {
                                 }
 
                                 sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                sh (script: "python3 -m pytest ${verbosity} --maxfail=${Failures_accepted} --pdb  -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}")
+                                sh (script: "python3 -m pytest ${verbosity} --pdb --maxfail=${Failures_accepted} -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}")
 
                             }
                         }
