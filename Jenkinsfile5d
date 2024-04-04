@@ -1086,7 +1086,7 @@ node('master') {
                                         test = "-k '${params.TEST_NAME}' "
                                     }
 
-                                    sh (script: "python3 -m pytest ${verbosity} --maxfail=${Failures_accepted} -rf ${markers} ${test} --junitxml=resume.xml --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ")
+                                    sh (script: "python3 -m pytest --showlocals --tb=long ${verbosity} --maxfail=${Failures_accepted} -rf ${markers} ${test} --junitxml=resume.xml --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ")
                                     out = sh (script: "cat resume.xml", returnStdout: True)
                                     echo out
                                     sh (script: "rm resume.xml")
@@ -1114,7 +1114,7 @@ node('master') {
                                 }
 
                                 sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
-                                sh (script: "python3 -m pytest ${verbosity} --maxfail=${Failures_accepted} -rf ${markers} ${test} --junitxml=resume.xml --durations=0 --host-pattern=all --zinventory=tests/test_config.yml ${tests}")
+                                sh (script: "python3 -m pytest --showlocals --tb=long ${verbosity} --maxfail=${Failures_accepted} -rf ${markers} ${test} --junitxml=resume.xml --durations=0 --host-pattern=all --zinventory=tests/test_config.yml ${tests}")
 
                                 out = sh (script: "cat resume.xml", returnStdout: True)
                                 echo out
