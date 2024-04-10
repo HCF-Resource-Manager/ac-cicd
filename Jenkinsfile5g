@@ -889,7 +889,7 @@ node('master') {
                             echo '\n-------------------------- Ansible lint output ---------------------------'
                             echo 'install: ' + inout
                             echo '\n-----------'
-                            echo 'lv requested: ' + ANSIBLE_LINE_VERSION
+                            echo 'lv requested: ' + ANSIBLE_LINT_VERSION
                             echo 'lint version: ' + versioninfo
                             echo 'lint profile: ' + LINT_PROFILE
                             echo '\n-----------'
