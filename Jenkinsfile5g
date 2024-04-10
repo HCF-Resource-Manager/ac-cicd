@@ -734,9 +734,9 @@ node('master') {
             if (secondkey == '11') {
                 DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
             } else {
-                if (secondkey < 15) {
+                if (secondkey < '15') {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-                } else if (secondkey == 15) {
+                } else if (secondkey == '15') {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
                 } else {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
