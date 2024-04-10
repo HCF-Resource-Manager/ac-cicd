@@ -895,6 +895,36 @@ node('master') {
         build_ok = false
     }
     try{
+        stage('Check for fragments') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}") {
+                    sh (script: 'git fetch')
+                    sh (script: 'git checkout origin/${BRANCH}')
+                    dir('changelogs'){
+                        dir('fragments'){
+                            LS_BASE = sh (script: 'ls', returnStdout:True)
+                        }
+                    }
+                    sh (script: 'git checkout origin/${PULL_REQUEST_BASE_BRANCH} ./changelogs/fragments/')
+                    dir('changelogs'){
+                        dir('fragments'){
+                            LS_ALL = sh (script: 'ls', returnStdout:True)
+                            sh (script: 'git checkout origin/${BRANCH}')
+                        }
+                    }
+                    out = sh (script:  '[ ${LS_ALL} -ge ${LS_BASE} ] || (echo "No new changelog file was found" && return 1)', returnStdout:True)
+                    echo '--------------------------------------------------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+                    checkForChangelogParsingErrors(out)
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
         stage('Ansible Lint in Fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}") {
