@@ -729,16 +729,18 @@ node('master') {
         else if (ANSIBLE_VERSION == 'LATEST') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         } else {
-            secondkey = ANSIBLE_VERSION.split(.)[1]
+            secondkey = ANSIBLE_VERSION.split('.')[1]
             echo "\nsecondkey is " + secondkey + "\n"
-            if (secondkey == 11) {
+            if (secondkey == '11') {
                 DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
-            } else if (secondkey >= 12 and secondkey < 15) {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-            } else if (secondkey == 15) {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
             } else {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+                if (secondkey < 15) {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+                } else if (secondkey == 15) {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
+                } else {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+                }
             }
         }
 
