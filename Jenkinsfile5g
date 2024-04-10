@@ -728,23 +728,9 @@ node('master') {
         }
         else if (ANSIBLE_VERSION == 'LATEST') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
-        }
-        } else if (ANSIBLE_VERSION == '2.11.12') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_11
-        } else if (ANSIBLE_VERSION == '2.12.10') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.13.7') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.14.1') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.14.13') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-        } else if (ANSIBLE_VERSION == '2.15.8'){
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
-        } else if (ANSIBLE_VERSION == '2.15.5'){
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
         } else {
             secondkey = ANSIBLE_VERSION.split(.)[1]
+            echo "\nsecondkey is " + secondkey + "\n"
             if (secondkey == 11) {
                 DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
             } else if (secondkey >= 12 and secondkey < 15) {
