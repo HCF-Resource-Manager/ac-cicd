@@ -743,7 +743,10 @@ node('master') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
         } else if (ANSIBLE_VERSION == '2.16.2'){
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
-        } else if (ANSIBLE_VERSION == 'LATEST') {
+        } else if (ANSIBLE_VERSION == '2.17.0'){
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+        }
+        else if (ANSIBLE_VERSION == 'LATEST') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         }
 
@@ -874,12 +877,20 @@ node('master') {
                         checkForAnsibleTestErrors(out)
 
                         if (RUN_ANSIBLE_LINT.toBoolean()) {
-                            inout = sh (script: 'pip3 install ansible-lint || true', returnStdout: true)
+                            vstring = ''
+                            if (ANSIBLE_LINT_VERSION.length() > 0) {
+                                vstring = "==" + ANSIBLE_LINT_VERSION + " "
+                            }
+
+                            inout = sh (script: 'pip3 install ansible-lint ' + vstring + '|| true', returnStdout: true)
+                            versioninfo = sh( script: 'ansible-lint --version')
 
                             out = sh (script: 'ansible-lint --profile production -c .ansible-lint 2>&1 || true', returnStdout: true)
                             if (VERBOSITY.toBoolean()) {
                                 echo '\n-------------------------- Ansible lint output ---------------------------'
                                 echo 'install: ' + inout
+                                echo '\n-----------'
+                                echo 'version: ' + versioninfo
                                 echo '\n-----------'
                                 echo 'output: ' + out
                                 echo '\n--------------------------------------------------------------------------'
