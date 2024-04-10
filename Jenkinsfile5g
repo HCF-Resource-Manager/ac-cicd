@@ -729,7 +729,8 @@ node('master') {
         else if (ANSIBLE_VERSION == 'LATEST') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
         } else {
-            secondkey = ANSIBLE_VERSION.split('.')[1]
+            fullkey = ANSIBLE_VERSION.split('.')
+            secondkey = fullkey[1]
             echo "\nsecondkey is " + secondkey + "\n"
             if (secondkey == '11') {
                 DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
