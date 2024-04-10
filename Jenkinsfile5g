@@ -883,12 +883,13 @@ node('master') {
                             }
 
                             inout = sh (script: 'pip3 install ansible-lint' + vstring + ' || true', returnStdout: true)
-                            versioninfo = sh( script: 'ansible-lint --version')
+                            versioninfo = sh(script: 'ansible-lint --version || true', returnStdout: true)
 
                             out = sh (script: 'ansible-lint --profile ' + LINT_PROFILE + ' -c .ansible-lint 2>&1 || true', returnStdout: true)
                             echo '\n-------------------------- Ansible lint output ---------------------------'
                             echo 'install: ' + inout
                             echo '\n-----------'
+                            echo 'lv requested: ' + ANSIBLE_LINE_VERSION
                             echo 'lint version: ' + versioninfo
                             echo 'lint profile: ' + LINT_PROFILE
                             echo '\n-----------'
