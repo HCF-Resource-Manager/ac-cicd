@@ -897,20 +897,12 @@ node('master') {
     try{
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
-                dir("${REPO}") {
-                    dir('changelogs'){
-                        dir('fragments'){
-                            LS_BASE = sh (script: 'ls', returnStdout:True)
-                        }
-                    }
-                    sh (script: 'git checkout origin/${PULL_REQUEST_BASE_BRANCH} ./changelogs/fragments/')
-                    dir('changelogs'){
-                        dir('fragments'){
-                            LS_ALL = sh (script: 'ls', returnStdout:True)
-                            sh (script: 'git checkout origin/${BRANCH}')
-                        }
-                    }
-                    out = sh (script:  '[ ${LS_ALL} -ge ${LS_BASE} ] || (echo "No new changelog file was found" && return 1)', returnStdout:True)
+                dir("${REPO}/changelogs/fragments") {
+                    LS_BASE = sh (script: 'ls -1 | wc -l', returnStdout:True)
+                    sh (script: 'git pull || git fetch || git checkout origin/${PULL_REQUEST_BASE_BRANCH}')
+                    LS_ALL = sh (script: 'ls -1 | wc -l', returnStdout:True)
+                    sh (script: 'git checkout ${BRANCH}')
+                    out = sh (script:  '[ ${LS_ALL} -ge ${LS_BASE} ]', returnStdout:True)
                     echo '--------------------------------------------------------------------------'
                     echo out
                     echo '--------------------------------------------------------------------------'
