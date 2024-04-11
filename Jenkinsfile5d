@@ -908,7 +908,7 @@ node('master') {
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo ls_all
                     sh (script: 'git checkout ${BRANCH}')
-                    out = sh (script:  '[ ${ls_all} -ge ${ls_base} ]', returnStdout: true)
+                    out = sh (script:  '[ ${ls_all} -gt ${ls_base} ]', returnStdout: true)
                     echo '--------------------------------------------------------------------------'
                     echo out
                     echo '--------------------------------------------------------------------------'
