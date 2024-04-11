@@ -902,6 +902,34 @@ node('master') {
         build_ok = false
     }
     try{
+        stage('Check for fragments') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}/changelogs/fragments") {
+                    sh (script: 'git branch')
+                    echo '---------------Check for fragments---------------------------------------'
+                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
+                    echo ls_base
+                    sh (script: 'git pull')
+                    sh (script: 'git fetch')
+                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
+                    ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
+                    echo ls_all
+                    sh (script: 'git checkout ${BRANCH}')
+                    echo '--------------------------------------------------------------------------'
+                    if ( ls_base > ls_all ) {
+                        echo 'Changelog found'
+                    }else{
+                        error("Changelog fragment error: fragment not aded")
+                    }
+                    echo '--------------------------------------------------------------------------'
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
         stage('Ansible Lint in Fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}") {
