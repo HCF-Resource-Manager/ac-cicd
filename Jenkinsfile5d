@@ -902,9 +902,9 @@ node('master') {
                     echo '---------------Check for fragments---------------------------------------'
                     ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo ls_base
-                    sh (script: 'git pull || git fetch || git checkout origin/${PULL_REQUEST_BASE_BRANCH}')
+                    sh (script: 'git pull')
                     sh (script: 'git fetch')
-                    sh (script: 'git checkout -b ${PULL_REQUEST_BASE_BRANCH} origin/${PULL_REQUEST_BASE_BRANCH}')
+                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo ls_all
                     sh (script: 'git checkout ${BRANCH}')
