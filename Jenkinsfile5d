@@ -898,9 +898,12 @@ node('master') {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
-                    LS_BASE = sh (script: 'ls -1 | wc -l', returnStdout:True)
+                    echo '---------------Check for fragments---------------------------------------'
+                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout:True)
+                    echo ls_Base
                     sh (script: 'git pull || git fetch || git checkout origin/${PULL_REQUEST_BASE_BRANCH}')
-                    LS_ALL = sh (script: 'ls -1 | wc -l', returnStdout:True)
+                    ls_all = sh (script: 'ls -1 | wc -l', returnStdout:True)
+                    echo ls_all
                     sh (script: 'git checkout ${BRANCH}')
                     out = sh (script:  '[ ${LS_ALL} -ge ${LS_BASE} ]', returnStdout:True)
                     echo '--------------------------------------------------------------------------'
