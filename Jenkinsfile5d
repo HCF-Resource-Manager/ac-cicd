@@ -908,11 +908,13 @@ node('master') {
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo ls_all
                     sh (script: 'git checkout ${BRANCH}')
-                    out = sh (script:  '[ ${ls_all} -gt ${ls_base} ]', returnStdout: true)
                     echo '--------------------------------------------------------------------------'
-                    echo out
+                    if ( ls_base > ls_all ) {
+                        echo 'Changelog found'
+                    }else{
+                        error("Changelog fragment error: fragment not aded")
+                    }
                     echo '--------------------------------------------------------------------------'
-                    checkForChangelogParsingErrors(out)
                 }
             }
         }
