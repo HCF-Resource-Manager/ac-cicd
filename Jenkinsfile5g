@@ -945,8 +945,9 @@ node('master') {
                 dir("${REPO}") {
                     inout = sh (script: 'pip3 install antsibull-changelog || true', returnStdout: true)
                     out = sh (script: 'antsibull-changelog lint || true', returnStdout: true)
-                    echo '----------------------------- Changelog lint output ------------------------------'
-                    echo out
+                    echo '------------------------- Changelog lint output --------------------------'
+                    echo 'input ' + inout
+                    echo '\noutput ' + out
                     echo '--------------------------------------------------------------------------'
                     checkForChangelogParsingErrors(out)
                 }
