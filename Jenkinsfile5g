@@ -910,19 +910,21 @@ node('master') {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
-                    sh (script: 'git branch ${PULL_REQUEST_BASE_BRANCH};')
-                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
+                    sh (script: 'git switch ${PULL_REQUEST_BASE_BRANCH};')
+                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
                     sh (script: 'git pull')
                     sh (script: 'git fetch')
                     echo '---------------Check for fragments in base--------------------------------'
                     ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
-                    echo ls_base
+                    echo 'fragments in base: ' + ls_base
                     // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
                     echo '---------------Check for fragments in branch------------------------------'
-                    sh (script: 'git branch ${BRANCH}')
-                    sh (script: 'git checkout ${BRANCH}')
+                    sh (script: 'git switch ${BRANCH}')
+                    // sh (script: 'git checkout ${BRANCH}')
+                    sh (script: 'git pull')
+                    sh (script: 'git fetch')
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
-                    echo ls_all
+                    echo 'fragments in branch: ' + ls_all
                     echo '--------------------------------------------------------------------------'
                     if ( ls_base > ls_all ) {
                         echo 'Changelog entries found'
@@ -1057,10 +1059,16 @@ node('master') {
                                     echo '-------------------------- initial data skipped tests -------------------'
                                     echo "${params.SKIP_FUNCTIONAL_TESTS}"
                                 }
+                                if ("${params.MARKER_NAME}") {
+                                    echo "TEST MARKER DEFINED: ${params.MARKER_NAME}"
+                                }
+                                if ("${params.TEST_NAME}") {
+                                    echo "TEST LIMIT DEFINED: ${params.TEST_NAME}"
+                                }
+
                                 echo '-------------------------------------------------------------------------'
                             }
 
-                            // def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll(".py+",".py ").replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," ")
                             def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll('\n'," ").replaceAll(","," ").replaceAll(" +"," ")
                             /* If skip_tests  is empty, hard code this to be skipped till it can be evaluated
                             * functional/modules/test_module_security.py
