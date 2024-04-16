@@ -723,6 +723,7 @@ node('master') {
         * ----------------------------------------------------------------------------
         */
 
+        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS
         if (ANSIBLE_VERSION == '2.9.27') {
             DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
         }
@@ -740,6 +741,10 @@ node('master') {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
                 } else {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+
+                    if (secondkey > '16') {
+                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                    }
                 }
             }
         }
@@ -905,20 +910,22 @@ node('master') {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
-                    // sh (script: 'git branch')
+                    sh (script: 'git branch ${PULL_REQUEST_BASE_BRANCH};')
                     sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
-                    echo '---------------Check for fragments---------------------------------------'
-                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
-                    echo ls_base
                     sh (script: 'git pull')
                     sh (script: 'git fetch')
+                    echo '---------------Check for fragments in base--------------------------------'
+                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
+                    echo ls_base
                     // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
+                    echo '---------------Check for fragments in branch------------------------------'
+                    sh (script: 'git branch ${BRANCH}')
+                    sh (script: 'git checkout ${BRANCH}')
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo ls_all
-                    sh (script: 'git checkout ${BRANCH}')
                     echo '--------------------------------------------------------------------------'
                     if ( ls_base > ls_all ) {
-                        echo 'Changelog found'
+                        echo 'Changelog entries found'
                     }else{
                         error("Changelog fragment error: fragment not added")
                     }
@@ -1004,7 +1011,7 @@ node('master') {
                 -e ANSIBLE_TIMEOUT=30") {
                     dir("${REPO}") {
                         dir('playbooks') {
-                            writeFile(file: 'ansible.cfg', text: ANSIBLE_CONFIG_CONTENTS)
+                            writeFile(file: 'ansible.cfg', text: GLOB_ANSCONFIG)
                         }
                         // next 2 writes are added so they are visible within docker repo
                         dir("tests"){
