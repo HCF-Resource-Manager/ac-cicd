@@ -910,18 +910,18 @@ node('master') {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
-                    sh (script: 'git switch ${PULL_REQUEST_BASE_BRANCH};')
+                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
                     // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
-                    sh (script: 'git pull')
+                    sh (script: 'git pull origin ${PULL_REQUEST_BASE_BRANCH};')
                     sh (script: 'git fetch')
                     echo '---------------Check for fragments in base--------------------------------'
                     ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo 'fragments in base: ' + ls_base
                     // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
                     echo '---------------Check for fragments in branch------------------------------'
-                    sh (script: 'git switch ${BRANCH}')
+                    sh (script: 'git checkout ${BRANCH}')
                     // sh (script: 'git checkout ${BRANCH}')
-                    sh (script: 'git pull')
+                    sh (script: 'git pull origin ${BRANCH}')
                     sh (script: 'git fetch')
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo 'fragments in branch: ' + ls_all
