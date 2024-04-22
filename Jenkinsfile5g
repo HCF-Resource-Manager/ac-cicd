@@ -688,7 +688,7 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
-        echo "Pipeline Code: J5f patch 2 on 23 January, 2024"
+        echo "Pipeline Code: J5g patch 8 on 14 April, 2024"
         echo "Target: " + TARGET_HOST
         echo "Python: " + PythonTitles[0]
         echo "zoau ver: " + ZoTitles[0]
