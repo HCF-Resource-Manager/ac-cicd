@@ -895,6 +895,39 @@ node('master') {
         build_ok = false
     }
     try{
+        stage('Check for fragments') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}/changelogs/fragments") {
+                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
+                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
+                    sh (script: 'git pull origin ${PULL_REQUEST_BASE_BRANCH};')
+                    sh (script: 'git fetch')
+                    echo '---------------Check for fragments in base--------------------------------'
+                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
+                    echo 'fragments in base: ' + ls_base
+                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
+                    echo '---------------Check for fragments in branch------------------------------'
+                    sh (script: 'git checkout ${BRANCH}')
+                    // sh (script: 'git checkout ${BRANCH}')
+                    sh (script: 'git pull origin ${BRANCH}')
+                    sh (script: 'git fetch')
+                    ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
+                    echo 'fragments in branch: ' + ls_all
+                    echo '--------------------------------------------------------------------------'
+                    if ( ls_all > ls_base ) {
+                        echo 'Changelog entries found'
+                    }else{
+                        error("Changelog fragment error: fragment not added")
+                    }
+                    echo '--------------------------------------------------------------------------'
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
         stage('Ansible Lint in Fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}") {

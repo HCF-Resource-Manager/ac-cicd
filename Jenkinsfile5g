@@ -926,7 +926,7 @@ node('master') {
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
                     echo 'fragments in branch: ' + ls_all
                     echo '--------------------------------------------------------------------------'
-                    if ( ls_base > ls_all ) {
+                    if ( ls_all > ls_base ) {
                         echo 'Changelog entries found'
                     }else{
                         error("Changelog fragment error: fragment not added")
