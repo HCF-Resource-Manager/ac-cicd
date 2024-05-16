@@ -649,8 +649,8 @@ pytest-ansible==4.1.1
 COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
-/* Lastest */
-DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_9 + ENV_VARS +  """
+/* Latest */
+DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_11 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
 RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
 && apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \

@@ -1,0 +1,350 @@
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@1341.vd9fa_65f771dd">
+  <actions>
+    <org.jenkinsci.plugins.workflow.multibranch.JobPropertyTrackerAction plugin="workflow-multibranch@756.v891d88f2cd46">
+      <jobPropertyDescriptors>
+        <string>org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty</string>
+        <string>hudson.model.ParametersDefinitionProperty</string>
+        <string>jenkins.model.BuildDiscarderProperty</string>
+      </jobPropertyDescriptors>
+    </org.jenkinsci.plugins.workflow.multibranch.JobPropertyTrackerAction>
+  </actions>
+  <description>Build system using Jenkinsfile 5g&#xd;
+&#xd;
+</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <hudson.plugins.jira.JiraProjectProperty plugin="jira@3.12"/>
+    <jenkins.model.BuildDiscarderProperty>
+      <strategy class="hudson.tasks.LogRotator">
+        <daysToKeep>-1</daysToKeep>
+        <numToKeep>-1</numToKeep>
+        <artifactDaysToKeep>-1</artifactDaysToKeep>
+        <artifactNumToKeep>-1</artifactNumToKeep>
+      </strategy>
+    </jenkins.model.BuildDiscarderProperty>
+    <org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
+      <abortPrevious>false</abortPrevious>
+    </org.jenkinsci.plugins.workflow.job.properties.DisableConcurrentBuildsJobProperty>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.StringParameterDefinition>
+          <name>TARGET_HOST</name>
+          <description>Address of test host (EC{{2}}A.vmec.svl.ibm.com)</description>
+          <defaultValue>EC{{2}}A.vmec.svl.ibm.com</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <com.cloudbees.plugins.credentials.CredentialsParameterDefinition plugin="credentials@1309.v8835d63eb_d8a_">
+          <name>TARGET_HOST_PRIVATE_KEY</name>
+          <defaultValue>omvsadm-2</defaultValue>
+          <credentialType>com.cloudbees.plugins.credentials.common.StandardCredentials</credentialType>
+          <required>false</required>
+        </com.cloudbees.plugins.credentials.CredentialsParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>USERNAME</name>
+          <defaultValue>omvsadm</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>PYTHON_PATH</name>
+          <defaultValue>PYTHONDIR/bin/python3</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>ENVIRONMENT</name>
+          <defaultValue>_BPXK_AUTOCVT: &quot;ON&quot;
+_CEE_RUNOPTS: &quot;&apos;FILETAG(AUTOCVT,AUTOTAG) POSIX(ON)&apos;&quot;
+_TAG_REDIR_ERR: txt
+_TAG_REDIR_IN: txt
+_TAG_REDIR_OUT: txt
+LANG: C
+ZOAU_HOME: &quot;ZOAUDIR&quot;
+ZOAU: &quot;ZOAUDIR/bin&quot;
+ZOAU_ROOT: &quot;ZOAUDIR&quot;
+LIBPATH: &quot;ZOAUDIR/lib:PYTHONDIR/lib:/lib:/usr/lib:.&quot;
+ZOAUTIL_DIR: &quot;ZOAUDIR&quot;
+PYTHONPATH: &quot;ZOAUDIR/lib&quot;
+PYTHON_HOME: &quot;PYTHONDIR&quot;
+PYTHON: &quot;PYTHONDIR/bin&quot;
+PATH: &quot;ZOAUDIR/bin:PYTHONDIR/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin&quot;
+PYTHONSTDINENCODING: &quot;cp1047&quot;</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>VOLUMES</name>
+          <description>Set list of prefer volumes to work with along the test suite run, every new volume in a new line.</description>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>REPO</name>
+          <description>Repository being used</description>
+          <defaultValue>ibm_zos_core</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>ANSIBLE_VERSION</name>
+          <description>Which version of Ansible to use on the Controller</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>2.17.0b1</string>
+              <string>2.16.5</string>
+              <string>2.16.4</string>
+              <string>2.16.0</string>
+              <string>2.15.5</string>
+              <string>2.14.1</string>
+              <string>2.13.7</string>
+              <string>2.12.10</string>
+              <string>2.11.12</string>
+              <string>2.9.27</string>
+              <string>LATEST</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>ANSIBLE_CONFIG_CONTENTS</name>
+          <description>Set the ansible.cfg options if you have others.</description>
+          <defaultValue>[defaults]
+forks = 25
+timeout = 30
+collections_paths = ~/.ansible/collections
+module_utils = ~/.ansible/collections/ansible_collections/ibm/ibm_zos_core/plugins/module_utils
+host_key_checking = False
+
+[ssh_connection]
+pipelining = True
+ssh_args = -o ControlMaster=auto -o ControlPersist=28800 -o ConnectTimeout=240s
+
+[connection]
+pipelining = True
+</defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>RUN_ALL_TESTS</name>
+          <description>Specifies all test suites be run, honors the any values in SKIP_FUNCTIONAL_TESTS, disables PULL_REQUEST_BASE_BRANCH</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>VERBOSITY</name>
+          <description>Specifies additional verbosity such as python version, pip version, pip freeze, dependency tree, ansible version, build installation .</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>ANSIBLE_TEST_ONLY</name>
+          <description>Specifies only Ansible Certification tests and security scan run, meaning no functional tests run.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>RUN_ANSIBLE_LINT</name>
+          <description>If checked, will run ansible-lint against the code after the sanity check.</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>LINT_PROFILE</name>
+          <description>Select the profile to use for lint.  Normally, this should be &apos;production&apos;</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>production</string>
+              <string>moderate</string>
+              <string>safety</string>
+              <string>shared</string>
+              <string>basic</string>
+              <string>min</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>ANSIBLE_LINT_VERSION</name>
+          <description>Version of ansible lint to use.
+DEFAULT (blank) is to use latest.
+Suggested values: 24.2.2, 24.2.1, 6.22.2, 6.22.1, 6.21.1</description>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.BooleanParameterDefinition>
+          <name>CODE_COVERAGE</name>
+          <description>Check to include code coverage data (This will force ansible-test output to display, regardless of verbosity)</description>
+          <defaultValue>false</defaultValue>
+        </hudson.model.BooleanParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>BANDIT_SEVERITY</name>
+          <description>What severity level will trigger a failure and report (higher=less errors)</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>high</string>
+              <string>medium</string>
+              <string>low</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>SKIP_FUNCTIONAL_TESTS</name>
+          <description>Identify which tests to skip, each test suite can be separated by a comma and/or newline.</description>
+          <defaultValue>functional/modules/test_module_security.py </defaultValue>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>FORCE_TESTS</name>
+          <description>Use this field to force ONLY specific tests.
+** Note: This will turn off skip_tests, and the &apos;run all tests&apos; features. **
+tests must start with tests/functional to be located, and be comma or newline separated</description>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>MARKER_NAME</name>
+          <description>Identify witch markers of test suite need to be run.</description>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <hudson.model.TextParameterDefinition>
+          <name>TEST_NAME</name>
+          <description>Identify which test to run, if need to include more than one use AND OR in the sentence in one line.</description>
+          <trim>false</trim>
+        </hudson.model.TextParameterDefinition>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@2.6.5">
+          <name>PYTHON_PICKER</name>
+          <description>Version of python to use on target system</description>
+          <randomName>choice-parameter-60814470615778</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1313.v7a_6067dc7087">
+              <script>File file = new File(&apos;/var/lib/jenkins/multipath-data/alt-pythonlist.txt&apos;)
+pylist = file.readLines()
+PythonTitles = []
+
+pylist.each {
+    title = &quot;${it}&quot;.split(&apos;,&apos;)[0]
+    PythonTitles &lt;&lt; title
+}
+return PythonTitles</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1313.v7a_6067dc7087">
+              <script></script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>{{1}}</projectName>
+          <projectFullName>{{1}}</projectFullName>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>false</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.ChoiceParameter>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@2.6.5">
+          <name>ZOAU_PICKER</name>
+          <description>Version of zoau to use on target system</description>
+          <randomName>choice-parameter-60814471656433</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1313.v7a_6067dc7087">
+              <script>File file = new File(&apos;/var/lib/jenkins/multipath-data/alt-zoaulist.txt&apos;)
+zolist = file.readLines()
+ZoauTitles = []
+
+zolist.each {
+    title = &quot;${it}&quot;.split(&apos;,&apos;)[0]
+    ZoauTitles &lt;&lt; title
+}
+return ZoauTitles</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1313.v7a_6067dc7087">
+              <script></script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>{{1}}</projectName>
+          <projectFullName>{{1}}</projectFullName>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>false</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.ChoiceParameter>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@2.6.5">
+          <name>BRANCH</name>
+          <description>Branch to test</description>
+          <randomName>choice-parameter-60814472813276</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1313.v7a_6067dc7087">
+              <script>def gettags = (&apos;git ls-remote -t -h https://github.com/ansible-collections/ibm_zos_core&apos;).execute()
+
+return gettags.text.readLines().collect { it.split()[1].replaceAll(&apos;refs/heads/&apos;, &apos;&apos;).replaceAll(&apos;refs/tags/&apos;, &apos;&apos;).replaceAll(&apos;\\^\\{\\}&apos;,&apos;&apos;) }</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1313.v7a_6067dc7087">
+              <script></script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>{{1}}</projectName>
+          <projectFullName>{{1}}</projectFullName>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>false</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.ChoiceParameter>
+        <org.biouno.unochoice.ChoiceParameter plugin="uno-choice@2.6.5">
+          <name>PULL_REQUEST_BASE_BRANCH</name>
+          <description>Branch to test against (default = dev branch)</description>
+          <randomName>choice-parameter-60814473726120</randomName>
+          <visibleItemCount>1</visibleItemCount>
+          <script class="org.biouno.unochoice.model.GroovyScript">
+            <secureScript plugin="script-security@1313.v7a_6067dc7087">
+              <script>import groovy.json.JsonSlurper;
+
+// def gettags = (&apos;git ls-remote -t -h https://github.com/ansible-collections/ibm_zos_core&apos;).execute()
+
+// return gettags.text.readLines().collect { it.split()[1].replaceAll(&apos;refs/heads/&apos;, &apos;&apos;).replaceAll(&apos;refs/tags/&apos;, &apos;&apos;).replaceAll(&apos;\\^\\{\\}&apos;,&apos;&apos;) }
+
+try{
+    def url = &quot;https://api.github.com/repos/ansible-collections/ibm_zos_core/branches?per_page=400&quot;
+    def command = &quot;curl $url&quot;
+    List&lt;String&gt;params = new ArrayList&lt;String&gt;()
+    apiUrl = command.execute().text
+    List json = new JsonSlurper().parseText(apiUrl)
+    for (branch in json ) {
+        params.add(branch.name)
+    }
+    params.add(0, &apos;dev:selected&apos;)
+    return params
+}
+catch(IOException ex){
+   print ex
+}</script>
+              <sandbox>false</sandbox>
+            </secureScript>
+            <secureFallbackScript plugin="script-security@1313.v7a_6067dc7087">
+              <script></script>
+              <sandbox>false</sandbox>
+            </secureFallbackScript>
+          </script>
+          <projectName>{{1}}</projectName>
+          <projectFullName>{{1}}</projectFullName>
+          <choiceType>PT_SINGLE_SELECT</choiceType>
+          <filterable>false</filterable>
+          <filterLength>1</filterLength>
+        </org.biouno.unochoice.ChoiceParameter>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsScmFlowDefinition" plugin="workflow-cps@3773.v505e0052522c">
+    <scm class="hudson.plugins.git.GitSCM" plugin="git@5.2.1">
+      <configVersion>2</configVersion>
+      <userRemoteConfigs>
+        <hudson.plugins.git.UserRemoteConfig>
+          <url>git@github.com:HCF-Resource-Manager/ac-cicd.git</url>
+          <credentialsId>47a1fbb8-e3af-4333-8a78-b60394690540</credentialsId>
+        </hudson.plugins.git.UserRemoteConfig>
+      </userRemoteConfigs>
+      <branches>
+        <hudson.plugins.git.BranchSpec>
+          <name>*/main</name>
+        </hudson.plugins.git.BranchSpec>
+      </branches>
+      <doGenerateSubmoduleConfigurations>false</doGenerateSubmoduleConfigurations>
+      <submoduleCfg class="empty-list"/>
+      <extensions/>
+    </scm>
+    <scriptPath>Jenkinsfile5g</scriptPath>
+    <lightweight>true</lightweight>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
