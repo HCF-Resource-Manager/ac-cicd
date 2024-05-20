@@ -742,7 +742,7 @@ node('master') {
                 } else {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
 
-                    if (secondkey > '16') {
+                    if (secondkey >= '16') {
                         GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
                     }
                 }
