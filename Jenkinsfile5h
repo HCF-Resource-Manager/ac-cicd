@@ -905,7 +905,7 @@ node('master') {
                             echo 'yamllint version: ' + versioninfo
                             echo '\n-----------'
                             echo 'output: ' + out
-                            echo 'wd: ' . otherout
+                            echo 'wd: ' + otherout
                             echo '\n--------------------------------------------------------------------------'
                         }
                         if (RUN_PYFLAKES.toBoolean()) {
