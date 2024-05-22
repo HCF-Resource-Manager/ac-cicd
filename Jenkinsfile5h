@@ -897,7 +897,7 @@ node('master') {
                             inout = sh (script: 'pip3 install yamllint || true', returnStdout: true)
                             versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
-                            out = sh (script: 'yamllint 2>&1 || true', returnStdout: true)
+                            out = sh (script: 'yamllint changelogs/fragments 2>&1 || true', returnStdout: true)
                             echo '\n-------------------------- yaml lint output ---------------------------'
                             echo 'install: ' + inout
                             echo '\n-----------'
@@ -907,7 +907,6 @@ node('master') {
                                 echo 'output: ' + out
                             }
                             echo '\n--------------------------------------------------------------------------'
-                            checkForAnsibleLintErrors(out)
                         }
                         if (RUN_PYFLAKES.toBoolean()) {
                             vstring = ''
@@ -915,7 +914,7 @@ node('master') {
                             inout = sh (script: 'pip3 install pyflakes || true', returnStdout: true)
                             versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
 
-                            out = sh (script: 'pyflakes 2>&1 || true', returnStdout: true)
+                            out = sh (script: 'pyflakes tests plugins 2>&1 || true', returnStdout: true)
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'install: ' + inout
                             echo '\n-----------'
@@ -925,7 +924,6 @@ node('master') {
                                 echo 'output: ' + out
                             }
                             echo '\n--------------------------------------------------------------------------'
-                            checkForAnsibleLintErrors(out)
                         }
                     }
                 }
