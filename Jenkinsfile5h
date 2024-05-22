@@ -1,0 +1,1212 @@
+#!groovy
+
+import java.util.regex.*
+import groovy.io.FileType
+import groovy.json.JsonOutput
+import groovy.json.JsonSlurper
+import org.apache.commons.io.FilenameUtils
+
+/*
+properties (
+    [
+        buildDiscarder(
+            logRotator(
+                artifactDaysToKeepStr: '',
+                artifactNumToKeepStr: '',
+                daysToKeepStr: '',
+                numToKeepStr: '')
+        ),
+        disableConcurrentBuilds(),
+        parameters(
+            [
+                // commenting these because they use groovy to populate picklists
+                // string(name: 'BRANCH', defaultValue: 'dev'),
+                // string(name: 'PULL_REQUEST_BASE_BRANCH', defaultValue: 'dev', description: 'Specifies the pull request base branch name, defaults to dev.'),
+                // commentint target_host so it keeps previous value
+                // string(name: 'TARGET_HOST', defaultValue: 'ec33012a.vmec.svl.ibm.com'),
+                // string(name: 'TARGET_HOST', defaultValue: 'ec01132a.vmec.svl.ibm.com'),
+                credentials(name: 'TARGET_HOST_PRIVATE_KEY', defaultValue: 'omvsadm-2', credentialType: 'SSH Username with private key' ),
+                    string(name: 'USERNAME', defaultValue: 'omvsadm'),
+                string(name: 'PYTHON_PATH', defaultValue: '[PYTHONDIR]/bin/python3', required: true),
+                text(
+                    name: 'ENVIRONMENT',
+                    defaultValue: """\
+                        _BPXK_AUTOCVT: "ON"
+                        _CEE_RUNOPTS: "'FILETAG(AUTOCVT,AUTOTAG) POSIX(ON)'"
+                        _TAG_REDIR_ERR: txt
+                        _TAG_REDIR_IN: txt
+                        _TAG_REDIR_OUT: txt
+                        LANG: C
+                        ZOAU_HOME: "[ZOAUDIR]"
+                        ZOAU: "[ZOAUDIR]/bin"
+                        ZOAU_ROOT: "[ZOAUDIR]"
+                        LIBPATH: "[ZOAUDIR]/lib:[PYTHONDIR]/lib:/lib:/usr/lib:."
+                        ZOAUTIL_DIR: "[ZOAUDIR]"
+                        PYTHONPATH: "[ZOAUDIR]/lib"
+                        PYTHON_HOME: "[PYTHONDIR]"
+                        PYTHON: "[PYTHONDIR]/bin"
+                        PATH: "[ZOAUDIR]/bin:[PYTHONDIR]/bin:/bin:/usr/sbin:/var/bin:/usr/lpp/java/java180/J8.0_64/bin"
+                        PYTHONSTDINENCODING: "cp1047" """.stripIndent(),
+                    required: true
+                    ),
+                string(name: 'REPO', defaultValue: 'ibm_zos_core'),
+                choice(name: 'ANSIBLE_VERSION', defaultValue: '2.14.1', choices: ['2.15.2', '2.14.1', '2.13.7', '2.12.10', '2.11.12', '2.9.27', 'LATEST']),
+                text(
+                    name: 'ANSIBLE_CONFIG_CONTENTS',
+                    defaultValue: """\
+                     [defaults]
+                     forks = 25
+                     timeout = 30
+                     collections_paths = ~/.ansible/collections
+                     module_utils = ~/.ansible/collections/ansible_collections/ibm/ibm_zos_core/plugins/module_utils
+
+                     [ssh_connection]
+                     pipelining = True
+                     ssh_args = -o ControlMaster=auto -o ControlPersist=28800 -o ConnectTimeout=240s
+
+                     [connection]
+                     pipelining = True
+                     """.stripIndent(),
+                    description: 'Set the ansible.cfg options if you have others.',
+                    required: true
+                    ),
+                booleanParam(name: 'RUN_ALL_TESTS', defaultValue: false,
+                     description: 'Specifies all test suites be run, honors the any values in SKIP_FUNCTIONAL_TESTS, disables PULL_REQUEST_BASE_BRANCH'),
+                booleanParam(name: 'VERBOSITY', defaultValue: false,
+                     description: 'Specifies additional verbosity such as python version, pip version, pip freeze, dependency tree, ansible version, build installation .'),
+                booleanParam(name: 'ANSIBLE_TEST_ONLY', defaultValue: false,
+                     description: 'Specifies only Ansible Certification tests and security scan run, meaning no functional tests run.'),
+                text(
+                    name: 'SKIP_FUNCTIONAL_TESTS',
+                    defaultValue: """\
+                     functional/modules/test_module_security.py
+                     """.stripIndent().replaceAll(".py+",".py ").replaceAll('\n',"").replaceAll(","," ").replaceAll(" +"," "),
+                    description: 'Identify which tests to skip, each test suite can be separated by a comma and/or newline.',
+                    required: false
+                    ),
+            ]
+        )
+    ]
+)
+*/
+
+YAMLLINT_CONFIG_CONTENTS = '''extends: default
+rules:
+  braces: {max-spaces-inside: 1, level: error}
+  brackets: {max-spaces-inside: 1, level: error}
+  colons: {max-spaces-after: -1, level: error}
+  commas: {max-spaces-after: -1, level: error}
+  comments: disable
+  comments-indentation: disable
+  document-start: disable
+  empty-lines: {max: 3, level: error}
+  hyphens: {level: error}
+  indentation: disable
+  key-duplicates: enable
+  line-length: disable
+  new-line-at-end-of-file: disable
+  new-lines: {type: unix}
+  trailing-spaces: disable
+  truthy: disable
+'''
+
+
+GITHUB_URL = 'api.github.com'
+
+/* -------------------------------------------------------------------------- */
+/*                                Data organizers                             */
+/* -------------------------------------------------------------------------- */
+
+/*
+    pypaths is the list of all known paths
+    pychoices is the list[] of selected entries (as text)
+    PythonAllPaths is a map of all possible [title]=path
+    PythonPaths is a list[] of paths as selected
+    PythonTitles is a list of titles selected
+*/
+
+File file = new File('/var/lib/jenkins/multipath-data/alt-pythonlist.txt')
+pylist = file.readLines()
+PythonAllPaths = [:]
+PythonPaths = []
+PythonTitles = []
+
+pylist.each {
+    (title,path) = "${it}".trim().split(',')
+    rtitle = title.split(':')[0]
+    PythonAllPaths[rtitle] = path
+}
+
+pychoices = params.PYTHON_PICKER.split(',')
+pychoices.each {
+    PythonPaths << PythonAllPaths["${it}"]
+    PythonTitles << "${it}"
+}
+
+/*
+    Get version of first selected python
+    This is needed for zoau pathing when zoau >= 1.3
+*/
+PythonVers = PythonTitles[0].split()
+PythonVer = PythonVers[1].substring(0,4)
+
+/*
+    zopaths is the list of all known paths
+    zochoices is the list[] of selected entries (as text)
+    ZoAllPaths is a map of [title]=>path
+    ZoPaths is a list[] of paths as selected
+    ZoTitles is a list of titles selected
+*/
+
+File file2 = new File('/var/lib/jenkins/multipath-data/alt-zoaulist.txt')
+zopaths = file2.readLines()
+ZoAllPaths = [:]
+ZoTitles = []
+ZoPaths = []
+
+zopaths.each {
+    (title,path) = "${it}".trim().split(',')
+    rtitle = title.split(':')[0]
+    ZoAllPaths[rtitle] = path
+}
+
+zochoices = params.ZOAU_PICKER.split(',')
+zochoices.each {
+    ZoPaths << ZoAllPaths["${it}"]
+    ZoTitles << "${it}"
+}
+
+/*
+    Check zoa version of first selected zoau
+    if appropriate, use newer zoLibPath
+*/
+ZoVersions = ZoTitles[0].split()
+ZoVersion = ZoVersions[1]
+ZoLibPath2 = ZoPaths[0] + "/lib/"
+if (ZoVersion > "1.2.9") {
+    ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
+}
+else {
+    ZoLibPath = ZoPaths[0] + "/lib/"
+}
+
+// HERE
+MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).trim()
+
+/*
+    Not pretty: the FIRST zoaudir/lib is for LIBPATH
+    subsequent entries are for pythonpath
+    LIBPATH needs to point to the main /lib folder for the .so file
+    PYTHONPATH needs to point to the version-specific for includes
+*/
+
+MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
+replaceAll('ZOAUDIR/lib', ZoLibPath).
+replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
+MyVolumes = "${params.VOLUMES}".toString().trim()
+
+
+/* -------------------------------------------------------------------------- */
+/*                                File builders                               */
+/* -------------------------------------------------------------------------- */
+
+// Buld and returns a string to be used as the contents of
+// a YAML-formatted configuration file. The configuration file
+// is consumed by functional testing pytest fixtures
+def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
+    def indent = '    '
+    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
+    def listmarker = '  - '
+    def listvolumes = listmarker + volumes.split("\\n").join('\n' + listmarker)
+    return """host: ${hostName}
+user: ${username}
+python_path: ${pythonPath}
+environment:
+${indentedEnv}
+VOLUMES:
+${listvolumes}
+"""
+}
+
+// Build and return a string to use as contents for an Ansible inventory file
+// def generateInventory = { hostName, username, pythonPath ->
+//    return "${hostName} ansible_user=${username} ansible_python_interpreter=${pythonPath}"
+// }
+
+// Build and return a string to use as contents for
+// a YAML-formatted Ansible vars file for consumption by Ansible playbook
+// def generateGroupVars = { environment ->
+//    def indent = '    '
+//    def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
+//    return """environment_vars:
+// ${indentedEnv}
+// """
+// }
+
+/* -------------------------------------------------------------------------- */
+/*                        Log parsers / error checkers                        */
+/* -------------------------------------------------------------------------- */
+
+// Determine if any of the testcases failed
+// expects pytest output formatting
+def checkForPytestFails(output) {
+    if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(output).find()) {
+        def slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
+        error("One or more pytest testcases failed! \n ${slim_output}")
+    }
+}
+
+// Determines if functional tests failed due to connection errors
+def checkForConnectionErrors(output) {
+    return Pattern.compile(/(?:pytest\_ansible.errors.AnsibleConnectionFailure\:\sHost\sunreachable)/).matcher(output).find()
+}
+
+// Determine if any YAML formatting errors
+// expects yamllint output formatting using custom rules provided in "yamllint.yml"
+def checkForYamlLintErrors(output) {
+    if (Pattern.compile(/\s(?:warning|error)\s/).matcher(output).find()) {
+        error("YAMLLint detected warnings and/or errors! \n ${output}")
+    }
+}
+
+// Determine if any Ansible playbook formatting errors
+// expects ansible-lint output formatting using default rules
+// commented to try new routine mirrored from cfATestErrors
+/* def checkForAnsibleLintErrors(output) {
+    if (Pattern.compile(/^[1-9][0-9]{2,}\s/, Pattern.MULTILINE).matcher(output).find()) {
+        throw new Exception("ansible-lint detected errors! \n ${output}")
+    }
+}*/
+
+// Determine if any tasks failed in a playbook
+// expects output of ansible-playbook
+def checkForAnsiblePlaybookFailure(output) {
+    if (!Pattern.compile(/^[^\s]+\s+\:\sok=[0-9]+\s+changed=[0-9]+\s+unreachable=0\s+failed=0\s+skipped=0\s+rescued=[0-9]+\s+ignored=0/, Pattern.MULTILINE).matcher(output).find()) {
+        error("one or more steps failed during playbook execution, or host was unreachable! \n ${output}")
+    }
+}
+
+// Determine if module has invalid documentation
+// formatting or is missing documentation
+// expects output of ansible-doc
+def checkForAnsibleDocErrors(output) {
+    if (Pattern.compile(/^ERROR!\smodule\s[^\s]+\smissing documentation/).matcher(output).find()) {
+        error("one or more modules has invalid documentation! \n ${output}")
+    }
+}
+
+// Determine if ansible-test raised any errors
+// expects output of ansible-test sanity
+def checkForAnsibleTestErrors(output) {
+    if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
+        error('ansible-test encountered an internal error!')
+    }
+    def header = "Ans Test ==============================================================================\n"
+    def errorString = ''
+    def errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
+    while (errors.find()) {
+        errorString = errorString + errors.group(1) + '\n'
+    }
+    if (errorString != '') {
+        error(header + "\n---------ERROR: ansible-test detected errors\n ${errorString}" + header + "\n\n" + header + "Full output: ${output}\n"+ header)
+    }
+}
+
+// Determine if ansible-lint raised any errors
+// expects output of ansible-lint
+def checkForAnsibleLintErrors(output) {
+    if (Pattern.compile(/.*Traceback\s.most\srecent\scall\slast./).matcher(output).find()) {
+        error('ansible-lint encountered an internal error!')
+    }
+    def header = "Ans Lint ==============================================================================\n"
+    def errorString = ''
+    def errors = Pattern.compile(/.*(ERROR:\s.+)/).matcher(output)
+    while (errors.find()) {
+        errorString = errorString + errors.group(1) + '\n'
+    }
+
+    def fails = Pattern.compile(/.*(Failed:\s.+)/).matcher(output)
+    while (fails.find()) {
+        errorString = errorString + fails.group(1) + '\n'
+    }
+
+    if (errorString != '') {
+        error(header + "\n---------ERROR: ansible-lint detected errors\n ${errorString}" + header + "\n\n" + header + "Full output: ${output}\n"+ header)
+    }
+}
+
+def checkForBanditErrors(output) {
+    if (Pattern.compile(/>>\s+Issue:\s\[/).matcher(output).find()) {
+        error("Bandit returned errors! \n ${output}")
+    }
+}
+
+
+def checkForChangelogParsingErrors(output) {
+    if (Pattern.compile(/.*parsing\serror.*/).matcher(output).find()) {
+        error("Changelog fragment error: \n ${output}")
+    }
+}
+
+/* -------------------------------------------------------------------------- */
+/*                           helper functions                                 */
+/* -------------------------------------------------------------------------- */
+
+def getPythonScriptsInDir(dirToScan) {
+    def pythonScripts = []
+    new File(dirToScan).eachFile(FileType.FILES) { def f ->
+        if (f.name.endsWith('.py')) {
+            pythonScripts.add(f.name)
+        }
+    }
+    return pythonScripts
+}
+
+// Return boolean indicating whether a file
+// at the provided path is an Ansible module
+def isAnsibleModule(path) {
+    // text to search for, should be present in ansible module
+    def identifyingText = 'AnsibleModule'
+
+    def fileContent = new File(path)
+    if (fileContent.getText('UTF-8').find(identifyingText)) {
+        return true
+    }
+    return false
+}
+
+// git checkout order must remain as first the PULL_REQUEST_BASE_BRANCH then
+// BRANCH else dependencyfinder will compare BRANCH to itself
+def checkout() {
+    dir(env.WORKSPACE) {
+        sh "rm -rf ${REPO}"
+        sh "git clone https://github.com/ansible-collections/${REPO}.git ; cd ${REPO} ; git checkout ${PULL_REQUEST_BASE_BRANCH}; git pull origin ${PULL_REQUEST_BASE_BRANCH}; git checkout ${BRANCH}; git pull origin ${BRANCH}"
+    }
+}
+
+def triggeredByPullRequest() {
+    return (env.x_github_event == 'pull_request' ? true : false)
+}
+
+def getRepoURL() {
+    if (triggeredByPullRequest()) {
+        return env.git_pull_request_head_ssh_url
+    }
+    return env.git_push_ssh_url
+}
+def getCommitSha() {
+    if (triggeredByPullRequest()) {
+        return env.git_pull_request_sha
+    }
+    return env.git_commit_sha
+}
+
+// Update status check on github for particular commit
+// This stopped working, and was commented out... probably the old tokenauth needs updated
+def updateGithubCommitStatus(message, state) {
+    repoUrl = getRepoURL()
+    commitSha = getCommitSha()
+    def requestBody = JsonOutput.toJson([state: state, description: message, context: 'continuous-integration/jenkins'])
+    withCredentials([string(credentialsId: 'publicjenkinscommentertoken', variable: 'GITHUB_TOKEN')]) {
+        httpRequest customHeaders: [[name: 'Authorization', value: "token ${GITHUB_TOKEN}"]], httpMode: 'POST', requestBody: requestBody, url: "https://${GITHUB_URL}/repos/${git_full_repo_name}/statuses/${commitSha}"
+    }
+}
+
+def COLOR_MAP = [
+    'SUCCESS': 'good',
+    'FAILURE': 'danger',
+]
+
+
+/* -------------------------------------------------------------------------- */
+/*         Pipeline Docker Configuration and related configs                  */
+/* -------------------------------------------------------------------------- */
+
+/* --------------------------- Notes ---------------------------------------- */
+/* We no longer rely on the requirements.txt in our ansible-core repo under
+/* tests because dependebot will keep flagging us as 2.9.x is out of community
+/* support but not enterprise support. We still support it through Sept 2023.
+/*
+/* Removed:
+/*  - in: 'DOCKERFILE_CONTENTS' - '&& pip3 install --no-cache-dir -r requirements.txt \''
+/*  - in: 'ENV_VARS'- 'COPY ${REPO}/tests/requirements.txt
+/*  - in: 'DOCKER_CMDS' - "# COPY --chown=jenkins:jenkins configuration.yml ./"
+/* -------------------------------------------------------------------------- */
+
+/*
+    When LATEST is selected the meta-data vesion needs to be updated to alllow
+    ansible-test to run.
+*/
+ANSIBLE_RUNTIME_CONTENTS = """ ---\\nrequires_ansible: '>=2.9'"""
+
+UID_MAPPING = """
+# -------------------- Map UID and GID to Jenkins host IDs ------------------- #
+ARG UNAME=jenkins
+ARG UID=114
+ARG GID=121
+"""
+
+SLIM_BUSTER_3_7 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.7-slim-buster
+WORKDIR /usr/src/app """
+
+SLIM_BUSTER_3_8 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.8-slim-buster
+WORKDIR /usr/src/app"""
+
+SLIM_BUSTER_3_9 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.9-slim-buster
+WORKDIR /usr/src/app"""
+
+SLIM_BUSTER_3_11 = """
+# ----------------- Docker Image for Testing Environment --------------------- #
+FROM python:3.11-slim-buster
+WORKDIR /usr/src/app"""
+/*  Paths for ansible module and config persist after the volume mount by Jenkins */
+ENV_VARS = """
+# ---------------------------- Environment Variables ------------------------- #
+ENV ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules/
+ENV ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/tests/ansible.cfg"""
+/// Removed: ENV PYTHONPATH=/home/jenkins/.ansible/collections"""
+/* Note pythonpath above added to test import issue-rp 20230510 */
+
+/**
+This snippet with the option --requirements will trigger the test cases to run but
+will also INSTALL any requiements needed. If you rely on ansible-test to install
+it should always get the right dependencies vs installing frozen versions of the
+dependencies. Note, that was added to the dockerfile and in my opinion is a hack
+because docker is run as root giving global package access but the docker image
+is run as jenkins; if you try to install ansible-test packagesas jenkins you will
+get a Permission denied: b'/usr/lib/python3.8/site-packages/ansible.egg-info'
+error because running --requirements as jenkins for ansible 2.9 has a bug that
+tries to write an egg to the host. Apprently fixed in 2.10 or later.  An optional
+solution is to try ansible-test sanity --venv but that requires other packages
+be installed in docker first. See:
+https://docs.ansible.com/ansible/latest/dev_guide/testing_running_locally.html#python-virtual-environments
+**/
+ANSIBLE_TEST_INSTALL_DEPENDENCIES = """
+# --------------- Use ansible-test to install dependencies ------------------- #
+RUN cd ${REPO} \
+&& ansible-galaxy collection build . --force \
+&& ansible-galaxy collection install ibm-${REPO}* --force -p . \
+&& cd ansible_collections/ibm/${REPO}/ \
+&& ansible-test sanity --requirements || true
+"""
+
+DOCKER_CMDS = '''
+# ----------------------- Set UID, GID and PATH ------------------------------ #
+RUN groupadd -g $GID -o $UNAME \
+&& useradd -m -u $UID -g $GID -o -s /bin/bash $UNAME
+USER ${UNAME}
+ENV PATH="/home/jenkins/.local/bin:${PATH}"
+
+# ------------- Configure & ensure SSH key is accepted domain ---------------- #
+ARG TARGET_HOST
+ARG TARGET_HOST_PRIVATE_KEY
+RUN mkdir -p /home/jenkins/.ssh/
+COPY --chown=jenkins:jenkins ${TARGET_HOST_PRIVATE_KEY} /home/jenkins/.ssh/id_rsa
+RUN chmod 600 /home/jenkins/.ssh/id_rsa \
+&& touch /home/jenkins/.ssh/known_hosts \
+&& ssh-keyscan "${TARGET_HOST}" >> /home/jenkins/.ssh/known_hosts'''
+
+/*  - Pacakge rstcheck needs to be version-locked because 4.0+ deprecated python 3.7 */
+DOCKERFILE_CONTENTS_2_9 = SLIM_BUSTER_3_8 + ENV_VARS + """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+pylint==2.3.1 \
+bandit \
+pipdeptree \
+ansible==${ANSIBLE_VERSION} \
+rstcheck==3.3.1 \
+pytest-ansible==3.0.0 \
+pytest
+
+# ----------------------------- Copy dependencies ---------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_2_11 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+pycodestyle==2.6.0 \
+pylint==2.6.0 \
+six==1.16.0 \
+voluptuous \
+yamllint \
+bandit \
+pipdeptree \
+ansible-core==${ANSIBLE_VERSION} \
+pytest-ansible==3.0.0 \
+pytest
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+/*
+ * 'DOCKERFILE_CONTENTS_2_DOT_12_13_14' supports ansible-core versiuons
+ * '2.12.10', '2.13.7', '2.14.1'.
+ *
+ * Testing showed that appending `ANSIBLE_TEST_INSTALL_DEPENDENCIES` to
+ * DOCKERFILE_CONTENTS_2_DOT_12_13_14 was unessary but would rather ansible-test
+ * update any packages it feels it needs to remain in synch and avoid any possible
+ * differences for when we want to run certification for Automation Hub.
+*/
+DOCKERFILE_CONTENTS_2_DOT_12_13_14 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+ansible-core==${ANSIBLE_VERSION} \
+pytest-ansible==3.0.0 \
+pytest
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+/*
+ * 'DOCKERFILE_CONTENTS_2_DOT_15' supports ansible-core versiuons
+ * '2.15.2'
+*/
+DOCKERFILE_CONTENTS_2_DOT_15 = SLIM_BUSTER_3_9 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+&& apt-get update \
+&& apt-get install -y \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+&& pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+ansible-core==${ANSIBLE_VERSION} \
+ansible==8.5.0 \
+pytest==7.4.2 \
+pytest-ansible==4.1.1
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+DOCKERFILE_CONTENTS_2_DOT_16 = SLIM_BUSTER_3_11 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+&& apt-get update \
+&& apt-get install -y \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+&& pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+ansible-core==${ANSIBLE_VERSION} \
+pytest==7.4.2 \
+pytest-ansible==4.1.1
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
+/* Latest */
+DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_11 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+https://github.com/ansible/ansible/archive/devel.tar.gz
+
+# ------------------ Copy Repository to Docker Image ------------------------ #
+COPY ${REPO} ./${REPO}/
+""" + UID_MAPPING + DOCKER_CMDS
+
+/* -------------------------------------------------------------------------- */
+/*                           Docker object                                    */
+/* -------------------------------------------------------------------------- */
+
+// docker_object_name = "ansible-test-image:${env.BUILD_ID}"
+// docker_object_name="ati-${env.JOB_BASE_NAME}-${env.BUILD_ID}"
+jobset = "${env.JOB_BASE_NAME}".toLowerCase()
+docker_object_name = "ati-" + jobset.substring(jobset.length()-8) + "-${env.BUILD_ID}"
+
+/* -------------------------------------------------------------------------- */
+/*                           Stages                                           */
+/* -------------------------------------------------------------------------- */
+
+node('master') {
+    currentBuild.result = 'SUCCESS'
+    build_ok = true
+    stage('Checkout') {
+        echo "\n-------------------- Starting pipeline -------------------"
+        echo "Pipeline Code: J5g patch 8 on 14 April, 2024"
+        echo "Target: " + TARGET_HOST
+        echo "Python: " + PythonTitles[0]
+        echo "zoau ver: " + ZoTitles[0]
+        echo "Ansible: " + ANSIBLE_VERSION
+        echo "Branch: " + BRANCH
+        echo "Base Branch: " + PULL_REQUEST_BASE_BRANCH
+        echo "Run All tests: " + RUN_ALL_TESTS.toBoolean()
+        echo "Verbosity: " + VERBOSITY.toBoolean()
+        echo "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean()
+        echo "Ansible-Lint: " + RUN_ANSIBLE_LINT.toBoolean()
+        echo "Bandit Sev: " + BANDIT_SEVERITY
+        echo "\n----------------------------------------------------------"
+
+        checkout()
+        script {
+            python_ver = MyPythonPath   // "${params.PYTHON_PATH}"
+            python_ver = python_ver.substring(python_ver.lastIndexOf('/') + 1, python_ver.length())
+            target_pre = "${params.TARGET_HOST}"
+            target_pre = target_pre.substring(0,9)
+            currentBuild.displayName = "#${BUILD_NUMBER}"
+            currentBuild.description =  "Target: " + target_pre + "\n" +
+                                        "Python z/OS: " + python_ver + "\n" +
+                                        "Ansible: " + params.ANSIBLE_VERSION + "\n" +
+                                        "Branch: ${BRANCH}"
+        }
+    }
+    stage('Build Docker Image') {
+        echo '------------------------ build image start -------------------------------'
+
+        /* ----------------------------------------------------------------------------
+        *            Logically select and concat vars to create docker file
+        * ----------------------------------------------------------------------------
+        */
+
+        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS
+        if (ANSIBLE_VERSION == '2.9.27') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
+        }
+        else if (ANSIBLE_VERSION == 'LATEST') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
+        } else {
+            secondkey = ANSIBLE_VERSION.split("\\.")[1]
+            echo "\nsecondkey is " + secondkey + "\n"
+            if (secondkey == '11') {
+                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
+            } else {
+                if (secondkey < '15') {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+                } else if (secondkey == '15') {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
+                } else {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+
+                    if (secondkey >= '16') {
+                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                    }
+                }
+            }
+        }
+
+        /* ----------------------------------------------------------------------------
+        *                  Write Docker Image for Testing Environment
+        * ----------------------------------------------------------------------------
+        */
+        writeFile(file: 'Dockerfile', text: DOCKERFILE_CONTENTS)
+        sh 'cat Dockerfile'
+        sh 'docker login -u hcfresourcemanager -p 40bd5865-b126-494e-8300-98c055850942'
+
+        /* ----------------------------------------------------------------------------
+        *                  Create YAML config file for use by pytest fixtures
+        * ----------------------------------------------------------------------------
+        */
+        writeFile(file: "${REPO}/configuration.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
+        sh "cat ${REPO}/configuration.yml"
+        withCredentials([sshUserPrivateKey(credentialsId: "${TARGET_HOST_PRIVATE_KEY}", keyFileVariable: 'privKey')]) {
+            sh "set +x ; cat ${privKey} > sshkey"
+            ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
+            sh 'rm sshkey'
+        }
+        //  sh 'chmod -R 777 .' <<-- for a test
+    }
+    stage ('Build Collection and Install') {
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}") {
+
+                /* Perform these operations to ensure ansible version selection is correctly represented */
+                if (env.ANSIBLE_VERSION == 'LATEST') {
+                    /* Update meta/runtime.yml */
+                    sh (script: 'rm -rf meta/runtime.yml; touch meta/runtime.yml; echo "---\\nrequires_ansible: \'>=2.9\'">meta/runtime.yml')
+                }
+
+                if (env.ANSIBLE_VERSION == '2.9.27') {
+                    /* ansible-2.9 - removing test & doc from build */
+                    sh (script: 'rm -rf docs tests/.pytest_cache tests/functional tests/helpers tests/unit tests/*.py tests/*.ini tests/requirements.txt ')
+                }
+
+                /*  Build the collection */
+                out_galaxy_build = sh (script: 'ansible-galaxy collection build . --force', returnStdout: true)
+
+                /* Install the collection */
+                out_galaxy_install = sh (script: "ansible-galaxy collection install ibm-${REPO}* --force -p .", returnStdout: true)
+
+                if (VERBOSITY.toBoolean()){
+                    echo '------------------------ workspace output -------------------------------'
+                    echo "\nWorkspace: ${env.WORKSPACE}/${REPO}\n"
+                    echo '-------------------------------------------------------------------------'
+
+                    echo '------------------------ python version output --------------------------'
+                    out = sh (script: 'python --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    echo '------------------------ pip3 version output ----------------------------'
+                    out = sh (script: 'pip3 --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    out = sh (script: "pip3 freeze", returnStdout: true)
+                    echo '--------------------------- pip freeze output ---------------------------'
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    out = sh (script: 'pipdeptree', returnStdout: true)
+                    echo '------------------------- pipdeptree output ------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
+
+                    echo '------------------- ansible-core version output -------------------------'
+                    out = sh (script: 'ansible --version', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    if (env.ANSIBLE_VERSION == 'LATEST') {
+                        echo '------------------------ Update meta/runtime.yml ----------------------------'
+                        echo "Updated collections meta/runtime.yaml to support ansible-core latest"
+                        echo '-------------------------------------------------------------------------'
+                    }
+
+                    echo '------------------------ cat meta/runtime.yml ----------------------------'
+                    out = sh (script: 'cat meta/runtime.yml', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------------'
+
+                    echo '------------------------ cat configuration.yml --------------------------'
+                    cfg_out = sh (script: 'cat configuration.yml 2>&1 || true', returnStdout: true)
+                    echo cfg_out
+                    echo '-------------------------------------------------------------------------'
+
+                    if (env.ANSIBLE_VERSION == '2.9.27') {
+                        echo '----------- ansible-2.9.27 - removing test & doc from build ----------------'
+                        echo "Removed collection content that should not be scanned to supplement build_ignore 2.9 limitations."
+                        echo '-------------------------------------------------------------------------'
+                    }
+
+                    echo '---------------------------- Repo ---------------------------------'
+                    echo "${REPO}"
+                    echo 'directory: '
+                    out = sh( script: 'pwd', returnStdout: true)
+                    echo out
+                    echo '-------------------------------------------------------------------'
+
+                    echo '--------------------- Build the collection ------------------------'
+                    echo out_galaxy_build
+                    echo '--------------------------------------------------------------------------'
+
+                    echo '-------------------- Install the collection -----------------------'
+                    echo out_galaxy_install
+                    echo '--------------------------------------------------------------------------'
+                }
+            }
+        }
+    }
+    try{
+        stage('Ansible Certification Tests') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+                dir("${REPO}") {
+                    dir("ansible_collections/ibm/${REPO}") {
+
+                        out = sh (script: 'ansible-test sanity || true', returnStdout: true)
+
+                        echo '----------------------------- Sanity output ------------------------------'
+                        echo out
+                        echo '--------------------------------------------------------------------------'
+
+                        checkForAnsibleTestErrors(out)
+
+                        if (RUN_ANSIBLE_LINT.toBoolean()) {
+                            vstring = ''
+                            if (ANSIBLE_LINT_VERSION.length() > 0) {
+                                vstring = '==' + ANSIBLE_LINT_VERSION + ' '
+                            }
+
+                            inout = sh (script: 'pip3 install ansible-lint' + vstring + ' || true', returnStdout: true)
+                            versioninfo = sh(script: 'ansible-lint --version || true', returnStdout: true)
+
+                            out = sh (script: 'ansible-lint --profile ' + LINT_PROFILE + ' -c .ansible-lint 2>&1 || true', returnStdout: true)
+                            echo '\n-------------------------- Ansible lint output ---------------------------'
+                            echo 'install: ' + inout
+                            echo '\n-----------'
+                            echo 'lv requested: ' + ANSIBLE_LINT_VERSION
+                            echo 'lint version: ' + versioninfo
+                            echo 'lint profile: ' + LINT_PROFILE
+                            echo '\n-----------'
+                            if (VERBOSITY.toBoolean()) {
+                                echo 'output: ' + out
+                            }
+                            echo '\n--------------------------------------------------------------------------'
+                            checkForAnsibleLintErrors(out)
+                        }
+                    }
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
+        stage('Check for fragments') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}/changelogs/fragments") {
+                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
+                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
+                    sh (script: 'git pull origin ${PULL_REQUEST_BASE_BRANCH};')
+                    sh (script: 'git fetch')
+                    echo '---------------Check for fragments in base--------------------------------'
+                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
+                    echo 'fragments in base: ' + ls_base
+                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
+                    echo '---------------Check for fragments in branch------------------------------'
+                    sh (script: 'git checkout ${BRANCH}')
+                    // sh (script: 'git checkout ${BRANCH}')
+                    sh (script: 'git pull origin ${BRANCH}')
+                    sh (script: 'git fetch')
+                    ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
+                    echo 'fragments in branch: ' + ls_all
+                    echo '--------------------------------------------------------------------------'
+                    if ( ls_all > ls_base ) {
+                        echo 'Changelog entries found'
+                    }else{
+                        error("Changelog fragment error: fragment not added")
+                    }
+                    echo '--------------------------------------------------------------------------'
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
+        stage('Ansible Lint in Fragments') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}") {
+                    inout = sh (script: 'pip3 install antsibull-changelog || true', returnStdout: true)
+                    out = sh (script: 'antsibull-changelog lint || true', returnStdout: true)
+                    echo '------------------------- Changelog lint output --------------------------'
+                    echo 'input ' + inout
+                    echo '\noutput ' + out
+                    echo '--------------------------------------------------------------------------'
+                    checkForChangelogParsingErrors(out)
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    try{
+        stage('Galaxy Importer') {
+            ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
+                dir("${REPO}"){
+                    inout = sh (script: 'pip3 install galaxy-importer ansible-importer || true', returnStdout: true)
+                    sh script: "ansible-galaxy collection build --force"
+                    collection_name = sh (script: "ansible-galaxy collection build --force | awk -F/ '{print \$NF}'", returnStdout: true)
+                    echo "Collection ${collection_name}"
+                    echo "-------------------------- Run command --------------------------------"
+                    out = sh (script: "python3 -m galaxy_importer.main ${collection_name} >> galaxy_importer.txt", returnStdout: true)
+                    sh script: "cat galaxy_importer.txt"
+                    sh script: "rm galaxy_importer.txt"
+                    checkForAnsibleTestErrors(out)
+                }
+            }
+        }
+    }catch(e){
+        echo e.toString()
+        build_ok = false
+    }
+    stage('Bandit Security Scan') {
+        def sev = "lll"
+        if (env.BANDIT_SEVERITY == "low") {
+            echo "\nBANDIT SCAN: Low / all\n"
+            sev = "l"
+        }
+        else if (env.BANDIT_SEVERITY == "medium") {
+            echo "\nBANDIT SCAN: Medium and above\n"
+            sev = "ll"
+        }
+        else {
+            echo "\nBANDIT SCAN: High only\n"
+        }
+
+        ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
+            dir("${REPO}/plugins") {
+                // out = sh script: 'python3 -u -m bandit -v -r -ll -ii .', returnStdout: true
+                out = sh script: 'python3 -u -m bandit -v -r -' + sev + ' -ii .', returnStdout: true
+                checkForBanditErrors(out)
+            }
+        }
+    }
+    if (! ANSIBLE_TEST_ONLY.toBoolean()){
+        try{
+            stage('Unit and Functional Tests') {
+                // Build debian image containing all requirements for test cases
+                // then run our testcases in the image
+                ansibleTestingImage.inside("-u jenkins\
+                -e TARGET_HOST=${TARGET_HOST}\
+                -e ANSIBLE_LIBRARY=${env.WORKSPACE}/${REPO}/plugins/modules\
+                -e ANSIBLE_ACTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/action\
+                -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
+                -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
+                -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
+                -e ANSIBLE_TIMEOUT=30") {
+                    dir("${REPO}") {
+                        dir('playbooks') {
+                            writeFile(file: 'ansible.cfg', text: GLOB_ANSCONFIG)
+                        }
+                        // next 2 writes are added so they are visible within docker repo
+                        dir("tests"){
+                            writeFile(file: "test_config.yml", text: generateYmlConfig(TARGET_HOST, USERNAME, MyPythonPath, MyEnvironment, MyVolumes))
+                            echo "test_config.yml is here: "
+                            sh script: "pwd"
+                            sh script: "cat test_config.yml"
+                        }
+                        sh "cat playbooks/ansible.cfg"
+                        echo "--- this is in dockerenv ^^^"
+
+                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle'
+
+                        // Install collection so module_utils imports will be valid in modules
+                        // Attempt to build the collection
+                        if(ANSIBLE_VERSION < '2.15'){
+                            sh script: 'ansible-galaxy collection build . --force'
+                            // Install the built collection - added -p at the end: removed -p /home/jenkins/.ansible/collections
+                            sh script: "ansible-galaxy collection install ibm-${REPO}* --force"
+                        }
+                        def tests = ""
+                        dir('tests') {
+                            def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
+                            if ( "${BRANCH}" == 'dev') {
+                                branchToCompare = 'origin/main'
+                            }
+                            sh 'git branch'
+                            sh 'pwd'
+
+                            /* ----------------------------------------------------------------------------
+                            *                  Skip tests passed from UI
+                            * ----------------------------------------------------------------------------
+                            */
+                            if (VERBOSITY.toBoolean()){
+                                echo '-------------------------- forced tests ---------------------------------'
+                                if ("${params.FORCE_TESTS}") {
+                                    echo 'FORCE TESTS found - skip tests will be ignored'
+                                    echo 'FORCE TESTS found - run_all_tests will be ignored'
+                                    echo "${params.FORCE_TESTS}"
+                                }
+                                else {
+                                    echo '..no force tests found..'
+                                    echo '-------------------------- initial data skipped tests -------------------'
+                                    echo "${params.SKIP_FUNCTIONAL_TESTS}"
+                                }
+                                if ("${params.MARKER_NAME}") {
+                                    echo "TEST MARKER DEFINED: ${params.MARKER_NAME}"
+                                }
+                                if ("${params.TEST_NAME}") {
+                                    echo "TEST LIMIT DEFINED: ${params.TEST_NAME}"
+                                }
+
+                                echo '-------------------------------------------------------------------------'
+                            }
+
+                            def skip_tests = "${params.SKIP_FUNCTIONAL_TESTS}".stripIndent().replaceAll('\n'," ").replaceAll(","," ").replaceAll(" +"," ")
+                            /* If skip_tests  is empty, hard code this to be skipped till it can be evaluated
+                            * functional/modules/test_module_security.py
+                            */
+
+                            if (!skip_tests) {
+                                skip_tests = "functional/modules/test_module_security.py"
+                            }
+
+                            if (!"${params.FORCE_TESTS}") {
+                                echo '-------------------------- skipped tests --------------------------------'
+                                echo skip_tests
+                                echo '-------------------------------------------------------------------------'
+                                if (RUN_ALL_TESTS.toBoolean()){
+                                    tests = sh (script: "./dependencyfinder.py -p .. -a -s \"${skip_tests}\" ", returnStdout: true)
+                                }else{
+                                    echo '--------------------------- Tests Found ---------------------------------'
+                                    tests = sh (script: "./dependencyfinder.py -p .. -b ${branchToCompare} -s \"${skip_tests}\" -m || true", returnStdout: true)
+                                }
+                            }
+                            else {
+                                tests = "${params.FORCE_TESTS}".stripIndent().replaceAll('\n'," ").replaceAll(","," ").replaceAll(" +"," ")
+                            }
+
+                            echo '--------------------------- Tests Found ---------------------------------'
+                            echo tests
+                            echo '-------------------------------------------------------------------------'
+
+                            if (tests) {
+                                // temporary output to show configuration
+                                def out = ''
+                                if (VERBOSITY.toBoolean()){
+                                    echo '\r\n Pre-test configuration data---------------------vvv'
+                                    out = sh (script: "set | grep -i ansib || true", returnStdout: true)
+                                    echo out
+                                    out = sh (script: "ansible-config dump 2>&1 || true", returnStdout: true)
+                                    echo out
+                                    out = sh (script: "ansible-galaxy --version 2>&1 || true", returnStdout: true)
+                                    echo out
+                                    out = sh (script: "ansible-galaxy collection list -v 2>&1 || true", returnStdout: true)
+                                    echo out
+                                    out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
+                                    echo out
+                                    out = sh (script: "cat ${env.WORKSPACE}/${REPO}/configuration.yml || true", returnStdout: true)
+                                    echo "on build box: "
+                                    echo out
+                                    out = "${env.WORKSPACE}/${REPO}"
+                                    echo out
+                                    out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
+                                    echo out
+                                    echo '\r\n Pre-test configuration data---------------------^^^'
+                                    out = ''
+                                }
+                                if(ANSIBLE_VERSION < '2.15'){
+                                    verbosity = '-v'
+                                    if(VERBOSITY.toBoolean()){
+                                        verbosity = '-vvv -s'
+                                    }
+                                    markers = ""
+                                    if("${params.MARKER_NAME}"){
+                                        markers = "-m '${params.MARKER_NAME}' "
+                                    }
+
+                                    test = ""
+                                    if("${params.TEST_NAME}"){
+                                        test = "-k '${params.TEST_NAME}' "
+                                    }
+
+                                    for (int i = 0; i < 10; i++) {
+                                        out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} 2>&1 || true", returnStdout: true)
+                                        if (checkForConnectionErrors(out)) {
+                                            sleep(20)
+                                        } else {
+                                            break
+                                        }
+                                    }
+                                    echo out
+                                    checkForPytestFails(out)
+                                }
+                            }
+                        }
+                        if (tests) {
+                            if(ANSIBLE_VERSION >= '2.15'){
+                                verbosity = '-v'
+                                if(VERBOSITY.toBoolean()){
+                                    verbosity = '-vvv -s'
+                                }
+                                tests = tests.replace("../",'')
+                                echo tests
+
+                                markers = ""
+                                if("${params.MARKER_NAME}"){
+                                    markers = "-m '${params.MARKER_NAME}' "
+                                }
+
+                                test = ""
+                                if("${params.TEST_NAME}"){
+                                    test = "-k '${params.TEST_NAME}' "
+                                }
+
+                                for (int i = 0; i < 10; i++) {
+                                    sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
+                                    out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --host-pattern=all --zinventory=tests/test_config.yml ${tests}", returnStdout: true)
+                                    if (checkForConnectionErrors(out)) {
+                                        sleep(20)
+                                    } else {
+                                        break
+                                    }
+                                }
+                                echo out
+                                checkForPytestFails(out)
+                            }
+                        }
+                    }
+                }
+            }
+        }catch(e){
+            echo e.toString()
+            build_ok = false
+        }
+    }
+    if (build_ok) {
+        currentBuild.result = "SUCCESS"
+    } else {
+        currentBuild.result = "FAILURE"
+    }
+    stage('Notify Post-build') {
+        BUILD_USER = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
+        echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}"
+        slackSend channel: 'ansible_core_pipeline',
+                  color: COLOR_MAP[currentBuild.currentResult],
+                  message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER} and branch ${BRANCH}.\n",
+                  notifyCommitters : true,
+                  token: "khHdIxFQQGwogXiweiexn4RO"
+    }
+    out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
+    echo '\r\ncleanup run: \r\n' + out + '\r\n'
+    echo out
+
+}
