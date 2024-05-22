@@ -897,15 +897,15 @@ node('master') {
                             inout = sh (script: 'pip3 install yamllint || true', returnStdout: true)
                             versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
-                            out = sh (script: 'yamllint changelogs/fragments/ 2>&1 || true', returnStdout: true)
-                            echo '\n-------------------------- yaml lint output ---------------------------'
+                            out = sh (script: 'yamllint ./changelogs/fragments/ 2>&1 || true', returnStdout: true)
+                            otherout = sh (script: 'pwd || true', returnStdout: true)
+                            echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
                             echo 'install: ' + inout
                             echo '\n-----------'
                             echo 'yamllint version: ' + versioninfo
                             echo '\n-----------'
-                            if (VERBOSITY.toBoolean()) {
-                                echo 'output: ' + out
-                            }
+                            echo 'output: ' + out
+                            echo 'wd: ' . otherout
                             echo '\n--------------------------------------------------------------------------'
                         }
                         if (RUN_PYFLAKES.toBoolean()) {
@@ -920,9 +920,7 @@ node('master') {
                             echo '\n-----------'
                             echo 'pylint version: ' + versioninfo
                             echo '\n-----------'
-                            if (VERBOSITY.toBoolean()) {
-                                echo 'output: ' + out
-                            }
+                            echo 'output: ' + out
                             echo '\n--------------------------------------------------------------------------'
                         }
                     }
