@@ -110,7 +110,6 @@ rules:
   truthy: disable
 '''
 
-
 GITHUB_URL = 'api.github.com'
 
 /* -------------------------------------------------------------------------- */
@@ -204,7 +203,6 @@ MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
 replaceAll('ZOAUDIR/lib', ZoLibPath).
 replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 MyVolumes = "${params.VOLUMES}".toString().trim()
-
 
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
@@ -332,7 +330,6 @@ def checkForBanditErrors(output) {
     }
 }
 
-
 def checkForChangelogParsingErrors(output) {
     if (Pattern.compile(/.*parsing\serror.*/).matcher(output).find()) {
         error("Changelog fragment error: \n ${output}")
@@ -407,7 +404,6 @@ def COLOR_MAP = [
     'SUCCESS': 'good',
     'FAILURE': 'danger',
 ]
-
 
 /* -------------------------------------------------------------------------- */
 /*         Pipeline Docker Configuration and related configs                  */
@@ -717,28 +713,43 @@ node('master') {
         */
 
         GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS
-        if (ANSIBLE_VERSION == '2.9.27') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
-        }
-        else if (ANSIBLE_VERSION == 'LATEST') {
-            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
-        } else {
-            secondkey = ANSIBLE_VERSION.split('\\.')[1]
-            echo '\nsecondkey is ' + secondkey + '\n'
-            if (secondkey == '11') {
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
-            } else {
-                if (secondkey < '15') {
-                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-                } else if (secondkey == '15') {
-                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
-                } else {
-                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
 
-                    if (secondkey >= '16') {
-                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
-                    }
+        switch (ANSIBLE_VERSION) {
+            case '2.9.27':
+                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
+                break
+            case 'LATEST':
+                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
+                GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                break
+            case 'DEVEL':
+                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+                GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                break
+            default:
+                secondkey = ANSIBLE_VERSION.split('\\.')[1]
+                echo '\nsecondkey is ' + secondkey + '\n'
+                switch (secondkey) {
+                    case '11':
+                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
+                        break
+                    case '12':
+                    case '13':
+                    case '14':
+                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+                        break
+                    case '15':
+                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
+                        break
+                    default:
+                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
+
+                        if (secondkey >= '16') {
+                            GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                        }
+                        break
                 }
+                break
             }
         }
 
@@ -854,7 +865,7 @@ node('master') {
             }
         }
     }
-    try{
+    try {
         stage('Ansible Certification Tests') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
                 dir("${REPO}") {
@@ -928,11 +939,11 @@ node('master') {
                 }
             }
         }
-    }catch(e){
+    } catch(e){
         echo e.toString()
         build_ok = false
     }
-    try{
+    try {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
@@ -961,11 +972,11 @@ node('master') {
                 }
             }
         }
-    }catch(e){
+    } catch(e){
         echo e.toString()
         build_ok = false
     }
-    try{
+    try {
         stage('Ansible Lint in Fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}") {
@@ -979,7 +990,7 @@ node('master') {
                 }
             }
         }
-    }catch(e){
+    } catch(e){
         echo e.toString()
         build_ok = false
     }
@@ -1233,6 +1244,4 @@ node('master') {
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo '\r\ncleanup run: \r\n' + out + '\r\n'
-    echo out
-
 }
