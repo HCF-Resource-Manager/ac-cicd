@@ -181,12 +181,12 @@ zochoices.each {
 */
 ZoVersions = ZoTitles[0].split()
 ZoVersion = ZoVersions[1]
-ZoLibPath2 = ZoPaths[0] + "/lib/"
-if (ZoVersion > "1.2.9") {
-    ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
+ZoLibPath2 = ZoPaths[0] + '/lib/'
+if (ZoVersion > '1.2.9') {
+    ZoLibPath = ZoPaths[0] + '/lib/' + PythonVer + '/'
 }
 else {
-    ZoLibPath = ZoPaths[0] + "/lib/"
+    ZoLibPath = ZoPaths[0] + '/lib/'
 }
 
 // HERE
@@ -201,7 +201,7 @@ MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).t
 
 MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
 replaceAll('ZOAUDIR/lib', ZoLibPath).
-replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
+replaceAll('ZOAUDIR', ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 MyVolumes = "${params.VOLUMES}".toString().trim()
 
 /* -------------------------------------------------------------------------- */
@@ -249,8 +249,8 @@ ${listvolumes}
 // expects pytest output formatting
 def checkForPytestFails(output) {
     if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(output).find()) {
-        def slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
-        error("One or more pytest testcases failed! \n ${slim_output}")
+        def slimOutput = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
+        error("One or more pytest testcases failed! \n ${slimOutput}")
     }
 }
 
@@ -400,7 +400,7 @@ def updateGithubCommitStatus(message, state) {
     }
 }
 
-def COLOR_MAP = [
+def cOLORMAP = [
     'SUCCESS': 'good',
     'FAILURE': 'danger',
 ]
@@ -1237,11 +1237,10 @@ node('master') {
         BUILD_USER = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
         echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}"
         slackSend channel: 'ansible_core_pipeline',
-                  color: COLOR_MAP[currentBuild.currentResult],
+                  color: cOLORMAP[currentBuild.currentResult],
                   message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER} and branch ${BRANCH}.\n",
                   notifyCommitters : true,
                   token: "khHdIxFQQGwogXiweiexn4RO"
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo '\r\ncleanup run: \r\n' + out + '\r\n'
-}
