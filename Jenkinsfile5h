@@ -908,14 +908,14 @@ node('master') {
                             inout = sh (script: 'pip3 install yamllint || true', returnStdout: true)
                             versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
-                            out = sh (script: "yamllint changelogs/fragments 2>&1 || true", returnStdout: true)
-                            otherout = sh (script: 'pwd || true', returnStdout: true)
+                            dir("${REPO}/changelogs/fragments") {
+                                out = sh(script: "yamllint . 2>&1 || true", returnStdout: true)
+                            }
+                            otherout = sh(script: 'pwd || true', returnStdout: true)
                             echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
-                            echo 'install: ' + inout
-                            echo '\n-----------'
+                            echo 'y install: ' + inout
                             echo 'yamllint version: ' + versioninfo
-                            echo '\n-----------'
-                            echo 'output: ' + out
+                            echo 'y output: \n' + out
                             echo 'wd: ' + otherout
                             echo "repo: ${REPO}"
                             echo '\n--------------------------------------------------------------------------'
@@ -923,16 +923,15 @@ node('master') {
                         if (RUN_PYFLAKES.toBoolean()) {
                             vstring = ''
 
-                            inout = sh (script: 'pip3 install pyflakes || true', returnStdout: true)
+                            inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
                             versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
 
-                            out = sh (script: 'pyflakes tests plugins 2>&1 || true', returnStdout: true)
+                            out = sh(script: 'pyflakes plugins 2>&1 || true', returnStdout: true) + '\n-- ^^ plugins -- vv tests --\n'
+                            out += sh(script: 'pyflakes tests 2>&1 || true', returnStdout: true)
                             echo '\n-------------------------- pyflakes output ---------------------------'
-                            echo 'install: ' + inout
-                            echo '\n-----------'
-                            echo 'pylint version: ' + versioninfo
-                            echo '\n-----------'
-                            echo 'output: ' + out
+                            echo 'p install: ' + inout
+                            echo 'pyflakes version: ' + versioninfo
+                            echo 'p output: \n' + out
                             echo '\n--------------------------------------------------------------------------'
                         }
                     }
