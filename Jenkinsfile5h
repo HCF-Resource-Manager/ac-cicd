@@ -897,7 +897,7 @@ node('master') {
                             inout = sh (script: 'pip3 install yamllint || true', returnStdout: true)
                             versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
-                            out = sh (script: "yamllint ${REPO}/changelogs/fragments/ 2>&1 || true", returnStdout: true)
+                            out = sh (script: "yamllint changelogs/fragments 2>&1 || true", returnStdout: true)
                             otherout = sh (script: 'pwd || true', returnStdout: true)
                             echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
                             echo 'install: ' + inout
