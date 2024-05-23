@@ -910,8 +910,8 @@ node('master') {
 
                             dir("${REPO}/changelogs/fragments") {
                                 out = sh(script: "yamllint . 2>&1 || true", returnStdout: true)
+                                otherout = sh(script: 'pwd || true', returnStdout: true)
                             }
-                            otherout = sh(script: 'pwd || true', returnStdout: true)
                             echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
                             echo 'y install: ' + inout
                             echo 'yamllint version: ' + versioninfo
@@ -927,7 +927,7 @@ node('master') {
                             versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
 
                             out = sh(script: 'pyflakes plugins 2>&1 || true', returnStdout: true) + '\n-- ^^ plugins -- vv tests --\n'
-                            out += sh(script: 'pyflakes tests 2>&1 || true', returnStdout: true)
+                            out += 'v output: ' + sh(script: 'pyflakes tests 2>&1 || true', returnStdout: true) + '\n-----------------------------\n'
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'p install: ' + inout
                             echo 'pyflakes version: ' + versioninfo
