@@ -911,12 +911,12 @@ node('master') {
                             inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
                             versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
 
-                            outp = sh(script: 'pyflakes plugins || true', returnStdout: true) + '\n-- ^^ plugins -- vv tests --\n'
-                            outt = 'v output: ' + sh(script: 'pyflakes tests || true', returnStdout: true) + '\n-----------------------------\n'
+                            outp = sh(script: 'pyflakes plugins || true', returnStdout: true)
+                            outt = sh(script: 'pyflakes tests || true', returnStdout: true)
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'p install: ' + inout
                             echo 'pyflakes version: ' + versioninfo
-                            echo 'p output: \n' + outp + outt
+                            echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt + '\n-----------------------------\n'
                             echo '\n--------------------------------------------------------------------------'
                         }
                     }
