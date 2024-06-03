@@ -854,7 +854,7 @@ node('master') {
         stage('Ansible Certification Tests') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
                 dir("${REPO}") {
-                    dir("ansible_collections/ibm/${REPO}") {
+                    /* dir("ansible_collections/ibm/${REPO}") { */
 
                         out = sh (script: 'ansible-test sanity || true', returnStdout: true)
 
@@ -920,7 +920,7 @@ node('master') {
                             echo '\n-----------------------------\n'
                             echo '\n--------------------------------------------------------------------------'
                         }
-                    }
+                    /* } */
                 }
             }
         }
