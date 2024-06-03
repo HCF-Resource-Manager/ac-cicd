@@ -854,73 +854,70 @@ node('master') {
         stage('Ansible Certification Tests') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
                 dir("${REPO}") {
-                    /* dir("ansible_collections/ibm/${REPO}") { */
+                    out = sh (script: 'ansible-test sanity || true', returnStdout: true)
 
-                        out = sh (script: 'ansible-test sanity || true', returnStdout: true)
+                    echo '----------------------------- Sanity output ------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
 
-                        echo '----------------------------- Sanity output ------------------------------'
-                        echo out
-                        echo '--------------------------------------------------------------------------'
+                    checkForAnsibleTestErrors(out)
 
-                        checkForAnsibleTestErrors(out)
-
-                        if (RUN_ANSIBLE_LINT.toBoolean()) {
-                            vstring = ''
-                            if (ANSIBLE_LINT_VERSION.length() > 0) {
-                                vstring = '==' + ANSIBLE_LINT_VERSION + ' '
-                            }
-
-                            inout = sh (script: 'pip3 install ansible-lint' + vstring + ' || true', returnStdout: true)
-                            versioninfo = sh(script: 'ansible-lint --version || true', returnStdout: true)
-
-                            out = sh (script: 'ansible-lint --profile ' + LINT_PROFILE + ' -c .ansible-lint 2>&1 || true', returnStdout: true)
-                            echo '\n-------------------------- Ansible lint output ---------------------------'
-                            echo 'install: ' + inout
-                            echo '\n-----------'
-                            echo 'lv requested: ' + ANSIBLE_LINT_VERSION
-                            echo 'lint version: ' + versioninfo
-                            echo 'lint profile: ' + LINT_PROFILE
-                            echo '\n-----------'
-                            if (VERBOSITY.toBoolean()) {
-                                echo 'output: ' + out
-                            }
-                            echo '\n--------------------------------------------------------------------------'
-                            checkForAnsibleLintErrors(out)
+                    if (RUN_ANSIBLE_LINT.toBoolean()) {
+                        vstring = ''
+                        if (ANSIBLE_LINT_VERSION.length() > 0) {
+                            vstring = '==' + ANSIBLE_LINT_VERSION + ' '
                         }
-                        if (RUN_YAML_LINT.toBoolean()) {
-                            inout = sh (script: 'pip3 install yamllint || true', returnStdout: true)
-                            versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
-                            dir("changelogs/fragments") {
-                                yout = sh(script: "yamllint . 2>&1 || true", returnStdout: true)
-                                otherout = sh(script: 'pwd || true', returnStdout: true)
-                                echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
-                                echo 'y install: ' + inout
-                                echo 'yamllint version: ' + versioninfo
-                                echo 'y output: \n' + yout
-                                echo 'wd: ' + otherout
-                                echo "repo: ${REPO}"
-                                echo '\n--------------------------------------------------------------------------'
-                            }
+                        inout = sh (script: 'pip3 install ansible-lint' + vstring + ' || true', returnStdout: true)
+                        versioninfo = sh(script: 'ansible-lint --version || true', returnStdout: true)
+
+                        out = sh (script: 'ansible-lint --profile ' + LINT_PROFILE + ' -c .ansible-lint 2>&1 || true', returnStdout: true)
+                        echo '\n-------------------------- Ansible lint output ---------------------------'
+                        echo 'install: ' + inout
+                        echo '\n-----------'
+                        echo 'lv requested: ' + ANSIBLE_LINT_VERSION
+                        echo 'lint version: ' + versioninfo
+                        echo 'lint profile: ' + LINT_PROFILE
+                        echo '\n-----------'
+                        if (VERBOSITY.toBoolean()) {
+                            echo 'output: ' + out
                         }
-                        if (RUN_PYFLAKES.toBoolean()) {
-                            inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
-                            versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
+                        echo '\n--------------------------------------------------------------------------'
+                        checkForAnsibleLintErrors(out)
+                    }
+                    if (RUN_YAML_LINT.toBoolean()) {
+                        inout = sh (script: 'pip3 install yamllint || true', returnStdout: true)
+                        versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
-                            otherout = sh(script: 'pwd', returnStdout: true)
-                            outt = sh(script: 'pyflakes tests/functional 2>&1 || true', returnStdout: true)
-                            otherout2 = sh(script: 'pwd', returnStdout: true)
-                            outp = sh(script: 'pyflakes plugins 2>&1 || true', returnStdout: true)
-                            echo '\n-------------------------- pyflakes output ---------------------------'
-                            echo 'p install: ' + inout
-                            echo 'pyflakes version: ' + versioninfo
-                            echo 'oo: ' + otherout
-                            echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt
-                            echo 'oo2: ' + otherout2
-                            echo '\n-----------------------------\n'
+                        dir("changelogs/fragments") {
+                            yout = sh(script: "yamllint . 2>&1 || true", returnStdout: true)
+                            otherout = sh(script: 'pwd || true', returnStdout: true)
+                            echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
+                            echo 'y install: ' + inout
+                            echo 'yamllint version: ' + versioninfo
+                            echo 'y output: \n' + yout
+                            echo 'wd: ' + otherout
+                            echo "repo: ${REPO}"
                             echo '\n--------------------------------------------------------------------------'
                         }
-                    /* } */
+                    }
+                    if (RUN_PYFLAKES.toBoolean()) {
+                        inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
+                        versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
+
+                        otherout = sh(script: 'pwd', returnStdout: true)
+                        outt = sh(script: 'pyflakes tests/functional 2>&1 || true', returnStdout: true)
+                        otherout2 = sh(script: 'pwd', returnStdout: true)
+                        outp = sh(script: 'pyflakes plugins 2>&1 || true', returnStdout: true)
+                        echo '\n-------------------------- pyflakes output ---------------------------'
+                        echo 'p install: ' + inout
+                        echo 'pyflakes version: ' + versioninfo
+                        echo 'oo: ' + otherout
+                        echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt
+                        echo 'oo2: ' + otherout2
+                        echo '\n-----------------------------\n'
+                        echo '\n--------------------------------------------------------------------------'
+                    }
                 }
             }
         }
@@ -932,8 +929,7 @@ node('master') {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
-                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
-                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
+/*                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
                     sh (script: 'git pull origin ${PULL_REQUEST_BASE_BRANCH};')
                     sh (script: 'git fetch')
                     echo '---------------Check for fragments in base--------------------------------'
@@ -942,12 +938,35 @@ node('master') {
                     // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
                     echo '---------------Check for fragments in branch------------------------------'
                     sh (script: 'git checkout ${BRANCH}')
-                    // sh (script: 'git checkout ${BRANCH}')
                     sh (script: 'git pull origin ${BRANCH}')
                     sh (script: 'git fetch')
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
+*/
+                    def fragid = ""
+                    msg = ""
+
+                    if (FRAGMENT_ID.length() > 0) {
+                        fragid = FRAGMENT_ID
+                        msg = 'Fragment provided: ' + fragid
+                    }else{
+                        fragid = "${BRANCH}".replaceAll("[^0-9]", "")
+                        msg = 'Fragment found: ' + fragid
+                    }
+
+                    if (fragid.length() > 0 ) {
+                        command = "ls *" + fragid + '* | wc -l'
+                        res = sh(script: "${command} || true", returnStdout: true)
+                        if (res.toInteger() > 0 )  {
+                            msg += "\nMatching Fragment ${fragid} found."
+                        } else {
+                            msg += "\nNO fragment ${fragid} found."
+                        }
+                    }else {
+                        msg += "\nNO fragment found"
+                    }
                     echo 'fragments in branch: ' + ls_all
-                    echo '--------------------------------------------------------------------------'
+                    echo '-------------------------- Fragment Test ---------------------------------'
+                    echo "${msg}"
                     if ( ls_all > ls_base ) {
                         echo 'Changelog entries found'
                     }else{
