@@ -918,9 +918,9 @@ node('master') {
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'p install: ' + inout
                             echo 'pyflakes version: ' + versioninfo
-                            echo 'oo: ' + inout
+                            echo 'oo: ' + otherout
                             echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt
-                            echo 'oo2: ' + inout
+                            echo 'oo2: ' + otherout2
                             echo '\n-----------------------------\n'
                             echo '\n--------------------------------------------------------------------------'
                         }
