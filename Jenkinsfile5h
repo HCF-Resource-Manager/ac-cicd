@@ -912,11 +912,12 @@ node('master') {
                             versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
 
                             outp = sh(script: 'pyflakes plugins || true', returnStdout: true)
-                            outt = sh(script: 'pyflakes tests || true', returnStdout: true)
+                            outt = sh(script: 'pyflakes tests/functional || true', returnStdout: true)
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'p install: ' + inout
                             echo 'pyflakes version: ' + versioninfo
-                            echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt + '\n-----------------------------\n'
+                            echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt
+                            echo '\n-----------------------------\n'
                             echo '\n--------------------------------------------------------------------------'
                         }
                     }
