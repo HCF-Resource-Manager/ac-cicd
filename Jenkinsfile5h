@@ -1228,3 +1228,4 @@ node('master') {
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo '\r\ncleanup run: \r\n' + out + '\r\n'
+}
