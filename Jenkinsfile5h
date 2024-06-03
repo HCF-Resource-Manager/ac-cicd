@@ -713,43 +713,28 @@ node('master') {
         */
 
         GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS
+        if (ANSIBLE_VERSION == '2.9.27') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
+        }
+        else if (ANSIBLE_VERSION == 'LATEST') {
+            DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
+        } else {
+            secondkey = ANSIBLE_VERSION.split("\\.")[1]
+            echo "\nsecondkey is " + secondkey + "\n"
+            if (secondkey == '11') {
+                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
+            } else {
+                if (secondkey < '15') {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
+                } else if (secondkey == '15') {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
+                } else {
+                    DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
 
-        switch (ANSIBLE_VERSION) {
-            case '2.9.27':
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_9
-                break
-            case 'LATEST':
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_LATEST
-                GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
-                break
-            case 'DEVEL':
-                DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
-                GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
-                break
-            default:
-                secondkey = ANSIBLE_VERSION.split('\\.')[1]
-                echo '\nsecondkey is ' + secondkey + '\n'
-                switch (secondkey) {
-                    case '11':
-                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_11
-                        break
-                    case '12':
-                    case '13':
-                    case '14':
-                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_12_13_14
-                        break
-                    case '15':
-                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_15
-                        break
-                    default:
-                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
-
-                        if (secondkey >= '16') {
-                            GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
-                        }
-                        break
+                    if (secondkey >= '16') {
+                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                    }
                 }
-                break
             }
         }
 
@@ -909,16 +894,16 @@ node('master') {
                             versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
                             dir("${REPO}/changelogs/fragments") {
-                                out = sh(script: "yamllint . 2>&1 || true", returnStdout: true)
+                                out = sh(script: "yamllint . || true", returnStdout: true)
                                 otherout = sh(script: 'pwd || true', returnStdout: true)
+                                echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
+                                echo 'y install: ' + inout
+                                echo 'yamllint version: ' + versioninfo
+                                echo 'y output: \n' + out
+                                echo 'wd: ' + otherout
+                                echo "repo: ${REPO}"
+                                echo '\n--------------------------------------------------------------------------'
                             }
-                            echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
-                            echo 'y install: ' + inout
-                            echo 'yamllint version: ' + versioninfo
-                            echo 'y output: \n' + out
-                            echo 'wd: ' + otherout
-                            echo "repo: ${REPO}"
-                            echo '\n--------------------------------------------------------------------------'
                         }
                         if (RUN_PYFLAKES.toBoolean()) {
                             vstring = ''
@@ -926,12 +911,12 @@ node('master') {
                             inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
                             versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
 
-                            out = sh(script: 'pyflakes plugins 2>&1 || true', returnStdout: true) + '\n-- ^^ plugins -- vv tests --\n'
-                            out += 'v output: ' + sh(script: 'pyflakes tests 2>&1 || true', returnStdout: true) + '\n-----------------------------\n'
+                            outp = sh(script: 'pyflakes plugins || true', returnStdout: true) + '\n-- ^^ plugins -- vv tests --\n'
+                            outt = 'v output: ' + sh(script: 'pyflakes tests || true', returnStdout: true) + '\n-----------------------------\n'
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'p install: ' + inout
                             echo 'pyflakes version: ' + versioninfo
-                            echo 'p output: \n' + out
+                            echo 'p output: \n' + outp + outt
                             echo '\n--------------------------------------------------------------------------'
                         }
                     }
