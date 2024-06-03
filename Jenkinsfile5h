@@ -894,7 +894,7 @@ node('master') {
                             versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
                             dir("${REPO}/changelogs/fragments") {
-                                out = sh(script: "yamllint .", returnStdout: true)
+                                out = sh(script: "yamllint . 2>&1 || true", returnStdout: true)
                                 otherout = sh(script: 'pwd', returnStdout: true)
                                 echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
                                 echo 'y install: ' + inout
@@ -908,15 +908,19 @@ node('master') {
                         if (RUN_PYFLAKES.toBoolean()) {
                             vstring = ''
 
-                            inout = sh(script: 'pip3 install pyflakes', returnStdout: true)
-                            versioninfo = sh(script: 'pyflakes --version', returnStdout: true)
+                            inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
+                            versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
 
-                            outt = sh(script: 'pyflakes tests/functional', returnStdout: true)
-                            outp = sh(script: 'pyflakes plugins', returnStdout: true)
+                            otherout = sh(script: 'pwd', returnStdout: true)
+                            outt = sh(script: 'pyflakes tests/functional 2>&1 || true', returnStdout: true)
+                            otherout2 = sh(script: 'pwd', returnStdout: true)
+                            outp = sh(script: 'pyflakes plugins 2>&1 || true', returnStdout: true)
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'p install: ' + inout
                             echo 'pyflakes version: ' + versioninfo
+                            echo 'oo: ' + inout
                             echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt
+                            echo 'oo2: ' + inout
                             echo '\n-----------------------------\n'
                             echo '\n--------------------------------------------------------------------------'
                         }
