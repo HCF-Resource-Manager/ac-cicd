@@ -942,8 +942,10 @@ node('master') {
                     sh (script: 'git fetch')
                     ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
 */
-                    def fragid = ""
-                    msg = ""
+                    echo '-------------------------- Fragment Test ---------------------------------'
+
+                    def fragid = ''
+                    msg = ''
 
                     if (FRAGMENT_ID.length() > 0) {
                         fragid = FRAGMENT_ID
@@ -964,8 +966,6 @@ node('master') {
                     }else {
                         msg += "\nNO fragment found"
                     }
-                    echo 'fragments in branch: ' + ls_all
-                    echo '-------------------------- Fragment Test ---------------------------------'
                     echo "${msg}"
                     if ( ls_all > ls_base ) {
                         echo 'Changelog entries found'
