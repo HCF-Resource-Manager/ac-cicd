@@ -894,8 +894,8 @@ node('master') {
                             versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
 
                             dir("${REPO}/changelogs/fragments") {
-                                out = sh(script: "yamllint . || true", returnStdout: true)
-                                otherout = sh(script: 'pwd || true', returnStdout: true)
+                                out = sh(script: "yamllint .", returnStdout: true)
+                                otherout = sh(script: 'pwd', returnStdout: true)
                                 echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
                                 echo 'y install: ' + inout
                                 echo 'yamllint version: ' + versioninfo
@@ -908,11 +908,11 @@ node('master') {
                         if (RUN_PYFLAKES.toBoolean()) {
                             vstring = ''
 
-                            inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
-                            versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
+                            inout = sh(script: 'pip3 install pyflakes', returnStdout: true)
+                            versioninfo = sh(script: 'pyflakes --version', returnStdout: true)
 
-                            outp = sh(script: 'pyflakes plugins || true', returnStdout: true)
-                            outt = sh(script: 'pyflakes tests/functional || true', returnStdout: true)
+                            outt = sh(script: 'pyflakes tests/functional', returnStdout: true)
+                            outp = sh(script: 'pyflakes plugins', returnStdout: true)
                             echo '\n-------------------------- pyflakes output ---------------------------'
                             echo 'p install: ' + inout
                             echo 'pyflakes version: ' + versioninfo
