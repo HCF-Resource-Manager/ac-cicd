@@ -5,6 +5,11 @@ AnsCore-Release4 33024
 AnsCore-Release5 01136
 ansible-zos-core-dev-1 -----
 ansible-zos-core-dev-10 -----
+ansible-zos-core-dev-11 -----
+ansible-zos-core-dev-12 -----
+ansible-zos-core-dev-13 -----
+ansible-zos-core-dev-14 -----
+ansible-zos-core-dev-15 -----
 ansible-zos-core-dev-2 -----
 ansible-zos-core-dev-3 -----
 ansible-zos-core-dev-4 -----
@@ -20,9 +25,9 @@ zosAnsibleAlternate 33012
 zosAnsibleAlternate2 33012
 zosAnsibleAltRP 01132
 zosAnsible-Demetrios 33017
-#zosAnsible-Experimental 01130
-#zosAnsible-Fernando 01135
-#zosAnsible-Ivan 01134
+zosAnsible-Experimental 01130
+zosAnsible-Fernando 01135
+zosAnsible-Ivan 01134
 zosAnsible-Ketan 33018
 zosAnsible-Marcel 01130
 zosAnsible-richp 01132

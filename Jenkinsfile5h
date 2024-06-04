@@ -675,13 +675,14 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
-        echo "Pipeline Code: J5g patch 8 on 14 April, 2024"
+        echo "Pipeline Code: J5h patch 10 on 4 June, 2024"
         echo "Target: " + TARGET_HOST
         echo "Python: " + PythonTitles[0]
         echo "zoau ver: " + ZoTitles[0]
         echo "Ansible: " + ANSIBLE_VERSION
         echo "Branch: " + BRANCH
         echo "Base Branch: " + PULL_REQUEST_BASE_BRANCH
+        echo "Fragment id: " + FRAGMENT_ID
         echo "Run All tests: " + RUN_ALL_TESTS.toBoolean()
         echo "Verbosity: " + VERBOSITY.toBoolean()
         echo "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean()
@@ -698,9 +699,9 @@ node('master') {
             target_pre = "${params.TARGET_HOST}"
             target_pre = target_pre.substring(0,9)
             currentBuild.displayName = "#${BUILD_NUMBER}"
-            currentBuild.description =  "Target: " + target_pre + "\n" +
-                                        "Python z/OS: " + python_ver + "\n" +
-                                        "Ansible: " + params.ANSIBLE_VERSION + "\n" +
+            currentBuild.description =  'Target: ' + target_pre + '\n' +
+                                        'Python z/OS: ' + python_ver + '\n' +
+                                        'Ansible: ' + params.ANSIBLE_VERSION + '\n' +
                                         "Branch: ${BRANCH}"
         }
     }
@@ -732,7 +733,7 @@ node('master') {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
 
                     if (secondkey >= '16') {
-                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll('collections_paths', 'collections_path')
                     }
                 }
             }
@@ -929,19 +930,6 @@ node('master') {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
-/*                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
-                    sh (script: 'git pull origin ${PULL_REQUEST_BASE_BRANCH};')
-                    sh (script: 'git fetch')
-                    echo '---------------Check for fragments in base--------------------------------'
-                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
-                    echo 'fragments in base: ' + ls_base
-                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
-                    echo '---------------Check for fragments in branch------------------------------'
-                    sh (script: 'git checkout ${BRANCH}')
-                    sh (script: 'git pull origin ${BRANCH}')
-                    sh (script: 'git fetch')
-                    ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
-*/
                     echo '-------------------------- Fragment Test ---------------------------------'
 
                     def fragid = ''
@@ -1079,7 +1067,7 @@ node('master') {
                         def tests = ""
                         dir('tests') {
                             def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
-                            if ( "${BRANCH}" == 'dev') {
+                            if ("${BRANCH}" == 'dev') {
                                 branchToCompare = 'origin/main'
                             }
                             sh 'git branch'
