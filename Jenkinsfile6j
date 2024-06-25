@@ -184,6 +184,9 @@ ZoVersion = ZoVersions[1]
 ZoLibPath2 = ZoPaths[0] + '/lib/'
 if (ZoVersion > '1.2.9') {
     ZoLibPath = ZoPaths[0] + '/lib/' + PythonVer + '/'
+    if ($ { params.USE_WHEELS.toBoolean() }) {
+        ZoLibPath = '/zoau/wheels/v' + ZoVersion + '/' + PythonVer
+    }
 }
 else {
     ZoLibPath = ZoPaths[0] + '/lib/'
@@ -675,7 +678,7 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
-        echo "Pipeline Code: J5h patch 10 on 4 June, 2024"
+        echo "Pipeline Code: J6j patch 11 on 25 June, 2024"
         echo "Target: " + TARGET_HOST
         echo "Python: " + PythonTitles[0]
         echo "zoau ver: " + ZoTitles[0]
