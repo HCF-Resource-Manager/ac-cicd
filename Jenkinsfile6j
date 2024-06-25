@@ -184,7 +184,7 @@ ZoVersion = ZoVersions[1]
 ZoLibPath2 = ZoPaths[0] + '/lib/'
 if (ZoVersion > '1.2.9') {
     ZoLibPath = ZoPaths[0] + '/lib/' + PythonVer + '/'
-    if ($ { params.USE_WHEELS.toBoolean() }) {
+    if (USE_WHEELS.toBoolean()) {
         ZoLibPath = '/zoau/wheels/v' + ZoVersion + '/' + PythonVer
     }
 }
@@ -678,21 +678,22 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
-        echo "Pipeline Code: J6j patch 11 on 25 June, 2024"
-        echo "Target: " + TARGET_HOST
-        echo "Python: " + PythonTitles[0]
-        echo "zoau ver: " + ZoTitles[0]
-        echo "Ansible: " + ANSIBLE_VERSION
-        echo "Branch: " + BRANCH
-        echo "Base Branch: " + PULL_REQUEST_BASE_BRANCH
-        echo "Fragment id: " + FRAGMENT_ID
-        echo "Run All tests: " + RUN_ALL_TESTS.toBoolean()
-        echo "Verbosity: " + VERBOSITY.toBoolean()
-        echo "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean()
-        echo "Ansible-Lint: " + RUN_ANSIBLE_LINT.toBoolean()
-        echo "YamlLint: " + RUN_YAML_LINT.toBoolean()
-        echo "PyFlakes: " + RUN_PYFLAKES.toBoolean()
-        echo "Bandit Sev: " + BANDIT_SEVERITY
+        echo 'Pipeline Code: J6j patch 11 on 25 June, 2024'
+        echo 'Target: ' + TARGET_HOST
+        echo 'Python: ' + PythonTitles[0]
+        echo 'zoau ver: ' + ZoTitles[0]
+        echo 'Ansible: ' + ANSIBLE_VERSION
+        echo 'Branch: ' + BRANCH
+        echo 'Base Branch: ' + PULL_REQUEST_BASE_BRANCH
+        echo 'Fragment id: ' + FRAGMENT_ID
+        echo 'Run All tests: ' + RUN_ALL_TESTS.toBoolean()
+        echo 'Verbosity: ' + VERBOSITY.toBoolean()
+        echo 'Ans Test Only: ' + ANSIBLE_TEST_ONLY.toBoolean()
+        echo 'Ansible-Lint: ' + RUN_ANSIBLE_LINT.toBoolean()
+        echo 'YamlLint: ' + RUN_YAML_LINT.toBoolean()
+        echo 'PyFlakes: ' + RUN_PYFLAKES.toBoolean()
+        echo 'Bandit Sev: ' + BANDIT_SEVERITY
+        echo 'Wheel Mode: ' + USE_WHEELS.toBoolean()
         echo "\n----------------------------------------------------------"
 
         checkout()
