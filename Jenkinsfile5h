@@ -218,6 +218,7 @@ def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def listvolumes = listmarker + volumes.split("\\n").join('\n' + listmarker)
     return """host: ${hostName}
 user: ${username}
+ssh_key: "~/.ssh/id_rsa"
 python_path: ${pythonPath}
 environment:
 ${indentedEnv}
