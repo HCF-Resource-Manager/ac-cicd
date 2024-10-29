@@ -637,6 +637,31 @@ pytest-ansible==4.1.1
 COPY ${REPO} ./${REPO}/
 """ + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
 
+DOCKERFILE_CONTENTS_2_DOT_17_DOT_1 = SLIM_BUSTER_3_11 + ENV_VARS +  """
+# --------------------------- Package installation Stage 1 ------------------- #
+RUN apt-get update ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+&& apt-get install -y ${VERBOSITY.toBoolean() ? '' : '> /dev/null'} \
+gnupg2 \
+&& apt-get update \
+&& apt-get install -y \
+git \
+python3-pip \
+openssh-client \
+python2.7 \
+python-pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
+&& pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+bandit \
+pipdeptree \
+&& pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
+ansible-core==${ANSIBLE_VERSION} \
+pytest==7.4.2 \
+pytest-ansible==4.1.1
+
+# ------------------ Copy Repository to Docker Image ------------------------- #
+COPY ${REPO} ./${REPO}/
+""" + ANSIBLE_TEST_INSTALL_DEPENDENCIES + UID_MAPPING + DOCKER_CMDS
+
 /* Latest */
 DOCKERFILE_CONTENTS_LATEST = SLIM_BUSTER_3_11 + ENV_VARS +  """
 # --------------------------- Package installation Stage 1 ------------------- #
@@ -733,8 +758,11 @@ node('master') {
                 } else {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
 
-                    if (secondkey >= '16') {
+                    if (secondkey == '16') {
                         GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll('collections_paths', 'collections_path')
+                    }
+                    if (secondkey == '17') {
+                        DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_17_DOT_1
                     }
                 }
             }
@@ -1056,7 +1084,7 @@ node('master') {
                         sh "cat playbooks/ansible.cfg"
                         echo "--- this is in dockerenv ^^^"
 
-                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle'
+                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle randomname'
 
                         // Install collection so module_utils imports will be valid in modules
                         // Attempt to build the collection
