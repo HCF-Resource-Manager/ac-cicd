@@ -216,11 +216,12 @@ def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     def listmarker = '  - '
     def listvolumes = listmarker + volumes.split("\\n").join('\n' + listmarker)
-    def subversion_python = "." + pythonPath.replaceAll(Pattern.quote("\\"), "\\\\").split("\\\\")[1]
+    def sub_version_python = "." + pythonPath.split(".")[1].substring(0,1)
+    def full_python_path = pythonPath + sub_version_python
     return """host: ${hostName}
 user: ${username}
 ssh_key: "~/.ssh/id_rsa"
-python_path: ${pythonPath} + ${subversion_python}
+python_path: ${full_python_path}
 ${indentedEnv}
 VOLUMES:
 ${listvolumes}
