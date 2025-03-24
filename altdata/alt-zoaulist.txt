@@ -1,12 +1,11 @@
-Zoau 1.0:disabled,/zoau/v1.0.0-ga
-Zoau 1.0.1,/zoau/wheels
+Zoau 1.0.1:disabled,/zoau/wheels
 Zoau 1.0.2:disabled,/zoau/v1.0.2-ga
 Zoau 1.0.3-ga5:disabled,/zoau/v1.0.3-ga5
 Zoau 1.0.3-p2:disabled,/zoau/v1.0.3-ptf2
 Zoau 1.1.0:disabled,/zoau/v1.1.0-ga
-Zoau 1.1.1-p1,/zoau/v1.1.1-ptf1
-Zoau 1.2.0,/zoau/v1.2.0
-Zoau 1.2.1,/zoau/v1.2.1
+Zoau 1.1.1-p1:disabled,/zoau/v1.1.1-ptf1
+Zoau 1.2.0:disabled,/zoau/v1.2.0
+Zoau 1.2.1:disabled,/zoau/v1.2.1
 Zoau 1.2.2,/zoau/v1.2.2
 Zoau 1.2.3,/zoau/v1.2.3
 Zoau 1.2.4,/zoau/v1.2.4
@@ -14,5 +13,9 @@ Zoau 1.2.5,/zoau/v1.2.5
 Zoau 1.2.5.6,/zoau/latest
 Zoau 1.2.5.8,/zoau/v1.2.5.8
 Zoau 1.3.0.4,/zoau/v1.3.0
-Zoau 1.3.1:selected,/zoau/v1.3.1
+Zoau 1.3.1,/zoau/v1.3.1
 Zoau 1.3.2,/zoau/v1.3.2.0
+Zoau 1.3.3,/zoau/v1.3.3
+Zoau 1.3.4:selected,/zoau/v1.3.4
+Zoau 1.3.4.1,/zoau/v1.3.4.1
+Zoau 1.3.5,/zoau/v1.3.5
