@@ -1,4 +1,3 @@
-Python 3.8.2,/allpython/3.8.2/usr/lpp/IBM/cyp/v3r8/pyz
 Python 3.8.3,/allpython/3.8.3/usr/lpp/IBM/cyp/v3r8/pyz
 Python 3.9.19 patched,/allpython/3.9/usr/lpp/IBM/cyp/v3r9/pyz
 Python 3.10.14 patched:selected,/allpython/3.10/usr/lpp/IBM/cyp/v3r10/pyz
@@ -6,3 +5,4 @@ Python 3.11 ga,/allpython/3.11-ga/usr/lpp/IBM/cyp/v3r11/pyz
 Python 3.11 patch 3,/allpython/3.11-3/usr/lpp/IBM/cyp/v3r11/pyz
 Python 3.11-9 patched,/allpython/3.11/usr/lpp/IBM/cyp/v3r11/pyz 
 Python 3.12.3 ga,/allpython/3.12/usr/lpp/IBM/cyp/v3r12/pyz
+Python 3.13,/allpython/3.13/usr/lpp/IBM/cyp/v3r13/pyz

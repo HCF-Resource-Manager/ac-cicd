@@ -110,7 +110,6 @@ rules:
   truthy: disable
 '''
 
-
 GITHUB_URL = 'api.github.com'
 
 /* -------------------------------------------------------------------------- */
@@ -182,12 +181,12 @@ zochoices.each {
 */
 ZoVersions = ZoTitles[0].split()
 ZoVersion = ZoVersions[1]
-ZoLibPath2 = ZoPaths[0] + "/lib/"
-if (ZoVersion > "1.2.9") {
-    ZoLibPath = ZoPaths[0] + "/lib/" + PythonVer + "/"
+ZoLibPath2 = ZoPaths[0] + '/lib/'
+if (ZoVersion > '1.2.9') {
+    ZoLibPath = ZoPaths[0] + '/lib/' + PythonVer + '/'
 }
 else {
-    ZoLibPath = ZoPaths[0] + "/lib/"
+    ZoLibPath = ZoPaths[0] + '/lib/'
 }
 
 // HERE
@@ -202,9 +201,8 @@ MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).t
 
 MyEnvironment = "${params.ENVIRONMENT}".replaceFirst('ZOAUDIR/lib', ZoLibPath2).
 replaceAll('ZOAUDIR/lib', ZoLibPath).
-replaceAll('ZOAUDIR',ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
+replaceAll('ZOAUDIR', ZoPaths[0]).replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 MyVolumes = "${params.VOLUMES}".toString().trim()
-
 
 /* -------------------------------------------------------------------------- */
 /*                                File builders                               */
@@ -218,10 +216,12 @@ def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def indentedEnv = indent + environment.split("\\n").join('\n' + indent)
     def listmarker = '  - '
     def listvolumes = listmarker + volumes.split("\\n").join('\n' + listmarker)
+    def sub_version_python = "." + pythonPath.split("\\.")[1].substring(0,1)
+    def full_python_path = pythonPath + sub_version_python
     return """host: ${hostName}
 user: ${username}
-python_path: ${pythonPath}
-environment:
+ssh_key: "~/.ssh/id_rsa"
+python_path: ${full_python_path}
 ${indentedEnv}
 VOLUMES:
 ${listvolumes}
@@ -251,8 +251,8 @@ ${listvolumes}
 // expects pytest output formatting
 def checkForPytestFails(output) {
     if (Pattern.compile(/(?:\=+\s(?:[1-9]+[0-9]*\sfailed|[1-9]\sfailed))|(?:[1-9]+[0-9]*\serror.?\sin)|(?:pytest_ansible.errors.AnsibleConnectionFailure:\s+Host\s+unreachable)/).matcher(output).find()) {
-        def slim_output = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
-        error("One or more pytest testcases failed! \n ${slim_output}")
+        def slimOutput = Pattern.compile(/^----------------------------- Captured stdout call -----------------------------.*?(?=^(?:(?:_+ test)|(?:=======+ )))/, Pattern.DOTALL | Pattern.MULTILINE).matcher(output).replaceAll('')
+        error("One or more pytest testcases failed! \n ${slimOutput}")
     }
 }
 
@@ -268,15 +268,6 @@ def checkForYamlLintErrors(output) {
         error("YAMLLint detected warnings and/or errors! \n ${output}")
     }
 }
-
-// Determine if any Ansible playbook formatting errors
-// expects ansible-lint output formatting using default rules
-// commented to try new routine mirrored from cfATestErrors
-/* def checkForAnsibleLintErrors(output) {
-    if (Pattern.compile(/^[1-9][0-9]{2,}\s/, Pattern.MULTILINE).matcher(output).find()) {
-        throw new Exception("ansible-lint detected errors! \n ${output}")
-    }
-}*/
 
 // Determine if any tasks failed in a playbook
 // expects output of ansible-playbook
@@ -340,7 +331,6 @@ def checkForBanditErrors(output) {
         error("Bandit returned errors! \n ${output}")
     }
 }
-
 
 def checkForChangelogParsingErrors(output) {
     if (Pattern.compile(/.*parsing\serror.*/).matcher(output).find()) {
@@ -412,11 +402,10 @@ def updateGithubCommitStatus(message, state) {
     }
 }
 
-def COLOR_MAP = [
+def cOLORMAP = [
     'SUCCESS': 'good',
     'FAILURE': 'danger',
 ]
-
 
 /* -------------------------------------------------------------------------- */
 /*         Pipeline Docker Configuration and related configs                  */
@@ -688,17 +677,20 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
-        echo "Pipeline Code: J5g patch 8 on 14 April, 2024"
+        echo "Pipeline Code: J5h patch 10 on 4 June, 2024"
         echo "Target: " + TARGET_HOST
         echo "Python: " + PythonTitles[0]
         echo "zoau ver: " + ZoTitles[0]
         echo "Ansible: " + ANSIBLE_VERSION
         echo "Branch: " + BRANCH
         echo "Base Branch: " + PULL_REQUEST_BASE_BRANCH
+        echo "Fragment id: " + FRAGMENT_ID
         echo "Run All tests: " + RUN_ALL_TESTS.toBoolean()
         echo "Verbosity: " + VERBOSITY.toBoolean()
         echo "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean()
         echo "Ansible-Lint: " + RUN_ANSIBLE_LINT.toBoolean()
+        echo "YamlLint: " + RUN_YAML_LINT.toBoolean()
+        echo "PyFlakes: " + RUN_PYFLAKES.toBoolean()
         echo "Bandit Sev: " + BANDIT_SEVERITY
         echo "\n----------------------------------------------------------"
 
@@ -709,9 +701,9 @@ node('master') {
             target_pre = "${params.TARGET_HOST}"
             target_pre = target_pre.substring(0,9)
             currentBuild.displayName = "#${BUILD_NUMBER}"
-            currentBuild.description =  "Target: " + target_pre + "\n" +
-                                        "Python z/OS: " + python_ver + "\n" +
-                                        "Ansible: " + params.ANSIBLE_VERSION + "\n" +
+            currentBuild.description =  'Target: ' + target_pre + '\n' +
+                                        'Python z/OS: ' + python_ver + '\n' +
+                                        'Ansible: ' + params.ANSIBLE_VERSION + '\n' +
                                         "Branch: ${BRANCH}"
         }
     }
@@ -743,7 +735,7 @@ node('master') {
                     DOCKERFILE_CONTENTS = DOCKERFILE_CONTENTS_2_DOT_16
 
                     if (secondkey >= '16') {
-                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll( "collections_paths", "collections_path")
+                        GLOB_ANSCONFIG = ANSIBLE_CONFIG_CONTENTS.replaceAll('collections_paths', 'collections_path')
                     }
                 }
             }
@@ -768,7 +760,7 @@ node('master') {
             ansibleTestingImage = docker.build(docker_object_name, "--build-arg TARGET_HOST=${TARGET_HOST} --build-arg TARGET_HOST_PRIVATE_KEY='sshkey' .")
             sh 'rm sshkey'
         }
-        //  sh 'chmod -R 777 .' <<-- for a test
+    //  sh 'chmod -R 777 .' <<-- for a test
     }
     stage ('Build Collection and Install') {
         ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
@@ -861,85 +853,124 @@ node('master') {
             }
         }
     }
-    try{
+    try {
         stage('Ansible Certification Tests') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}") {
                 dir("${REPO}") {
-                    dir("ansible_collections/ibm/${REPO}") {
+                    out = sh (script: 'ansible-test sanity || true', returnStdout: true)
 
-                        out = sh (script: 'ansible-test sanity || true', returnStdout: true)
+                    echo '----------------------------- Sanity output ------------------------------'
+                    echo out
+                    echo '--------------------------------------------------------------------------'
 
-                        echo '----------------------------- Sanity output ------------------------------'
-                        echo out
-                        echo '--------------------------------------------------------------------------'
+                    checkForAnsibleTestErrors(out)
 
-                        checkForAnsibleTestErrors(out)
-
-                        if (RUN_ANSIBLE_LINT.toBoolean()) {
-                            vstring = ''
-                            if (ANSIBLE_LINT_VERSION.length() > 0) {
-                                vstring = '==' + ANSIBLE_LINT_VERSION + ' '
-                            }
-
-                            inout = sh (script: 'pip3 install ansible-lint' + vstring + ' || true', returnStdout: true)
-                            versioninfo = sh(script: 'ansible-lint --version || true', returnStdout: true)
-
-                            out = sh (script: 'ansible-lint --profile ' + LINT_PROFILE + ' -c .ansible-lint 2>&1 || true', returnStdout: true)
-                            echo '\n-------------------------- Ansible lint output ---------------------------'
-                            echo 'install: ' + inout
-                            echo '\n-----------'
-                            echo 'lv requested: ' + ANSIBLE_LINT_VERSION
-                            echo 'lint version: ' + versioninfo
-                            echo 'lint profile: ' + LINT_PROFILE
-                            echo '\n-----------'
-                            if (VERBOSITY.toBoolean()) {
-                                echo 'output: ' + out
-                            }
-                            echo '\n--------------------------------------------------------------------------'
-                            checkForAnsibleLintErrors(out)
+                    if (RUN_ANSIBLE_LINT.toBoolean()) {
+                        vstring = ''
+                        if (ANSIBLE_LINT_VERSION.length() > 0) {
+                            vstring = '==' + ANSIBLE_LINT_VERSION + ' '
                         }
+
+                        inout = sh (script: 'pip3 install ansible-lint' + vstring + ' || true', returnStdout: true)
+                        versioninfo = sh(script: 'ansible-lint --version || true', returnStdout: true)
+
+                        out = sh (script: 'ansible-lint --profile ' + LINT_PROFILE + ' -c .ansible-lint 2>&1 || true', returnStdout: true)
+                        echo '\n-------------------------- Ansible lint output ---------------------------'
+                        echo 'install: ' + inout
+                        echo '\n-----------'
+                        echo 'lv requested: ' + ANSIBLE_LINT_VERSION
+                        echo 'lint version: ' + versioninfo
+                        echo 'lint profile: ' + LINT_PROFILE
+                        echo '\n-----------'
+                        if (VERBOSITY.toBoolean()) {
+                            echo 'output: ' + out
+                        }
+                        echo '\n--------------------------------------------------------------------------'
+                        checkForAnsibleLintErrors(out)
+                    }
+                    if (RUN_YAML_LINT.toBoolean()) {
+                        inout = sh (script: 'pip3 install yamllint || true', returnStdout: true)
+                        versioninfo = sh(script: 'yamllint --version || true', returnStdout: true)
+
+                        dir("changelogs/fragments") {
+                            yout = sh(script: "yamllint . 2>&1 || true", returnStdout: true)
+                            otherout = sh(script: 'pwd || true', returnStdout: true)
+                            echo '\n-------------------------- yaml lint output ---(yamllint)----------------'
+                            echo 'y install: ' + inout
+                            echo 'yamllint version: ' + versioninfo
+                            echo 'y output: \n' + yout
+                            echo 'wd: ' + otherout
+                            echo "repo: ${REPO}"
+                            echo '\n--------------------------------------------------------------------------'
+                        }
+                    }
+                    if (RUN_PYFLAKES.toBoolean()) {
+                        inout = sh(script: 'pip3 install pyflakes || true', returnStdout: true)
+                        versioninfo = sh(script: 'pyflakes --version || true', returnStdout: true)
+
+                        otherout = sh(script: 'pwd', returnStdout: true)
+                        outt = sh(script: 'pyflakes tests/functional 2>&1 || true', returnStdout: true)
+                        otherout2 = sh(script: 'pwd', returnStdout: true)
+                        outp = sh(script: 'pyflakes plugins 2>&1 || true', returnStdout: true)
+                        echo '\n-------------------------- pyflakes output ---------------------------'
+                        echo 'p install: ' + inout
+                        echo 'pyflakes version: ' + versioninfo
+                        echo 'oo: ' + otherout
+                        echo 'p output: \n' + outp + '\n-- ^^ plugins -- vv tests --\nv output: \n' + outt
+                        echo 'oo2: ' + otherout2
+                        echo '\n-----------------------------\n'
+                        echo '\n--------------------------------------------------------------------------'
                     }
                 }
             }
         }
-    }catch(e){
+    } catch(e){
         echo e.toString()
         build_ok = false
     }
-    try{
+    try {
         stage('Check for fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
-                    sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
-                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH};')
-                    sh (script: 'git pull origin ${PULL_REQUEST_BASE_BRANCH};')
-                    sh (script: 'git fetch')
-                    echo '---------------Check for fragments in base--------------------------------'
-                    ls_base = sh (script: 'ls -1 | wc -l', returnStdout: true)
-                    echo 'fragments in base: ' + ls_base
-                    // sh (script: 'git checkout ${PULL_REQUEST_BASE_BRANCH}')
-                    echo '---------------Check for fragments in branch------------------------------'
-                    sh (script: 'git checkout ${BRANCH}')
-                    // sh (script: 'git checkout ${BRANCH}')
-                    sh (script: 'git pull origin ${BRANCH}')
-                    sh (script: 'git fetch')
-                    ls_all = sh (script: 'ls -1 | wc -l', returnStdout: true)
-                    echo 'fragments in branch: ' + ls_all
-                    echo '--------------------------------------------------------------------------'
-                    if ( ls_all > ls_base ) {
-                        echo 'Changelog entries found'
+                    echo '-------------------------- Fragment Test ---------------------------------'
+
+                    def fragid = ''
+                    msg = ''
+                    trip = false
+
+                    if (FRAGMENT_ID.length() > 0) {
+                        fragid = FRAGMENT_ID
+                        msg = 'Fragment provided: ' + fragid
                     }else{
+                        fragid = "${BRANCH}".replaceAll("[^0-9]", "")
+                        msg = 'Fragment found: ' + fragid
+                    }
+
+                    if (fragid.length() > 0 ) {
+                        command = "ls *" + fragid + '* | wc -l'
+                        res = sh(script: "${command} || true", returnStdout: true)
+                        if (res.toInteger() > 0 )  {
+                            msg += "\nMatching Fragment ${fragid} found."
+                        } else {
+                            msg += "\nNO fragment ${fragid} found."
+                            trip = true
+                        }
+                    }else {
+                        msg += "\nNO fragment id found.. skipping test"
+                    }
+                    echo "Result: " + msg
+                    echo '--------------------------------------------------------------------------'
+                    if (trip ) {
                         error("Changelog fragment error: fragment not added")
                     }
-                    echo '--------------------------------------------------------------------------'
                 }
             }
         }
-    }catch(e){
+    } catch(e){
         echo e.toString()
         build_ok = false
     }
-    try{
+    try {
         stage('Ansible Lint in Fragments') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}") {
@@ -953,7 +984,7 @@ node('master') {
                 }
             }
         }
-    }catch(e){
+    } catch(e){
         echo e.toString()
         build_ok = false
     }
@@ -1026,7 +1057,7 @@ node('master') {
                         sh "cat playbooks/ansible.cfg"
                         echo "--- this is in dockerenv ^^^"
 
-                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle'
+                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle randomname'
 
                         // Install collection so module_utils imports will be valid in modules
                         // Attempt to build the collection
@@ -1038,7 +1069,7 @@ node('master') {
                         def tests = ""
                         dir('tests') {
                             def branchToCompare = "${PULL_REQUEST_BASE_BRANCH}"
-                            if ( "${BRANCH}" == 'dev') {
+                            if ("${BRANCH}" == 'dev') {
                                 branchToCompare = 'origin/main'
                             }
                             sh 'git branch'
@@ -1104,20 +1135,19 @@ node('master') {
                                 if (VERBOSITY.toBoolean()){
                                     echo '\r\n Pre-test configuration data---------------------vvv'
                                     out = sh (script: "set | grep -i ansib || true", returnStdout: true)
-                                    echo out
+                                    echo 'environment: ' + out
                                     out = sh (script: "ansible-config dump 2>&1 || true", returnStdout: true)
                                     echo out
                                     out = sh (script: "ansible-galaxy --version 2>&1 || true", returnStdout: true)
                                     echo out
                                     out = sh (script: "ansible-galaxy collection list -v 2>&1 || true", returnStdout: true)
                                     echo out
-                                    out = sh (script: "ls -l /home/jenkins/.ansible/collections/ansible_collections/ || true", returnStdout: true)
-                                    echo out
+                                    // out = sh (script: "ls -l ${env.WORKSPACE}/${REPO}/collections/ansible_collections/ || true", returnStdout: true)
+                                    // echo out
                                     out = sh (script: "cat ${env.WORKSPACE}/${REPO}/configuration.yml || true", returnStdout: true)
-                                    echo "on build box: "
-                                    echo out
+                                    echo "config on build box: " + out
                                     out = "${env.WORKSPACE}/${REPO}"
-                                    echo out
+                                    echo "test zone: " + out
                                     out = sh (script: "python3 -m pytest --version 2>&1 || true", returnStdout: true)
                                     echo out
                                     echo '\r\n Pre-test configuration data---------------------^^^'
@@ -1200,13 +1230,11 @@ node('master') {
         BUILD_USER = currentBuild.getBuildCauses()[0].shortDescription + " / " + currentBuild.getBuildCauses()[0].userId
         echo "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER}"
         slackSend channel: 'ansible_core_pipeline',
-                  color: COLOR_MAP[currentBuild.currentResult],
+                  color: cOLORMAP[currentBuild.currentResult],
                   message: "Build ${currentBuild.currentResult} - ${env.JOB_NAME} ${env.BUILD_NUMBER}. ${BUILD_USER} and branch ${BRANCH}.\n",
                   notifyCommitters : true,
                   token: "khHdIxFQQGwogXiweiexn4RO"
     }
     out = sh script: "docker rmi -f ${docker_object_name}", returnStdout: true
     echo '\r\ncleanup run: \r\n' + out + '\r\n'
-    echo out
-
 }

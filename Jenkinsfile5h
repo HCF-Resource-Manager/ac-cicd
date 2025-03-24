@@ -218,6 +218,7 @@ def generateYmlConfig = { hostName, username, pythonPath, environment, volumes->
     def listvolumes = listmarker + volumes.split("\\n").join('\n' + listmarker)
     return """host: ${hostName}
 user: ${username}
+ssh_key: "~/.ssh/id_rsa"
 python_path: ${pythonPath}
 environment:
 ${indentedEnv}
@@ -1055,7 +1056,7 @@ node('master') {
                         sh "cat playbooks/ansible.cfg"
                         echo "--- this is in dockerenv ^^^"
 
-                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle'
+                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle randomname'
 
                         // Install collection so module_utils imports will be valid in modules
                         // Attempt to build the collection
