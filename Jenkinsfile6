@@ -1214,7 +1214,7 @@ node('master') {
                                     test = "-k '${params.TEST_NAME}' "
                                 }
 
-                                escalation = '--user_adm $USERNAME --user_method $params.ESCALATION_METHOD --ansible_promp "$params.ANSIBLE_PROMPT_ESCALATION" --password $params.PASSWORD_ESCALATION --ssh_key "~/.ssh/id_rsa"'
+                                escalation = "--user_adm $USERNAME --user_method $params.ESCALATION_METHOD --ansible_promp "$params.ANSIBLE_PROMPT_ESCALATION" --ssh_key "~/.ssh/id_rsa" --log-level=CRITICAL --disable-warnings"
 
                                 for (int i = 0; i < 10; i++) {
                                     sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
