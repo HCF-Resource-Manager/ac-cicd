@@ -1188,7 +1188,7 @@ node('master') {
                                         escalation += "--ansible_promp '${params.ANSIBLE_PROMPT_ESCALATION}' "
                                     }
                                     if("${params.PASSWORD_ESCALATION}"){
-                                        escalation += "--password '${params.PASSWORD_ESCALATION}' --ssh_key '~/.ssh/id_rsa' --log-level=CRITICAL --disable-warnings "
+                                        escalation += "--password '$params.PASSWORD_ESCALATION' --ssh_key '~/.ssh/id_rsa' --log-level=CRITICAL --disable-warnings "
                                     }
 
                                     for (int i = 0; i < 10; i++) {
