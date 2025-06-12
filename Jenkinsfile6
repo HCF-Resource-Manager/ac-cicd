@@ -1180,7 +1180,16 @@ node('master') {
                                         test = "-k '${params.TEST_NAME}' "
                                     }
 
-                                    escalation = "--user_adm ${USERNAME} --user_method ${params.ESCALATION_METHOD} --ansible_promp '${params.ANSIBLE_PROMPT_ESCALATION}' --ssh_key '~/.ssh/id_rsa' --log-level=CRITICAL --disable-warnings"
+                                    escalation = "--user_adm '${USERNAME}' "
+                                    if("${params.ESCALATION_METHOD}"){
+                                        escalation += "--user_method '${params.ESCALATION_METHOD}' "
+                                    }
+                                    if("${params.ANSIBLE_PROMPT_ESCALATION}"){
+                                        escalation += "--ansible_promp '${params.ANSIBLE_PROMPT_ESCALATION}' "
+                                    }
+                                    if("${params.PASSWORD_ESCALATION}"){
+                                        escalation += "--password '${params.PASSWORD_ESCALATION}' --ssh_key '~/.ssh/id_rsa' --log-level=CRITICAL --disable-warnings "
+                                    }
 
                                     for (int i = 0; i < 10; i++) {
                                         out = sh (script: "python3 -m pytest ${verbosity} -x -rf ${markers} ${test} --durations=0 --host-pattern=all -Z=${env.WORKSPACE}/${REPO}/configuration.yml ${tests} ${escalation} 2>&1 || true", returnStdout: true)
@@ -1214,7 +1223,16 @@ node('master') {
                                     test = "-k '${params.TEST_NAME}' "
                                 }
 
-                                escalation = "--user_adm ${USERNAME} --user_method ${params.ESCALATION_METHOD} --ansible_promp '${params.ANSIBLE_PROMPT_ESCALATION}' --ssh_key '~/.ssh/id_rsa' --log-level=CRITICAL --disable-warnings"
+                                escalation = "--user_adm '${USERNAME}' "
+                                if("${params.ESCALATION_METHOD}"){
+                                    escalation += "--user_method '${params.ESCALATION_METHOD}' "
+                                }
+                                if("${params.ANSIBLE_PROMPT_ESCALATION}"){
+                                    escalation += "--ansible_promp '${params.ANSIBLE_PROMPT_ESCALATION}' "
+                                }
+                                if("${params.PASSWORD_ESCALATION}"){
+                                    escalation += "--password '${params.PASSWORD_ESCALATION}' --ssh_key '~/.ssh/id_rsa' --log-level=CRITICAL --disable-warnings "
+                                }
 
                                 for (int i = 0; i < 10; i++) {
                                     sh (script: "cp ${env.WORKSPACE}/${REPO}/galaxy.yml ${env.WORKSPACE}/${REPO}/tests/")
