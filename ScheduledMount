@@ -1,0 +1,22 @@
+pipeline {
+    agent any
+
+    environment {
+        // Inject the secret stored in Jenkins credentials
+        AC_TOOL_PASS = credentials('AC-TOOL-PASS') // Replace with your actual Jenkins credentials ID
+    }
+
+    stages {
+        stage('Setup Dev Tools') {
+            steps {
+                // Clone the repo
+                git url: 'https://github.ibm.com/zos-ansible/ansible-core-dev-tools', branch: 'main'
+
+                // Run the setup script
+                sh '''
+                    cd ansible-core-dev-tools && python3 setup.py -k "$AC_TOOL_PASS" -p "$WORKSPACE"
+                '''
+            }
+        }
+    }
+}
