@@ -10,7 +10,7 @@ pipeline {
         stage('Setup Dev Tools') {
             steps {
                 // Clone the repo
-                git url: 'https://github.ibm.com/zos-ansible/ansible-core-dev-tools', branch: 'main'
+                git url: 'https://github.ibm.com/zos-ansible/ansible-core-dev-tools', branch: 'main', credentialsId: 'hcfres_ghe_cicd_key'
 
                 // Run the setup script
                 sh '''
