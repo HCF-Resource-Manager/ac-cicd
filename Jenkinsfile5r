@@ -630,8 +630,8 @@ bandit \
 pipdeptree \
 && pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-core==${ANSIBLE_VERSION} \
-pytest==7.4.2 \
-pytest-ansible==4.1.1
+pytest==8.4.1 \
+pytest-ansible==25.8.0
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
