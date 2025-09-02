@@ -1053,7 +1053,8 @@ node('master') {
                 -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
                 -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
                 -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
-                -e ANSIBLE_TIMEOUT=30") {
+                -e ANSIBLE_TIMEOUT=30\
+                -e TZ=America/Los_Angeles") {
                     dir("${REPO}") {
                         dir('playbooks') {
                             writeFile(file: 'ansible.cfg', text: GLOB_ANSCONFIG)
