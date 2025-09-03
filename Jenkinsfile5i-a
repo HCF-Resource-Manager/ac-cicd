@@ -184,15 +184,16 @@ ZoVersion = ZoVersions[1]
 ZoLibPath2 = ZoPaths[0] + '/lib/'
 if (ZoVersion > '1.2.9') {
     ZoLibPath = ZoPaths[0] + '/lib/' + PythonVer + '/'
-    if (USE_WHEELS.toBoolean()) {
-        ZoLibPath = '/zoau/wheels/v' + ZoVersion + '/' + PythonVer
-    }
 }
 else {
     ZoLibPath = ZoPaths[0] + '/lib/'
 }
 
-// HERE
+
+if (USE_WHEELS.toBoolean()) {
+    ZoLibPath = '/zoau/wheels/v' + ZoVersion + '/' + PythonVer
+}
+
 MyPythonPath = "${params.PYTHON_PATH}".replaceAll('PYTHONDIR', PythonPaths[0]).trim()
 
 /*
@@ -229,6 +230,7 @@ VOLUMES:
 ${listvolumes}
 """
 }
+
 
 // Build and return a string to use as contents for an Ansible inventory file
 // def generateInventory = { hostName, username, pythonPath ->
@@ -679,22 +681,24 @@ node('master') {
     build_ok = true
     stage('Checkout') {
         echo "\n-------------------- Starting pipeline -------------------"
-        echo 'Pipeline Code: J6j patch 11 on 25 June, 2024'
-        echo 'Target: ' + TARGET_HOST
-        echo 'Python: ' + PythonTitles[0]
-        echo 'zoau ver: ' + ZoTitles[0]
-        echo 'Ansible: ' + ANSIBLE_VERSION
-        echo 'Branch: ' + BRANCH
-        echo 'Base Branch: ' + PULL_REQUEST_BASE_BRANCH
-        echo 'Fragment id: ' + FRAGMENT_ID
-        echo 'Run All tests: ' + RUN_ALL_TESTS.toBoolean()
-        echo 'Verbosity: ' + VERBOSITY.toBoolean()
-        echo 'Ans Test Only: ' + ANSIBLE_TEST_ONLY.toBoolean()
-        echo 'Ansible-Lint: ' + RUN_ANSIBLE_LINT.toBoolean()
-        echo 'YamlLint: ' + RUN_YAML_LINT.toBoolean()
-        echo 'PyFlakes: ' + RUN_PYFLAKES.toBoolean()
-        echo 'Bandit Sev: ' + BANDIT_SEVERITY
+        echo "Pipeline Code: J5i patch 10 on 8 April, 2025"
+        echo "Target: " + TARGET_HOST
+        echo "Python: " + PythonTitles[0]
+        echo "zoau ver: " + ZoTitles[0]
+        echo "Ansible: " + ANSIBLE_VERSION
+        echo "Branch: " + BRANCH
+        echo "Base Branch: " + PULL_REQUEST_BASE_BRANCH
+        echo "Skip Fragment:" + SKIP_FRAGMENT.toBoolean()
+        echo "Fragment id: " + FRAGMENT_ID
+        echo "Run All tests: " + RUN_ALL_TESTS.toBoolean()
+        echo "Verbosity: " + VERBOSITY.toBoolean()
+        echo "Ans Test Only: " + ANSIBLE_TEST_ONLY.toBoolean()
+        echo "Ansible-Lint: " + RUN_ANSIBLE_LINT.toBoolean()
+        echo "YamlLint: " + RUN_YAML_LINT.toBoolean()
+        echo "PyFlakes: " + RUN_PYFLAKES.toBoolean()
+        echo "Bandit Sev: " + BANDIT_SEVERITY
         echo 'Wheel Mode: ' + USE_WHEELS.toBoolean()
+
         echo "\n----------------------------------------------------------"
 
         checkout()
@@ -936,35 +940,40 @@ node('master') {
             ansibleTestingImage.inside("-u jenkins -e TARGET_HOST=${TARGET_HOST}"){
                 dir("${REPO}/changelogs/fragments") {
                     echo '-------------------------- Fragment Test ---------------------------------'
-
-                    def fragid = ''
-                    msg = ''
-                    trip = false
-
-                    if (FRAGMENT_ID.length() > 0) {
-                        fragid = FRAGMENT_ID
-                        msg = 'Fragment provided: ' + fragid
-                    }else{
-                        fragid = "${BRANCH}".replaceAll("[^0-9]", "")
-                        msg = 'Fragment found: ' + fragid
-                    }
-
-                    if (fragid.length() > 0 ) {
-                        command = "ls *" + fragid + '* | wc -l'
-                        res = sh(script: "${command} || true", returnStdout: true)
-                        if (res.toInteger() > 0 )  {
-                            msg += "\nMatching Fragment ${fragid} found."
-                        } else {
-                            msg += "\nNO fragment ${fragid} found."
-                            trip = true
-                        }
+                    if (SKIP_FRAGMENT.toBoolean()) {
+                        echo( "Skip fragments was chosen")
                     }else {
-                        msg += "\nNO fragment id found.. skipping test"
-                    }
-                    echo "Result: " + msg
-                    echo '--------------------------------------------------------------------------'
-                    if (trip ) {
-                        error("Changelog fragment error: fragment not added")
+                        echo( "Performing test")
+
+                        def fragid = ''
+                        msg = ''
+                        trip = false
+
+                        if (FRAGMENT_ID.length() > 0) {
+                            fragid = FRAGMENT_ID
+                            msg = 'Fragment provided: ' + fragid
+                        }else{
+                            fragid = "${BRANCH}".replaceAll("[^0-9]", "")
+                            msg = 'Fragment found: ' + fragid
+                        }
+
+                        if (fragid.length() > 0 ) {
+                            command = "ls *" + fragid + '* | wc -l'
+                            res = sh(script: "${command} || true", returnStdout: true)
+                            if (res.toInteger() > 0 )  {
+                                msg += "\nMatching Fragment ${fragid} found."
+                            } else {
+                                msg += "\nNO fragment ${fragid} found."
+                                trip = true
+                            }
+                        }else {
+                            msg += "\nNO fragment id found.. skipping test"
+                        }
+                        echo "Result: " + msg
+                        echo '--------------------------------------------------------------------------'
+                        if (trip ) {
+                            error("Changelog fragment error: fragment not added")
+                        }
                     }
                 }
             }
@@ -1045,7 +1054,8 @@ node('master') {
                 -e ANSIBLE_CONFIG=${env.WORKSPACE}/${REPO}/playbooks/ansible.cfg\
                 -e ANSIBLE_CONNECTION_PLUGINS=${env.WORKSPACE}/${REPO}/plugins/connection\
                 -e ANSIBLE_MODULE_UTILS=${env.WORKSPACE}/${REPO}/plugins/module_utils\
-                -e ANSIBLE_TIMEOUT=30") {
+                -e ANSIBLE_TIMEOUT=30\
+                -e TZ=America/Los_Angeles") {
                     dir("${REPO}") {
                         dir('playbooks') {
                             writeFile(file: 'ansible.cfg', text: GLOB_ANSCONFIG)
@@ -1060,7 +1070,7 @@ node('master') {
                         sh "cat playbooks/ansible.cfg"
                         echo "--- this is in dockerenv ^^^"
 
-                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle'
+                        sh script: 'pip3 install oyaml shellescape pytest_mock mock pycodestyle randomname'
 
                         // Install collection so module_utils imports will be valid in modules
                         // Attempt to build the collection
