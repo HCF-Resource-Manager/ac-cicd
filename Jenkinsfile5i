@@ -440,22 +440,22 @@ ARG GID=121
 
 SLIM_BUSTER_3_7 = """
 # ----------------- Docker Image for Testing Environment --------------------- #
-FROM python:3.7-slim-buster
+FROM python:3.7-slim-bullseye
 WORKDIR /usr/src/app """
 
 SLIM_BUSTER_3_8 = """
 # ----------------- Docker Image for Testing Environment --------------------- #
-FROM python:3.8-slim-buster
+FROM python:3.8-slim-bullseye
 WORKDIR /usr/src/app"""
 
 SLIM_BUSTER_3_9 = """
 # ----------------- Docker Image for Testing Environment --------------------- #
-FROM python:3.9-slim-buster
+FROM python:3.9-slim-bullseye
 WORKDIR /usr/src/app"""
 
 SLIM_BUSTER_3_11 = """
 # ----------------- Docker Image for Testing Environment --------------------- #
-FROM python:3.11-slim-buster
+FROM python:3.11-slim-bullseye
 WORKDIR /usr/src/app"""
 /*  Paths for ansible module and config persist after the volume mount by Jenkins */
 ENV_VARS = """
@@ -600,8 +600,6 @@ gnupg2 \
 git \
 python3-pip \
 openssh-client \
-python2.7 \
-python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
@@ -626,16 +624,14 @@ gnupg2 \
 git \
 python3-pip \
 openssh-client \
-python2.7 \
-python-pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install --upgrade pip \
 && pip3 ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 bandit \
 pipdeptree \
 && pip ${VERBOSITY.toBoolean() ? '' : '-q'} install \
 ansible-core==${ANSIBLE_VERSION} \
-pytest==7.4.2 \
-pytest-ansible==4.1.1
+pytest==8.4.1 \
+pytest-ansible==25.8.0
 
 # ------------------ Copy Repository to Docker Image ------------------------- #
 COPY ${REPO} ./${REPO}/
